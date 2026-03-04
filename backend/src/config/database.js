@@ -1,6 +1,7 @@
 const { Sequelize } = require('sequelize');
 
 const isProduction = process.env.NODE_ENV === 'production';
+const useSSL = process.env.DATABASE_SSL !== 'false';
 
 // Render/Railway provide DATABASE_URL; fall back to individual env vars for dev
 const sequelize = process.env.DATABASE_URL
@@ -8,9 +9,7 @@ const sequelize = process.env.DATABASE_URL
       dialect: 'postgres',
       logging: false,
       pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
-      dialectOptions: {
-        ssl: { require: true, rejectUnauthorized: false },
-      },
+      dialectOptions: useSSL ? { ssl: { require: true, rejectUnauthorized: false } } : {},
     })
   : new Sequelize(
       process.env.DB_NAME,
