@@ -2,24 +2,118 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { Plus, Search, Anchor } from 'lucide-react';
+import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 
-const STATUS_COLORS = {
-  active: 'bg-green-100 text-green-800',
+const STATUS_BADGE = {
+  active: 'bg-emerald-100 text-emerald-700',
   inactive: 'bg-red-100 text-red-700',
-  under_review: 'bg-yellow-100 text-yellow-800',
-  proposed: 'bg-blue-100 text-blue-800',
+  under_review: 'bg-amber-100 text-amber-700',
+  proposed: 'bg-sky-100 text-sky-700',
 };
 
-const AREA_TYPE_COLORS = {
-  lmma: 'bg-ocean-100 text-ocean-800',
+const AREA_TYPE_BADGE = {
+  lmma: 'bg-ocean-100 text-ocean-700',
   taboo_area: 'bg-red-100 text-red-700',
-  patrol_zone: 'bg-yellow-100 text-yellow-800',
-  buffer_zone: 'bg-purple-100 text-purple-800',
-  spawning_aggregation: 'bg-green-100 text-green-800',
+  patrol_zone: 'bg-amber-100 text-amber-700',
+  buffer_zone: 'bg-violet-100 text-violet-700',
+  spawning_aggregation: 'bg-emerald-100 text-emerald-700',
   other: 'bg-gray-100 text-gray-600',
 };
+
+const BORDER_COLOR = {
+  lmma: '#0369a1',
+  taboo_area: '#dc2626',
+  patrol_zone: '#ca8a04',
+  buffer_zone: '#7c3aed',
+  spawning_aggregation: '#059669',
+  other: '#6b7280',
+};
+
+function AreaCard({ area }) {
+  return (
+    <div
+      className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 p-5 hover:shadow-md transition-shadow duration-200"
+      style={{ borderLeftColor: BORDER_COLOR[area.areaType] || '#6b7280' }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0 mr-3">
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight">{area.areaName}</h3>
+          <div className="flex items-center gap-1 mt-1 text-gray-400 text-xs">
+            <MapPin size={11} />
+            {area.province} &middot; {area.island}
+          </div>
+        </div>
+        <span className={`badge ${STATUS_BADGE[area.managementStatus] || 'bg-gray-100 text-gray-600'} flex-shrink-0 capitalize`}>
+          {area.managementStatus?.replace(/_/g, ' ')}
+        </span>
+      </div>
+
+      <p className="text-xs text-gray-500 mb-3">Community: {area.community}</p>
+
+      <div className="flex flex-wrap gap-1.5">
+        <span className={`badge ${AREA_TYPE_BADGE[area.areaType] || 'bg-gray-100 text-gray-600'} capitalize`}>
+          {area.areaType?.replace(/_/g, ' ')}
+        </span>
+        {area.areaSizeHa && (
+          <span className="badge bg-gray-100 text-gray-500">
+            {parseFloat(area.areaSizeHa).toFixed(1)} ha
+          </span>
+        )}
+        {area.protectionLevel && (
+          <span className="badge bg-gray-50 text-gray-500 capitalize">
+            {area.protectionLevel?.replace(/_/g, ' ')}
+          </span>
+        )}
+      </div>
+
+      {area.isCurrentlyOpen !== null && area.isCurrentlyOpen !== undefined && (
+        <div className={`flex items-center gap-1.5 mt-3 text-xs font-medium ${area.isCurrentlyOpen ? 'text-emerald-600' : 'text-red-500'}`}>
+          {area.isCurrentlyOpen ? (
+            <><Waves size={12} /> Open to fishing</>
+          ) : (
+            <><Shield size={12} /> Closed &mdash; Taboo</>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
+      <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+      <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
+      <div className="h-3 bg-gray-100 rounded w-1/3 mb-3" />
+      <div className="flex gap-2">
+        <div className="h-5 bg-gray-100 rounded-full w-20" />
+        <div className="h-5 bg-gray-100 rounded-full w-14" />
+      </div>
+    </div>
+  );
+}
+
+function Pagination({ pagination, filters, setFilters }) {
+  if (pagination.pages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between text-sm text-gray-500">
+      <span>Page {filters.page} of {pagination.pages}</span>
+      <div className="flex gap-1">
+        <button disabled={filters.page <= 1} onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
+          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40">Prev</button>
+        {Array.from({ length: Math.min(pagination.pages, 5) }, (_, i) => i + 1).map(p => (
+          <button key={p} onClick={() => setFilters(f => ({ ...f, page: p }))}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filters.page === p ? 'bg-ocean-700 text-white' : 'border bg-white text-gray-600 hover:bg-gray-50'}`}>
+            {p}
+          </button>
+        ))}
+        <button disabled={filters.page >= pagination.pages} onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
+          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40">Next</button>
+      </div>
+    </div>
+  );
+}
 
 export default function MarineAreasPage() {
   const [areas, setAreas] = useState([]);
@@ -45,36 +139,48 @@ export default function MarineAreasPage() {
 
   useEffect(() => { fetchAreas(); }, [filters]);
 
+  const hasFilters = filters.province || filters.areaType || filters.managementStatus || filters.search;
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 fade-in">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Marine Areas</h2>
-          <p className="text-gray-500 text-sm">
-            {stats.total || 0} areas · {stats.totalAreaHa ? `${parseFloat(stats.totalAreaHa).toFixed(0)} ha` : '0 ha'} total protected area
+          <p className="text-gray-400 text-sm">
+            {stats.total || 0} areas &mdash; {stats.totalAreaHa ? `${parseFloat(stats.totalAreaHa).toFixed(0)} ha` : '0 ha'} protected
           </p>
         </div>
-        <Link to="/marine/new" className="btn-primary flex items-center gap-2">
-          <Plus size={16} />
+        <Link to="/marine/new" className="btn-primary flex items-center gap-2 text-sm">
+          <Plus size={15} />
           New Marine Area
         </Link>
       </div>
 
-      {/* Stats by type */}
+      {/* Type summary chips */}
       {stats.byType?.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {stats.byType.map(t => (
-            <span key={t.areaType} className={`badge ${AREA_TYPE_COLORS[t.areaType] || 'bg-gray-100 text-gray-600'}`}>
-              {t.areaType?.replace(/_/g, ' ')}: {t.count}
-            </span>
+            <button
+              key={t.areaType}
+              onClick={() => setFilters(f => ({ ...f, areaType: f.areaType === t.areaType ? '' : t.areaType, page: 1 }))}
+              className={`badge cursor-pointer transition-all ${
+                filters.areaType === t.areaType
+                  ? (AREA_TYPE_BADGE[t.areaType] || 'bg-gray-200 text-gray-700') + ' ring-2 ring-offset-1 ring-current'
+                  : AREA_TYPE_BADGE[t.areaType] || 'bg-gray-100 text-gray-600'
+              } capitalize hover:opacity-90`}
+            >
+              {t.areaType?.replace(/_/g, ' ')}: <strong className="ml-1">{t.count}</strong>
+            </button>
           ))}
         </div>
       )}
 
       {/* Filters */}
-      <div className="card py-3 flex flex-wrap gap-3">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
+        <Filter size={14} className="text-gray-400" />
         <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input className="form-input pl-8 py-2 text-sm" placeholder="Search area name, community..."
             value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value, page: 1 }))} />
         </div>
@@ -94,60 +200,42 @@ export default function MarineAreasPage() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="proposed">Proposed</option>
+          <option value="under_review">Under Review</option>
         </select>
+        {hasFilters && (
+          <button
+            onClick={() => setFilters({ province: '', areaType: '', managementStatus: '', search: '', page: 1 })}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline"
+          >Clear</button>
+        )}
       </div>
 
       {/* Grid */}
-      {loading ? (
-        <div className="text-center py-12 text-ocean-600">Loading...</div>
-      ) : areas.length === 0 ? (
-        <div className="card text-center py-16 text-gray-400">
-          <Anchor size={40} className="mx-auto mb-3 opacity-30" />
-          <p>No marine areas found</p>
+      {!loading && areas.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-100 py-20 text-center">
+          <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Anchor size={24} className="text-gray-300" />
+          </div>
+          <p className="text-gray-500 font-medium mb-1">No marine areas found</p>
+          <p className="text-gray-400 text-sm mb-5">
+            {hasFilters ? 'Try adjusting your filters' : 'Register the first marine protected area'}
+          </p>
+          {!hasFilters && (
+            <Link to="/marine/new" className="btn-primary text-sm inline-flex items-center gap-2">
+              <Plus size={14} /> New Marine Area
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {areas.map(area => (
-            <div key={area.id} className="card hover:shadow-md transition-shadow border-l-4"
-              style={{ borderLeftColor: { lmma: '#0369a1', taboo_area: '#dc2626', patrol_zone: '#ca8a04', buffer_zone: '#7c3aed', spawning_aggregation: '#059669' }[area.areaType] || '#6b7280' }}>
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-gray-800">{area.areaName}</h3>
-                <span className={`badge ${STATUS_COLORS[area.managementStatus] || 'bg-gray-100'}`}>
-                  {area.managementStatus}
-                </span>
-              </div>
-              <div className="space-y-1 text-sm text-gray-500">
-                <p>{area.province} · {area.island}</p>
-                <p>Community: {area.community}</p>
-                <div className="flex gap-2 mt-2">
-                  <span className={`badge ${AREA_TYPE_COLORS[area.areaType] || 'bg-gray-100 text-gray-600'}`}>
-                    {area.areaType?.replace(/_/g, ' ')}
-                  </span>
-                  {area.areaSizeHa && (
-                    <span className="badge bg-gray-100 text-gray-600">{area.areaSizeHa} ha</span>
-                  )}
-                </div>
-                {area.isCurrentlyOpen !== undefined && (
-                  <p className={`text-xs mt-1 font-medium ${area.isCurrentlyOpen ? 'text-green-600' : 'text-red-600'}`}>
-                    {area.isCurrentlyOpen ? '⚑ Open to fishing' : '⊘ Closed (taboo)'}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+            : areas.map(area => <AreaCard key={area.id} area={area} />)
+          }
         </div>
       )}
 
-      {pagination.pages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
-            <button key={p} onClick={() => setFilters(f => ({ ...f, page: p }))}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filters.page === p ? 'bg-ocean-700 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
+      <Pagination pagination={pagination} filters={filters} setFilters={setFilters} />
     </div>
   );
 }
