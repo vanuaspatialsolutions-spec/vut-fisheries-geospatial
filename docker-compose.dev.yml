@@ -1,0 +1,23 @@
+version: '3.8'
+
+# Development only — uses local file storage, no S3 needed
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: cbfm_db_dev
+    environment:
+      POSTGRES_DB: cbfm_db
+      POSTGRES_USER: cbfm_user
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbfm_user -d cbfm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:

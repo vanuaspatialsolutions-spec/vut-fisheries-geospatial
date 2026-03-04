@@ -1,0 +1,132 @@
+import { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import { VANUATU_CENTER, VANUATU_ZOOM } from '../../utils/constants';
+
+// Fix Leaflet default icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const AREA_COLORS = {
+  lmma: '#0369a1',
+  taboo_area: '#dc2626',
+  patrol_zone: '#ca8a04',
+  buffer_zone: '#7c3aed',
+  spawning_aggregation: '#059669',
+  other: '#6b7280',
+};
+
+const MONITORING_COLORS = {
+  reef_fish_survey: '#0369a1',
+  invertebrate_survey: '#059669',
+  coral_cover: '#ea580c',
+  seagrass_survey: '#7c3aed',
+  mangrove_survey: '#16a34a',
+  catch_composition: '#ca8a04',
+};
+
+function FlyTo({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) map.flyTo(center, zoom || 10);
+  }, [center, zoom, map]);
+  return null;
+}
+
+export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], flyTo }) {
+  const onEachFeature = (feature, layer) => {
+    const p = feature.properties;
+    layer.bindPopup(`
+      <div class="text-sm">
+        <strong class="text-ocean-900">${p.areaName}</strong><br/>
+        <span class="text-gray-500">Type: ${p.areaType?.replace(/_/g, ' ')}</span><br/>
+        <span class="text-gray-500">Community: ${p.community}</span><br/>
+        ${p.areaSizeHa ? `<span class="text-gray-500">Area: ${p.areaSizeHa} ha</span><br/>` : ''}
+        <span class="${p.managementStatus === 'active' ? 'text-green-600' : 'text-red-500'}">
+          ${p.managementStatus}
+        </span>
+      </div>
+    `);
+  };
+
+  const styleArea = (feature) => ({
+    color: AREA_COLORS[feature.properties?.areaType] || '#6b7280',
+    weight: 2,
+    opacity: 0.9,
+    fillOpacity: 0.25,
+    fillColor: AREA_COLORS[feature.properties?.areaType] || '#6b7280',
+  });
+
+  return (
+    <MapContainer center={VANUATU_CENTER} zoom={VANUATU_ZOOM} className="w-full h-full rounded-xl">
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      />
+
+      {flyTo && <FlyTo center={flyTo.center} zoom={flyTo.zoom} />}
+
+      {/* Marine Areas (polygons) */}
+      {marineAreas && (
+        <GeoJSON
+          data={marineAreas}
+          style={styleArea}
+          onEachFeature={onEachFeature}
+        />
+      )}
+
+      {/* Community Survey points */}
+      {surveys.map((s) => (
+        s.latitude && s.longitude && (
+          <CircleMarker
+            key={s.id}
+            center={[s.latitude, s.longitude]}
+            radius={7}
+            pathOptions={{ color: '#0369a1', fillColor: '#38bdf8', fillOpacity: 0.8, weight: 2 }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <strong>{s.community}</strong><br />
+                <span className="text-gray-500">{s.province} – {s.island}</span><br />
+                <span className="text-gray-500">Survey: {s.surveyDate}</span><br />
+                {s.totalFishers && <span className="text-gray-500">Fishers: {s.totalFishers}</span>}
+                {s.hasCBFMCommittee && <span className="block text-green-600 text-xs mt-1">✓ Has CBFM Committee</span>}
+              </div>
+            </Popup>
+          </CircleMarker>
+        )
+      ))}
+
+      {/* Biological monitoring points */}
+      {monitoringPoints.map((m) => (
+        m.latitude && m.longitude && (
+          <CircleMarker
+            key={m.id}
+            center={[m.latitude, m.longitude]}
+            radius={6}
+            pathOptions={{
+              color: MONITORING_COLORS[m.monitoringType] || '#6b7280',
+              fillColor: MONITORING_COLORS[m.monitoringType] || '#9ca3af',
+              fillOpacity: 0.85,
+              weight: 2,
+            }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <strong>{m.siteName}</strong><br />
+                <span className="text-gray-500">{m.monitoringType?.replace(/_/g, ' ')}</span><br />
+                <span className="text-gray-500">{m.community} – {m.province}</span><br />
+                <span className="text-gray-500">Date: {m.surveyDate}</span><br />
+                {m.liveCoralCoverPct && <span className="text-gray-500">Coral: {m.liveCoralCoverPct}%</span>}
+              </div>
+            </Popup>
+          </CircleMarker>
+        )
+      ))}
+    </MapContainer>
+  );
+}
