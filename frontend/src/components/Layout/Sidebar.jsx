@@ -1,12 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Map, Database, Activity,
-  Anchor, ClipboardList,
+  Anchor, ClipboardList, Shield,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/fisheries-logo.png';
-
-
-// ─── Nav components ────────────────────────────────────────────────────────
 
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -52,10 +50,9 @@ function SectionLabel({ label }) {
 }
 
 export default function Sidebar() {
+  const { isAdmin } = useAuth();
   return (
     <aside className="w-56 bg-ocean-900 flex flex-col flex-shrink-0">
-
-      {/* Logo */}
       <div className="px-4 py-4 border-b border-white/8">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 bg-white rounded flex items-center justify-center flex-shrink-0 p-0.5">
@@ -68,20 +65,25 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 py-1 pl-2 pr-2 overflow-y-auto space-y-0.5">
         <SectionLabel label="Overview" />
         {mainNav.map(item => <NavItem key={item.to} {...item} />)}
 
         <SectionLabel label="Data Management" />
         {dataNav.map(item => <NavItem key={item.to} {...item} />)}
+
+        {isAdmin && (
+          <>
+            <SectionLabel label="Administration" />
+            <NavItem to="/admin" icon={Shield} label="Admin Panel" />
+          </>
+        )}
       </nav>
 
-      {/* Footer */}
       <div className="px-4 py-3 border-t border-white/8">
         <div className="flex items-center gap-1.5 mb-1">
           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-          <span className="text-ocean-400 text-[10px]">System Online · Demo Mode</span>
+          <span className="text-ocean-400 text-[10px]">System Online</span>
         </div>
         <p className="text-ocean-600 text-[10px]">
           © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
