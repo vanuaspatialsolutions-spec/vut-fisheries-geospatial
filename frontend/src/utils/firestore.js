@@ -314,7 +314,7 @@ export async function getPublishedGeoJSONDatasets() {
   const snap = await getDocs(collection(db, 'datasets'));
   return snap.docs
     .map(docToObj)
-    .filter(d => d.status === 'published' && d.fileFormat === 'geojson');
+    .filter(d => d.status === 'published' && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase()));
 }
 
 export async function getDatasetGeoJSON(dataset) {

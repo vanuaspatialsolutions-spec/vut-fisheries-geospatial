@@ -126,6 +126,14 @@ export default function MapPage() {
             {label}
           </span>
         ))}
+        {!loading && datasetLayers.length > 0 && (
+          <span className="ml-auto text-purple-600 font-medium">
+            {datasetLayers.length} dataset layer{datasetLayers.length !== 1 ? 's' : ''} loaded
+          </span>
+        )}
+        {!loading && datasetLayers.length === 0 && layers.datasets && (
+          <span className="ml-auto text-gray-400">No published dataset layers</span>
+        )}
         {loading && (
           <span className="ml-auto flex items-center gap-1.5 text-ocean-500">
             <RefreshCw size={11} className="animate-spin" /> Updating...

@@ -37,6 +37,21 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
+function FitDatasetBounds({ datasetLayers }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!datasetLayers || datasetLayers.length === 0) return;
+    try {
+      const allLayers = L.geoJSON(datasetLayers.map(d => d.geojson));
+      const bounds = allLayers.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    } catch (e) {
+      console.warn('Could not fit dataset bounds:', e);
+    }
+  }, [datasetLayers, map]);
+  return null;
+}
+
 const DATASET_COLORS = ['#7c3aed', '#0891b2', '#b45309', '#be123c', '#047857'];
 
 const esc = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -73,6 +88,7 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
       />
 
       {flyTo && <FlyTo center={flyTo.center} zoom={flyTo.zoom} />}
+      <FitDatasetBounds datasetLayers={datasetLayers} />
 
       {/* Marine Areas (polygons) */}
       {marineAreas && (
