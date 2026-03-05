@@ -146,6 +146,7 @@ export default function DashboardPage() {
         provincesActive: d.surveys.byProvince.length,
         avgCoral: d.monitoring.avgCoralCover ? parseFloat(d.monitoring.avgCoralCover) : null,
         reefHealthAvg: d.monitoring.avgReefHealth ? parseFloat(d.monitoring.avgReefHealth) : null,
+        monitoringTotal: d.monitoring.total,
         datasetsPublished: d.datasets.published,
         datasetsTotal: d.datasets.total,
       });
