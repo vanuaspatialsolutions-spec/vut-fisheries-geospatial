@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { Fish, Eye, EyeOff, Map, BarChart3, Shield, Users, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Map, BarChart3, Shield, Users, Loader2 } from 'lucide-react';
 
 const features = [
   { icon: Map, label: 'Interactive Mapping', desc: 'Visualise LMMAs & marine zones across Vanuatu' },
@@ -74,9 +74,11 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 bg-white/15 backdrop-blur rounded-2xl flex items-center justify-center ring-2 ring-white/20">
-              <Fish size={26} className="text-white" />
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
+              alt="Vanuatu Coat of Arms"
+              className="w-14 h-14 object-contain drop-shadow-lg"
+            />
             <div>
               <p className="font-bold text-white text-lg leading-tight">CBFM Platform</p>
               <p className="text-ocean-300 text-xs">Vanuatu Department of Fisheries</p>
@@ -117,9 +119,11 @@ export default function LoginPage() {
         <div className="w-full max-w-md fade-in">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-ocean-700 rounded-xl flex items-center justify-center">
-              <Fish size={20} className="text-white" />
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
+              alt="Vanuatu Coat of Arms"
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <p className="font-bold text-gray-900 text-base">CBFM Platform</p>
               <p className="text-gray-500 text-xs">Vanuatu Dept. of Fisheries</p>
