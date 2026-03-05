@@ -37,7 +37,9 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
-export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], flyTo }) {
+const DATASET_COLORS = ['#7c3aed', '#0891b2', '#b45309', '#be123c', '#047857'];
+
+export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], datasetLayers = [], flyTo }) {
   const onEachFeature = (feature, layer) => {
     const p = feature.properties;
     layer.bindPopup(`
@@ -99,6 +101,33 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
             </Popup>
           </CircleMarker>
         )
+      ))}
+
+      {/* Published dataset GeoJSON layers */}
+      {datasetLayers.map(({ meta, geojson }, idx) => (
+        <GeoJSON
+          key={meta.id}
+          data={geojson}
+          style={() => ({
+            color: DATASET_COLORS[idx % DATASET_COLORS.length],
+            weight: 2,
+            opacity: 0.9,
+            fillOpacity: 0.2,
+            fillColor: DATASET_COLORS[idx % DATASET_COLORS.length],
+          })}
+          onEachFeature={(feature, layer) => {
+            const p = feature.properties || {};
+            const name = p.name || p.NAME || p.Name || p.title || meta.title;
+            layer.bindPopup(`
+              <div class="text-sm">
+                <strong>${name}</strong><br/>
+                <span class="text-gray-500">Dataset: ${meta.title}</span><br/>
+                ${meta.province ? `<span class="text-gray-500">Province: ${meta.province}</span><br/>` : ''}
+                ${meta.community ? `<span class="text-gray-500">Community: ${meta.community}</span>` : ''}
+              </div>
+            `);
+          }}
+        />
       ))}
 
       {/* Biological monitoring points */}

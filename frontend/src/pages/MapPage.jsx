@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
-import { Layers, Filter, RefreshCw, Users, Anchor, Activity } from 'lucide-react';
+import { Layers, Filter, RefreshCw, Users, Anchor, Activity, Database } from 'lucide-react';
 
 const LAYER_CONFIG = [
   { key: 'surveys', label: 'Community Surveys', icon: Users, activeClass: 'bg-sky-500 text-white border-sky-500', dotClass: 'bg-sky-500' },
   { key: 'marine', label: 'Marine Areas', icon: Anchor, activeClass: 'bg-emerald-600 text-white border-emerald-600', dotClass: 'bg-emerald-500' },
   { key: 'monitoring', label: 'Bio. Monitoring', icon: Activity, activeClass: 'bg-orange-500 text-white border-orange-500', dotClass: 'bg-orange-500' },
+  { key: 'datasets', label: 'Datasets', icon: Database, activeClass: 'bg-purple-600 text-white border-purple-600', dotClass: 'bg-purple-500' },
 ];
 
 const LEGEND = [
@@ -18,14 +19,16 @@ const LEGEND = [
   { color: 'bg-violet-600 opacity-60', label: 'Buffer Zone', round: false },
   { color: 'bg-emerald-500 opacity-60', label: 'Spawning', round: false },
   { color: 'bg-orange-500 ring-2 ring-orange-700', label: 'Bio. Monitoring', round: true },
+  { color: 'bg-purple-500 opacity-60', label: 'Dataset Layer', round: false },
 ];
 
 export default function MapPage() {
   const [surveys, setSurveys] = useState([]);
   const [marineAreas, setMarineAreas] = useState(null);
   const [monitoring, setMonitoring] = useState([]);
+  const [datasetLayers, setDatasetLayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [layers, setLayers] = useState({ surveys: true, marine: true, monitoring: true });
+  const [layers, setLayers] = useState({ surveys: true, marine: true, monitoring: true, datasets: true });
   const [filters, setFilters] = useState({ province: '', areaType: '' });
 
   const fetchData = async () => {
@@ -34,14 +37,25 @@ export default function MapPage() {
       const params = new URLSearchParams();
       if (filters.province) params.set('province', filters.province);
       if (filters.areaType) params.set('areaType', filters.areaType);
-      const [surveyRes, marineRes, monRes] = await Promise.all([
+      const [surveyRes, marineRes, monRes, datasetListRes] = await Promise.all([
         api.get('/surveys/map'),
         api.get(`/marine/geojson?${params}`),
         api.get('/monitoring/map'),
+        api.get('/datasets/map'),
       ]);
       setSurveys(surveyRes.data.features || []);
       setMarineAreas(marineRes.data);
       setMonitoring(monRes.data.features || []);
+
+      const datasetMeta = datasetListRes.data.datasets || [];
+      if (datasetMeta.length > 0) {
+        const geoJSONResults = await Promise.allSettled(
+          datasetMeta.map(d => api.get(`/datasets/${d.id}/geojson`).then(r => ({ meta: d, geojson: r.data })))
+        );
+        setDatasetLayers(geoJSONResults.filter(r => r.status === 'fulfilled').map(r => r.value));
+      } else {
+        setDatasetLayers([]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -142,6 +156,7 @@ export default function MapPage() {
           surveys={layers.surveys ? surveys : []}
           marineAreas={layers.marine ? marineAreas : null}
           monitoringPoints={layers.monitoring ? monitoring : []}
+          datasetLayers={layers.datasets ? datasetLayers : []}
         />
       </div>
     </div>
