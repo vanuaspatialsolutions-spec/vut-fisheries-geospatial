@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getDatasets, publishDataset, unpublishDataset, submitDatasetForReview, deleteDataset } from '../utils/firestore';
+import { useRef } from 'react';
+import { getDatasets, publishDataset, unpublishDataset, submitDatasetForReview, deleteDataset, recacheDatasetGeoJSON } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, Download, CheckCircle, Clock, Archive, Search, Trash2 } from 'lucide-react';
+import { Upload, Download, CheckCircle, Clock, Archive, Search, Trash2, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
@@ -23,6 +24,9 @@ export default function DatasetsPage() {
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({ status: '', dataType: '', province: '', search: '', page: 1 });
   const [loading, setLoading] = useState(true);
+  const [fixing, setFixing] = useState(null); // dataset id currently being fixed
+  const fixInputRef = useRef(null);
+  const fixTargetRef = useRef(null);
 
   const fetchDatasets = async () => {
     setLoading(true);
@@ -71,6 +75,28 @@ export default function DatasetsPage() {
     } catch { toast.error('Failed to delete dataset.'); }
   };
 
+  const handleFixMapLayer = (dataset) => {
+    fixTargetRef.current = dataset;
+    fixInputRef.current.value = '';
+    fixInputRef.current.click();
+  };
+
+  const handleFixFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    const dataset = fixTargetRef.current;
+    if (!file || !dataset) return;
+    setFixing(dataset.id);
+    try {
+      await recacheDatasetGeoJSON(dataset.id, file);
+      toast.success('GeoJSON cached — dataset will now load on the map.');
+      fetchDatasets();
+    } catch (err) {
+      toast.error(`Fix failed: ${err.message}`);
+    } finally {
+      setFixing(null);
+    }
+  };
+
   const fileSizeDisplay = (bytes) => {
     if (!bytes) return '—';
     if (bytes < 1024) return `${bytes} B`;
@@ -78,8 +104,24 @@ export default function DatasetsPage() {
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   };
 
+  // Needs fixing: published GeoJSON dataset without cached inline data
+  const needsFix = (d) =>
+    isStaff &&
+    d.status === 'published' &&
+    ['geojson', 'json'].includes(d.fileFormat?.toLowerCase()) &&
+    !d.hasGeojsonData;
+
   return (
     <div className="space-y-5">
+      {/* Hidden file input for re-caching GeoJSON */}
+      <input
+        ref={fixInputRef}
+        type="file"
+        accept=".geojson,.json"
+        className="hidden"
+        onChange={handleFixFileSelected}
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Datasets</h2>
@@ -140,6 +182,11 @@ export default function DatasetsPage() {
                     <h3 className="font-semibold text-gray-800 truncate">{dataset.title}</h3>
                     <StatusBadge status={dataset.status} />
                     <span className="badge bg-blue-50 text-blue-700">{dataset.fileFormat?.toUpperCase()}</span>
+                    {needsFix(dataset) && (
+                      <span className="badge bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                        <Wrench size={10} /> Map layer not cached
+                      </span>
+                    )}
                   </div>
                   {dataset.description && (
                     <p className="text-sm text-gray-500 mb-2 line-clamp-2">{dataset.description}</p>
@@ -179,6 +226,17 @@ export default function DatasetsPage() {
                     <button onClick={() => handleSubmitReview(dataset.id)}
                       className="px-3 py-1.5 text-xs bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 flex items-center gap-1">
                       <Clock size={12} /> Submit for Review
+                    </button>
+                  )}
+
+                  {needsFix(dataset) && (
+                    <button
+                      onClick={() => handleFixMapLayer(dataset)}
+                      disabled={fixing === dataset.id}
+                      className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-1 disabled:opacity-60"
+                      title="Re-select the GeoJSON file to cache it for the map">
+                      <Wrench size={12} />
+                      {fixing === dataset.id ? 'Fixing...' : 'Fix Map Layer'}
                     </button>
                   )}
 

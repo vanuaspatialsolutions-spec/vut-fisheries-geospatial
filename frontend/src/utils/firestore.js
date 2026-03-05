@@ -211,7 +211,8 @@ export async function getMonitoringForMap() {
 
 export async function getDatasets({ status, dataType, province, search, page = 1, pageSize = 15 } = {}) {
   const snap = await getDocs(query(collection(db, 'datasets'), orderBy('createdAt', 'desc')));
-  let list = snap.docs.map(docToObj);
+  // Strip the large geojsonData blob — it's only needed by the map, not the list UI.
+  let list = snap.docs.map(d => { const o = docToObj(d); delete o.geojsonData; return o; });
   if (status) list = list.filter(d => d.status === status);
   if (dataType) list = list.filter(d => d.dataType === dataType);
   if (province) list = list.filter(d => d.province === province);
@@ -293,7 +294,10 @@ export async function uploadDataset(file, metadata, onProgress) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
-          if (geojsonData) docData.geojsonData = geojsonData;
+          if (geojsonData) {
+            docData.geojsonData = geojsonData;
+            docData.hasGeojsonData = true;
+          }
           await addDoc(collection(db, 'datasets'), docData);
           resolve();
         } catch (err) {
@@ -319,13 +323,25 @@ export async function publishDataset(id) {
     const snap = await getDoc(doc(db, 'datasets', id));
     const d = snap.exists() ? snap.data() : null;
     const isGeoJSON = d && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase());
-    if (isGeoJSON && !d.geojsonData && d.downloadURL) {
-      const res = await withTimeout(fetch(d.downloadURL), 10000, 'publish-fetch');
-      if (res.ok) {
-        const parsed = await res.json();
-        if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
-          updateData.geojsonData = parsed;
-        }
+    if (isGeoJSON && !d.hasGeojsonData) {
+      let parsed = null;
+      // Try SDK getBytes first (uses auth token, avoids CORS issues with fetch).
+      if (d.filePath && !parsed) {
+        try {
+          const bytes = await withTimeout(getBytes(ref(storage, d.filePath)), 12000, 'publish-getBytes');
+          parsed = JSON.parse(new TextDecoder().decode(bytes));
+        } catch (e) { console.warn('publish getBytes failed:', e.message); }
+      }
+      // Fallback: fetch the stored download URL.
+      if (!parsed && d.downloadURL) {
+        try {
+          const res = await withTimeout(fetch(d.downloadURL), 10000, 'publish-fetch');
+          if (res.ok) parsed = await res.json();
+        } catch (e) { console.warn('publish fetch failed:', e.message); }
+      }
+      if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
+        updateData.geojsonData = parsed;
+        updateData.hasGeojsonData = true;
       }
     }
   } catch (e) {
@@ -354,6 +370,21 @@ export async function getPublishedGeoJSONDatasets() {
   return snap.docs
     .map(docToObj)
     .filter(d => d.status === 'published' && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase()));
+}
+
+// Staff can re-select the original file locally to cache GeoJSON in Firestore,
+// bypassing Storage SDK and CORS entirely.
+export async function recacheDatasetGeoJSON(id, file) {
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  if (!parsed || (parsed.type !== 'FeatureCollection' && parsed.type !== 'Feature')) {
+    throw new Error('File is not valid GeoJSON.');
+  }
+  return updateDoc(doc(db, 'datasets', id), {
+    geojsonData: parsed,
+    hasGeojsonData: true,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function deleteDataset(id, filePath) {
