@@ -39,17 +39,19 @@ function FlyTo({ center, zoom }) {
 
 const DATASET_COLORS = ['#7c3aed', '#0891b2', '#b45309', '#be123c', '#047857'];
 
+const esc = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], datasetLayers = [], flyTo }) {
   const onEachFeature = (feature, layer) => {
     const p = feature.properties;
     layer.bindPopup(`
       <div class="text-sm">
-        <strong class="text-ocean-900">${p.areaName}</strong><br/>
-        <span class="text-gray-500">Type: ${p.areaType?.replace(/_/g, ' ')}</span><br/>
-        <span class="text-gray-500">Community: ${p.community}</span><br/>
-        ${p.areaSizeHa ? `<span class="text-gray-500">Area: ${p.areaSizeHa} ha</span><br/>` : ''}
+        <strong class="text-ocean-900">${esc(p.areaName)}</strong><br/>
+        <span class="text-gray-500">Type: ${esc(p.areaType?.replace(/_/g, ' '))}</span><br/>
+        <span class="text-gray-500">Community: ${esc(p.community)}</span><br/>
+        ${p.areaSizeHa ? `<span class="text-gray-500">Area: ${esc(p.areaSizeHa)} ha</span><br/>` : ''}
         <span class="${p.managementStatus === 'active' ? 'text-green-600' : 'text-red-500'}">
-          ${p.managementStatus}
+          ${esc(p.managementStatus)}
         </span>
       </div>
     `);
@@ -120,10 +122,10 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
             const name = p.name || p.NAME || p.Name || p.title || meta.title;
             layer.bindPopup(`
               <div class="text-sm">
-                <strong>${name}</strong><br/>
-                <span class="text-gray-500">Dataset: ${meta.title}</span><br/>
-                ${meta.province ? `<span class="text-gray-500">Province: ${meta.province}</span><br/>` : ''}
-                ${meta.community ? `<span class="text-gray-500">Community: ${meta.community}</span>` : ''}
+                <strong>${esc(name)}</strong><br/>
+                <span class="text-gray-500">Dataset: ${esc(meta.title)}</span><br/>
+                ${meta.province ? `<span class="text-gray-500">Province: ${esc(meta.province)}</span><br/>` : ''}
+                ${meta.community ? `<span class="text-gray-500">Community: ${esc(meta.community)}</span>` : ''}
               </div>
             `);
           }}

@@ -245,6 +245,7 @@ export async function getDatasetStats() {
 }
 
 export async function uploadDataset(file, metadata, onProgress) {
+  if (!auth.currentUser) throw new Error('Must be signed in to upload datasets.');
   const path = `datasets/${auth.currentUser.uid}/${Date.now()}_${file.name}`;
   const storageRef = ref(storage, path);
   const ext = file.name.split('.').pop().toLowerCase();
@@ -318,6 +319,7 @@ export async function getPublishedGeoJSONDatasets() {
 
 export async function getDatasetGeoJSON(dataset) {
   const res = await fetch(dataset.downloadURL);
+  if (!res.ok) throw new Error(`Failed to fetch dataset: ${res.status}`);
   return res.json();
 }
 
