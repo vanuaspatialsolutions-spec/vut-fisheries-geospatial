@@ -3,6 +3,7 @@ import { getSurveysForMap, getMarineGeoJSON, getMonitoringForMap, getPublishedGe
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 import { Layers, Filter, RefreshCw, Users, Anchor, Activity, Database } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const LAYER_CONFIG = [
   { key: 'surveys', label: 'Community Surveys', icon: Users, activeClass: 'bg-sky-500 text-white border-sky-500', dotClass: 'bg-sky-500' },
@@ -48,6 +49,11 @@ export default function MapPage() {
         const results = await Promise.allSettled(
           datasetMeta.map(d => getDatasetGeoJSON(d).then(geojson => ({ meta: d, geojson })))
         );
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length > 0) {
+          console.error('Failed to load dataset layers:', failed.map(r => r.reason));
+          toast.error(`${failed.length} dataset layer(s) failed to load.`);
+        }
         setDatasetLayers(results.filter(r => r.status === 'fulfilled').map(r => r.value));
       } else {
         setDatasetLayers([]);

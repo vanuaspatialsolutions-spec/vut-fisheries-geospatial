@@ -318,12 +318,17 @@ export async function getPublishedGeoJSONDatasets() {
 }
 
 export async function getDatasetGeoJSON(dataset) {
-  // Use the Storage SDK (avoids CORS issues from non-Firebase origins).
-  // Fall back to fetch+downloadURL if filePath is unavailable.
+  // Try Storage SDK first (sends auth token, avoids CORS issues).
+  // Fall back to download URL if filePath is missing or the SDK call fails.
   if (dataset.filePath) {
-    const bytes = await getBytes(ref(storage, dataset.filePath));
-    return JSON.parse(new TextDecoder().decode(bytes));
+    try {
+      const bytes = await getBytes(ref(storage, dataset.filePath));
+      return JSON.parse(new TextDecoder().decode(bytes));
+    } catch (err) {
+      console.warn('getBytes failed, falling back to downloadURL:', err);
+    }
   }
+  if (!dataset.downloadURL) throw new Error('No download URL available for dataset.');
   const res = await fetch(dataset.downloadURL);
   if (!res.ok) throw new Error(`Failed to fetch dataset: ${res.status}`);
   return res.json();

@@ -152,7 +152,7 @@ export default function DatasetsPage() {
                     <Download size={16} />
                   </button>
 
-                  {isStaff && (dataset.status === 'under_review' || dataset.status === 'draft') && (
+                  {isStaff && (dataset.status === 'under_review' || dataset.status === 'draft' || dataset.status === 'archived') && (
                     <button onClick={() => handlePublish(dataset.id, true)}
                       className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1">
                       <CheckCircle size={12} /> Publish
