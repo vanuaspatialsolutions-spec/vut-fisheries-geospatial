@@ -1,5 +1,83 @@
 // DEMO DATA — remove this file and revert page imports when backend is ready
 
+// ─── Executive Summary ─────────────────────────────────────────────────────
+export const mockExecutiveSummary = {
+  reportingPeriod: 'January – March 2026',
+  totalFishers: 391,
+  totalCommunities: 12,
+  provincesActive: 6,
+  committeePct: 75,      // % of communities with registered CBFM committee
+  tabooAreaPct: 67,      // % of communities with taboo area
+  avgReefHealthScore: 3.5, // mean reef health score across all monitored sites
+  coralTarget: 50,       // target coral cover %
+};
+
+export const mockAlerts = [
+  {
+    id: 1,
+    severity: 'high',
+    category: 'Reef Health',
+    title: 'Critical coral cover — West Tanna Fish Survey',
+    detail: 'Coral cover at 29.6%, below the 30% intervention threshold. Reef health score 2/5.',
+    location: 'Tafea · Tanna',
+    link: '/monitoring',
+  },
+  {
+    id: 2,
+    severity: 'high',
+    category: 'Reef Health',
+    title: 'Degraded reef — Yasur Reef Station',
+    detail: 'Coral cover at 33.1%, reef health score 2/5. Scheduled monitoring recommended.',
+    location: 'Tafea · Tanna',
+    link: '/monitoring',
+  },
+  {
+    id: 3,
+    severity: 'medium',
+    category: 'Area Status',
+    title: 'Marine area inactive — Longana Taboo Site',
+    detail: 'Status set to inactive. Community re-engagement or formal closure review required.',
+    location: 'Penama · Ambae',
+    link: '/marine',
+  },
+  {
+    id: 4,
+    severity: 'medium',
+    category: 'Data Review',
+    title: '1 dataset pending approval',
+    detail: 'Coral Cover All Sites 2024, submitted by Mere Wokon, is awaiting peer review.',
+    location: null,
+    link: '/datasets',
+  },
+  {
+    id: 5,
+    severity: 'low',
+    category: 'Compliance',
+    title: '3 communities without CBFM committee',
+    detail: 'Tasiriki (Sanma), Lakatoro (Malampa), and Longana (Penama) have no registered committee.',
+    location: 'Sanma · Malampa · Penama',
+    link: '/surveys',
+  },
+];
+
+export const mockRecentActivity = [
+  { date: '2024-11-15', type: 'survey',     title: 'Baseline survey — Mele Village',                   province: 'Shefa',    by: 'James Kalotiti' },
+  { date: '2024-11-10', type: 'monitoring', title: 'Reef fish survey — Mele Reef Transect A',           province: 'Shefa',    by: 'Mere Wokon' },
+  { date: '2024-11-08', type: 'monitoring', title: 'Coral cover assessment — Eton Coral Belt',          province: 'Shefa',    by: 'Mere Wokon' },
+  { date: '2024-10-30', type: 'dataset',    title: 'Vanuatu LMMA Boundaries GIS Layer — published',     province: 'National', by: 'Sarah Tura' },
+  { date: '2024-10-22', type: 'survey',     title: 'Monitoring survey — Eton Village',                  province: 'Shefa',    by: 'Tom Naupa' },
+  { date: '2024-10-15', type: 'monitoring', title: 'Reef fish survey — Santo North Transect 1',         province: 'Sanma',    by: 'Tom Naupa' },
+];
+
+export const mockProvinceMetrics = [
+  { province: 'Shefa',   surveys: 14, areas: 3, avgCoralCover: 55.4, reefHealthAvg: 4.0 },
+  { province: 'Sanma',   surveys: 11, areas: 2, avgCoralCover: 44.7, reefHealthAvg: 3.0 },
+  { province: 'Tafea',   surveys: 9,  areas: 2, avgCoralCover: 31.4, reefHealthAvg: 2.0 },
+  { province: 'Malampa', surveys: 7,  areas: 3, avgCoralCover: null, reefHealthAvg: 3.5 },
+  { province: 'Penama',  surveys: 5,  areas: 2, avgCoralCover: 52.8, reefHealthAvg: 4.0 },
+  { province: 'Torba',   surveys: 2,  areas: 1, avgCoralCover: 64.9, reefHealthAvg: 5.0 },
+];
+
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 export const mockSurveyStats = {
   total: 48,

@@ -31,7 +31,7 @@ const roleLabel = {
 function UserAvatar({ user }) {
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase();
   return (
-    <div className="w-8 h-8 bg-gradient-to-br from-ocean-600 to-ocean-800 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm ring-2 ring-ocean-100">
+    <div className="w-7 h-7 bg-ocean-700 rounded flex items-center justify-center text-white text-xs font-semibold">
       {initials || '?'}
     </div>
   );
@@ -79,9 +79,7 @@ export default function Header() {
           <UserAvatar user={user} />
           <div className="text-sm leading-tight hidden sm:block">
             <p className="font-medium text-gray-800 text-[13px]">{user?.firstName} {user?.lastName}</p>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${roleBadge[user?.role] || 'bg-gray-100 text-gray-500'}`}>
-              {roleLabel[user?.role] || user?.role}
-            </span>
+            <p className="text-[10px] text-gray-400">{roleLabel[user?.role] || user?.role}</p>
           </div>
         </div>
 

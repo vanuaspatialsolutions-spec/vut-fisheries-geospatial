@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-// DEMO - remove mock import and restore api when backend is ready
-// import api from '../utils/api';
-import { mockSurveys } from '../utils/mockData';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { Plus, Search, Users, CheckCircle, XCircle, Edit, Filter } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES } from '../utils/constants';
@@ -59,20 +57,13 @@ export default function CommunitySurveysPage() {
 
   const fetchSurveys = async () => {
     setLoading(true);
-    // DEMO - replace with real API call when backend is ready
-    setTimeout(() => {
-      let data = mockSurveys.surveys;
-      if (filters.province) data = data.filter(s => s.province === filters.province);
-      if (filters.surveyType) data = data.filter(s => s.surveyType === filters.surveyType);
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        data = data.filter(s => s.community.toLowerCase().includes(q) || s.lmmaName?.toLowerCase().includes(q));
-      }
-      setSurveys(data);
-      setPagination({ pages: mockSurveys.pagination.pages, total: data.length });
-      setLoading(false);
-    }, 300);
-    // END DEMO
+    try {
+      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+      const res = await api.get(`/surveys?${params}`);
+      setSurveys(res.data.surveys);
+      setPagination(res.data.pagination);
+    } catch { toast.error('Failed to load surveys.'); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchSurveys(); }, [filters]);
