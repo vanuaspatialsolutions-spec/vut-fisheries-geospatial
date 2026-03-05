@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+
+  <!-- ══ SPIRAL BODY (nautilus / ram-horn) ══ -->
+  <!-- Outermost ring -->
+  <path d="
+    M 100 170
+    C 50 170 15 140 15 100
+    C 15 58 50 28 95 28
+    C 140 28 165 55 165 90
+    C 165 122 145 142 118 142
+    C 94 142 78 126 78 106
+    C 78 86 94 74 110 74
+    C 126 74 136 86 136 100
+  " stroke="#111" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+  <!-- Inner ring 1 -->
+  <path d="
+    M 136 100
+    C 136 116 124 128 108 128
+    C 90 128 78 114 78 98
+    C 78 80 92 68 108 68
+  " stroke="#111" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Inner ring 2 -->
+  <path d="
+    M 108 68
+    C 122 68 132 78 132 92
+    C 132 106 122 116 108 116
+  " stroke="#111" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Innermost -->
+  <path d="
+    M 108 116
+    C 96 116 88 108 88 98
+    C 88 88 96 82 106 82
+    C 116 82 122 90 120 100
+  " stroke="#111" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Centre dot -->
+  <circle cx="110" cy="100" r="4" fill="#111"/>
+
+  <!-- ══ FISH HEAD emerging upper-right from spiral ══ -->
+  <!-- Main body outline from top of spiral to head -->
+  <path d="
+    M 95 28
+    C 100 18 120 8 140 14
+    C 158 20 172 36 168 54
+    C 165 66 154 72 144 68
+  " stroke="#111" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+  <!-- Underside of body -->
+  <path d="
+    M 95 28
+    C 105 34 118 38 130 42
+    C 140 46 150 52 152 60
+    C 154 68 148 72 144 70
+  " stroke="#111" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Body fill (white inside) -->
+  <path d="
+    M 97 28
+    C 103 20 122 10 140 16
+    C 157 22 170 38 166 55
+    C 164 66 153 73 143 69
+    C 150 55 152 44 140 40
+    C 128 36 112 34 102 30
+    Z
+  " fill="white"/>
+
+  <!-- Body stripes -->
+  <path d="M 110 30 C 130 34 148 44 155 56" stroke="#111" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M 108 35 C 128 40 144 50 149 62" stroke="#111" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+  <!-- ══ DORSAL FIN ══ -->
+  <path d="
+    M 120 20
+    C 124 6 138 2 146 8
+    C 154 14 154 24 148 30
+    L 140 26
+    Z
+  " fill="#111"/>
+
+  <!-- ══ PECTORAL FIN ══ -->
+  <path d="
+    M 140 52
+    C 138 62 132 68 126 70
+  " stroke="#111" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+  <!-- ══ HEAD / SNOUT ══ -->
+  <path d="
+    M 144 68
+    C 154 64 164 52 162 42
+    C 160 34 152 28 146 30
+    L 148 38 L 152 46 L 150 56 L 146 62
+    Z
+  " fill="#111"/>
+
+  <!-- Eye -->
+  <circle cx="150" cy="40" r="5" fill="white"/>
+  <circle cx="151" cy="41" r="2.5" fill="#111"/>
+
+  <!-- Mouth open upper jaw -->
+  <path d="M 162 50 L 170 44" stroke="#111" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Lower jaw separate -->
+  <path d="M 162 56 L 168 54 L 170 52" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+  <!-- Lower jaw bulge -->
+  <ellipse cx="158" cy="60" rx="6" ry="4" fill="white" stroke="#111" stroke-width="2"/>
+
+  <!-- ══ BLUE WAVES ══ -->
+  <!-- Left column, upper wave -->
+  <path d="M 22 90 C 28 82 34 82 40 90 C 46 98 52 98 58 90" stroke="#1565c0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Left column, lower wave -->
+  <path d="M 22 110 C 28 102 34 102 40 110 C 46 118 52 118 58 110" stroke="#1976d2" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Right column, upper wave -->
+  <path d="M 142 90 C 148 82 154 82 160 90 C 166 98 172 98 178 90" stroke="#1565c0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Right column, lower wave -->
+  <path d="M 142 110 C 148 102 154 102 160 110 C 166 118 172 118 178 110" stroke="#1976d2" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Left column, second upper wave (shadow) -->
+  <path d="M 26 96 C 32 88 38 88 44 96 C 50 104 56 104 62 96" stroke="#0d47a1" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <!-- Right column, second upper wave (shadow) -->
+  <path d="M 142 96 C 148 88 154 88 160 96 C 166 104 172 104 178 96" stroke="#0d47a1" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <!-- Left lower shadow -->
+  <path d="M 26 116 C 32 108 38 108 44 116 C 50 124 56 124 62 116" stroke="#0d47a1" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <!-- Right lower shadow -->
+  <path d="M 142 116 C 148 108 154 108 160 116 C 166 124 172 124 178 116" stroke="#0d47a1" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.5"/>
+
+</svg>
