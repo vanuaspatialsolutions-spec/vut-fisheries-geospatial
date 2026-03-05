@@ -29,13 +29,18 @@ export default function MapPage() {
   const [monitoring, setMonitoring] = useState([]);
   const [datasetLayers, setDatasetLayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [datasetsLoading, setDatasetsLoading] = useState(false);
   const [layers, setLayers] = useState({ surveys: true, marine: true, monitoring: true, datasets: true });
   const [filters, setFilters] = useState({ province: '', areaType: '' });
 
   const fetchData = async () => {
     setLoading(true);
+    setDatasetLayers([]);
+
+    // Phase 1: Load base layers from Firestore (fast). Map appears immediately.
+    let datasetMeta = [];
     try {
-      const [surveyData, marineData, monData, datasetMeta] = await Promise.all([
+      const [surveyData, marineData, monData, meta] = await Promise.all([
         getSurveysForMap(),
         getMarineGeoJSON(filters),
         getMonitoringForMap(),
@@ -44,26 +49,32 @@ export default function MapPage() {
       setSurveys(surveyData);
       setMarineAreas(marineData);
       setMonitoring(monData);
-
-      if (datasetMeta.length > 0) {
-        const results = await Promise.allSettled(
-          datasetMeta.map(d => getDatasetGeoJSON(d).then(geojson => ({ meta: d, geojson })))
-        );
-        const failed = results.filter(r => r.status === 'rejected');
-        if (failed.length > 0) {
-          const errMsg = failed[0]?.reason?.message || failed[0]?.reason?.code || 'unknown';
-          console.error('Failed to load dataset layers:', failed.map(r => r.reason));
-          toast.error(`Dataset load failed: ${errMsg}`, { duration: 8000 });
-        }
-        setDatasetLayers(results.filter(r => r.status === 'fulfilled').map(r => r.value));
-      } else {
-        setDatasetLayers([]);
-      }
+      datasetMeta = meta;
     } catch (err) {
-      console.error('fetchData error:', err);
+      console.error('Base data load error:', err);
       toast.error(`Map load error: ${err.message || 'unknown'}`, { duration: 6000 });
     } finally {
       setLoading(false);
+    }
+
+    // Phase 2: Load dataset GeoJSON in background (may be slow if fetching from Storage).
+    if (datasetMeta.length === 0) return;
+    setDatasetsLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        datasetMeta.map(d => getDatasetGeoJSON(d).then(geojson => ({ meta: d, geojson })))
+      );
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length > 0) {
+        const errMsg = failed[0]?.reason?.message || failed[0]?.reason?.code || 'unknown';
+        console.error('Dataset layer load failed:', failed.map(r => r.reason));
+        toast.error(`Dataset layer failed: ${errMsg}`, { duration: 8000 });
+      }
+      setDatasetLayers(results.filter(r => r.status === 'fulfilled').map(r => r.value));
+    } catch (err) {
+      console.error('Dataset layer error:', err);
+    } finally {
+      setDatasetsLoading(false);
     }
   };
 
@@ -78,10 +89,10 @@ export default function MapPage() {
           <h2 className="text-2xl font-bold text-gray-900">Interactive Map</h2>
           <p className="text-gray-400 text-sm">Vanuatu CBFM spatial data visualisation</p>
         </div>
-        <button onClick={fetchData} disabled={loading}
+        <button onClick={fetchData} disabled={loading || datasetsLoading}
           className="btn-secondary text-sm flex items-center gap-2 py-2">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? 'Loading...' : 'Refresh'}
+          <RefreshCw size={14} className={(loading || datasetsLoading) ? 'animate-spin' : ''} />
+          {loading ? 'Loading...' : datasetsLoading ? 'Loading datasets...' : 'Refresh'}
         </button>
       </div>
 
@@ -96,6 +107,9 @@ export default function MapPage() {
                 ${layers[key] ? activeClass : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
               <span className={`w-2 h-2 rounded-full transition-colors ${layers[key] ? 'bg-white' : dotClass}`} />
               {label}
+              {key === 'datasets' && datasetsLoading && (
+                <RefreshCw size={10} className="animate-spin ml-0.5" />
+              )}
             </button>
           ))}
         </div>
@@ -128,17 +142,18 @@ export default function MapPage() {
             {label}
           </span>
         ))}
-        {!loading && datasetLayers.length > 0 && (
+        {!datasetsLoading && datasetLayers.length > 0 && (
           <span className="ml-auto text-purple-600 font-medium">
             {datasetLayers.length} dataset layer{datasetLayers.length !== 1 ? 's' : ''} loaded
           </span>
         )}
-        {!loading && datasetLayers.length === 0 && layers.datasets && (
+        {!loading && !datasetsLoading && datasetLayers.length === 0 && layers.datasets && (
           <span className="ml-auto text-gray-400">No published dataset layers</span>
         )}
-        {loading && (
+        {(loading || datasetsLoading) && (
           <span className="ml-auto flex items-center gap-1.5 text-ocean-500">
-            <RefreshCw size={11} className="animate-spin" /> Updating...
+            <RefreshCw size={11} className="animate-spin" />
+            {loading ? 'Loading map...' : 'Loading datasets...'}
           </span>
         )}
       </div>

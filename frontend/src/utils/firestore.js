@@ -320,7 +320,7 @@ export async function publishDataset(id) {
     const d = snap.exists() ? snap.data() : null;
     const isGeoJSON = d && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase());
     if (isGeoJSON && !d.geojsonData && d.downloadURL) {
-      const res = await fetch(d.downloadURL);
+      const res = await withTimeout(fetch(d.downloadURL), 10000, 'publish-fetch');
       if (res.ok) {
         const parsed = await res.json();
         if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
