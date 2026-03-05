@@ -1,8 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MapPage from './pages/MapPage';
 import DatasetsPage from './pages/DatasetsPage';
@@ -13,24 +11,15 @@ import MarineAreasPage from './pages/MarineAreasPage';
 import NewMarineAreaPage from './pages/NewMarineAreaPage';
 import MonitoringPage from './pages/MonitoringPage';
 import NewMonitoringPage from './pages/NewMonitoringPage';
-import AdminPage from './pages/AdminPage';
 
-function ProtectedRoute({ children, adminOnly = false }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="flex h-screen items-center justify-center text-ocean-700">Loading...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
-  return children;
-}
-
+// DEMO - Login, Register, Admin removed. Restore when backend is ready.
 function AppRoutes() {
-  const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
-      <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/register" element={<Navigate to="/dashboard" replace />} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route element={<Layout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/datasets" element={<DatasetsPage />} />
@@ -42,7 +31,6 @@ function AppRoutes() {
         <Route path="/marine/new" element={<NewMarineAreaPage />} />
         <Route path="/monitoring" element={<MonitoringPage />} />
         <Route path="/monitoring/new" element={<NewMonitoringPage />} />
-        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
       </Route>
     </Routes>
   );
