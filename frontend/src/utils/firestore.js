@@ -251,6 +251,21 @@ export async function uploadDataset(file, metadata, onProgress) {
   const ext = file.name.split('.').pop().toLowerCase();
   const fileFormat = ext === 'json' ? 'geojson' : ext;
 
+  // For GeoJSON files, read and store inline in Firestore so the map can load
+  // without needing Firebase Storage SDK access or CORS configuration.
+  let geojsonData = null;
+  if (['json', 'geojson'].includes(ext) && file.size < 950000) {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
+        geojsonData = parsed;
+      }
+    } catch (e) {
+      // not valid GeoJSON — that's fine, just skip inline storage
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const task = uploadBytesResumable(storageRef, file);
     task.on(
@@ -263,7 +278,7 @@ export async function uploadDataset(file, metadata, onProgress) {
           const tags = metadata.tags
             ? metadata.tags.split(',').map(t => t.trim()).filter(Boolean)
             : [];
-          await addDoc(collection(db, 'datasets'), {
+          const docData = {
             ...metadata,
             tags,
             fileName: file.name,
@@ -277,7 +292,9 @@ export async function uploadDataset(file, metadata, onProgress) {
             uploaderName: `${auth.currentUser.displayName || ''}`.trim(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          });
+          };
+          if (geojsonData) docData.geojsonData = geojsonData;
+          await addDoc(collection(db, 'datasets'), docData);
           resolve();
         } catch (err) {
           reject(err);
@@ -288,12 +305,34 @@ export async function uploadDataset(file, metadata, onProgress) {
 }
 
 export async function publishDataset(id) {
-  return updateDoc(doc(db, 'datasets', id), {
+  const updateData = {
     status: 'published',
     publishedAt: serverTimestamp(),
     publishedBy: auth.currentUser?.uid,
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  // For existing datasets without inline geojsonData, try to fetch and cache now.
+  // This runs in the same browser session as the authenticated admin, so the
+  // download URL (which has a public token) is most likely to succeed here.
+  try {
+    const snap = await getDoc(doc(db, 'datasets', id));
+    const d = snap.exists() ? snap.data() : null;
+    const isGeoJSON = d && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase());
+    if (isGeoJSON && !d.geojsonData && d.downloadURL) {
+      const res = await fetch(d.downloadURL);
+      if (res.ok) {
+        const parsed = await res.json();
+        if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
+          updateData.geojsonData = parsed;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not cache GeoJSON inline on publish:', e.message);
+  }
+
+  return updateDoc(doc(db, 'datasets', id), updateData);
 }
 
 export async function unpublishDataset(id) {
@@ -327,7 +366,13 @@ function withTimeout(promise, ms, label) {
 }
 
 export async function getDatasetGeoJSON(dataset) {
-  // 1. Try Storage SDK getBytes with a 12s timeout.
+  // 1. Best path: GeoJSON was stored inline in Firestore at upload/publish time.
+  //    No storage SDK or CORS needed.
+  if (dataset.geojsonData) {
+    return dataset.geojsonData;
+  }
+
+  // 2. Try Storage SDK getBytes with a 12s timeout.
   if (dataset.filePath) {
     try {
       const bytes = await withTimeout(
@@ -338,7 +383,7 @@ export async function getDatasetGeoJSON(dataset) {
       console.warn('getBytes failed:', err.code || err.message);
     }
 
-    // 2. Fresh download URL via SDK, then fetch with timeout.
+    // 3. Fresh download URL via SDK, then fetch with timeout.
     try {
       const freshUrl = await withTimeout(
         getDownloadURL(ref(storage, dataset.filePath)), 8000, 'getDownloadURL'
@@ -351,7 +396,7 @@ export async function getDatasetGeoJSON(dataset) {
     }
   }
 
-  // 3. Stored download URL with timeout.
+  // 4. Stored download URL with timeout.
   if (!dataset.downloadURL) throw new Error('storage/no-url');
   const res = await withTimeout(fetch(dataset.downloadURL), 12000, 'fetch storedUrl');
   if (!res.ok) throw new Error(`storage/http-${res.status}`);
