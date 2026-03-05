@@ -15,6 +15,7 @@ const datasetRoutes = require('./routes/datasets');
 const surveyRoutes = require('./routes/surveys');
 const marineRoutes = require('./routes/marine');
 const monitoringRoutes = require('./routes/monitoring');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 const server = http.createServer(app);
@@ -79,6 +80,7 @@ app.use('/api/datasets', datasetRoutes);
 app.use('/api/surveys', surveyRoutes);
 app.use('/api/marine', marineRoutes);
 app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
