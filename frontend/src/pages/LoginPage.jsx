@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { Fish, Eye, EyeOff, Map, BarChart3, Shield, Users } from 'lucide-react';
+import { Fish, Eye, EyeOff, Map, BarChart3, Shield, Users, Loader2 } from 'lucide-react';
 
 const features = [
   { icon: Map, label: 'Interactive Mapping', desc: 'Visualise LMMAs & marine zones across Vanuatu' },
@@ -16,7 +17,28 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
+  const [serverReady, setServerReady] = useState(false);
+  const [serverStarting, setServerStarting] = useState(false);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+
+  // Wake up the backend as soon as the login page opens
+  useEffect(() => {
+    let bannerTimer;
+    const wake = async () => {
+      bannerTimer = setTimeout(() => setServerStarting(true), 3000);
+      try {
+        await api.get('/health', { timeout: 60000 });
+      } catch {
+        // Even if health check fails, let the user try — login will show the real error
+      } finally {
+        clearTimeout(bannerTimer);
+        setServerStarting(false);
+        setServerReady(true);
+      }
+    };
+    wake();
+    return () => clearTimeout(bannerTimer);
+  }, []);
 
   const onSubmit = async (data) => {
     try {
@@ -24,6 +46,18 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err) {
+      // Network/timeout error = backend still cold starting; retry once
+      if (!err.response) {
+        try {
+          await login(data.email, data.password);
+          toast.success('Welcome back!');
+          navigate('/dashboard');
+          return;
+        } catch (retryErr) {
+          toast.error('Server is slow to respond. Please wait a moment and try again.');
+          return;
+        }
+      }
       toast.error(err.response?.data?.message || 'Login failed. Check your credentials.');
     }
   };
@@ -91,6 +125,14 @@ export default function LoginPage() {
               <p className="text-gray-500 text-xs">Vanuatu Dept. of Fisheries</p>
             </div>
           </div>
+
+          {/* Server waking up banner */}
+          {serverStarting && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 mb-4">
+              <Loader2 size={15} className="animate-spin flex-shrink-0" />
+              <span>Server is starting up, please wait a moment&hellip;</span>
+            </div>
+          )}
 
           {/* Card */}
           <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 p-8">

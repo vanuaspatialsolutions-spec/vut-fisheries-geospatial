@@ -35,6 +35,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Keep the backend awake while a user is logged in (ping every 9 minutes)
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      api.get('/health').catch(() => {});
+    }, 9 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const isAdmin = user?.role === 'admin';
   const isStaff = ['admin', 'staff'].includes(user?.role);
 
