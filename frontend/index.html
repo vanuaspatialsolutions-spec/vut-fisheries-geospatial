@@ -11,7 +11,9 @@
       (function() {
         var q = window.location.search;
         if (q && q.indexOf('?p=') === 0) {
-          history.replaceState(null, null, decodeURIComponent(q.slice(3)) || '/');
+          var base = '/vut-fisheries-geospatial';
+          var path = decodeURIComponent(q.slice(3)) || '/';
+          history.replaceState(null, null, base + path);
         }
       })();
     </script>
