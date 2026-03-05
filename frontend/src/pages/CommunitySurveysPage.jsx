@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import { getSurveys } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Plus, Search, Users, CheckCircle, XCircle, Edit, Filter } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES } from '../utils/constants';
@@ -23,26 +23,16 @@ function Pagination({ pagination, filters, setFilters }) {
     <div className="flex items-center justify-between text-sm text-gray-500 pt-2">
       <span>Page {filters.page} of {pagination.pages} &mdash; {pagination.total} records</span>
       <div className="flex gap-1">
-        <button
-          disabled={filters.page <= 1}
-          onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
-          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Prev
-        </button>
+        <button disabled={filters.page <= 1} onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
+          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40">Prev</button>
         {Array.from({ length: Math.min(pagination.pages, 5) }, (_, i) => i + 1).map(p => (
           <button key={p} onClick={() => setFilters(f => ({ ...f, page: p }))}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filters.page === p ? 'bg-ocean-700 text-white' : 'border bg-white text-gray-600 hover:bg-gray-50'}`}>
             {p}
           </button>
         ))}
-        <button
-          disabled={filters.page >= pagination.pages}
-          onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
-          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
+        <button disabled={filters.page >= pagination.pages} onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
+          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40">Next</button>
       </div>
     </div>
   );
@@ -58,10 +48,9 @@ export default function CommunitySurveysPage() {
   const fetchSurveys = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const res = await api.get(`/surveys?${params}`);
-      setSurveys(res.data.surveys);
-      setPagination(res.data.pagination);
+      const res = await getSurveys(filters);
+      setSurveys(res.surveys);
+      setPagination(res.pagination);
     } catch { toast.error('Failed to load surveys.'); }
     finally { setLoading(false); }
   };
@@ -83,17 +72,13 @@ export default function CommunitySurveysPage() {
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
         <Filter size={14} className="text-gray-400 flex-shrink-0" />
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            className="form-input pl-8 py-2 text-sm"
-            placeholder="Search community, LMMA..."
+          <input className="form-input pl-8 py-2 text-sm" placeholder="Search community, LMMA..."
             value={filters.search}
-            onChange={e => setFilters(f => ({ ...f, search: e.target.value, page: 1 }))}
-          />
+            onChange={e => setFilters(f => ({ ...f, search: e.target.value, page: 1 }))} />
         </div>
         <select className="form-input py-2 text-sm w-auto" value={filters.province}
           onChange={e => setFilters(f => ({ ...f, province: e.target.value, page: 1 }))}>
@@ -106,16 +91,13 @@ export default function CommunitySurveysPage() {
           {SURVEY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         {hasFilters && (
-          <button
-            onClick={() => setFilters({ province: '', surveyType: '', search: '', page: 1 })}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline flex-shrink-0"
-          >
+          <button onClick={() => setFilters({ province: '', surveyType: '', search: '', page: 1 })}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline flex-shrink-0">
             Clear
           </button>
         )}
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {surveys.length === 0 && !loading ? (
           <div className="py-20 text-center">
@@ -177,11 +159,8 @@ export default function CommunitySurveysPage() {
                         : <XCircle size={16} className="text-gray-200 mx-auto" />}
                     </td>
                     <td className="px-4 py-3.5">
-                      <button
-                        onClick={() => navigate(`/surveys/${s.id}/edit`)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-ocean-700 transition-colors"
-                        title="Edit"
-                      >
+                      <button onClick={() => navigate(`/surveys/${s.id}/edit`)}
+                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-ocean-700 transition-colors" title="Edit">
                         <Edit size={14} />
                       </button>
                     </td>

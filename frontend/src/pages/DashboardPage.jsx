@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area, CartesianGrid,
+  PieChart, Pie, Cell, CartesianGrid,
 } from 'recharts';
-import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { getSurveyStats, getMarineStats, getMonitoringStats, getDatasetStats } from '../utils/firestore';
 import {
   Users, Anchor, Activity, Database, Plus,
   TrendingUp, MapPin, ArrowRight, RefreshCw,
-  Waves, TreePine, BarChart2,
+  BarChart2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -34,7 +34,7 @@ function StatCard({ icon: Icon, label, value, sub, gradient, loading }) {
             {loading ? (
               <div className="h-9 w-16 bg-white/20 rounded animate-pulse mt-1.5" />
             ) : (
-              <p className="text-4xl font-bold mt-1 count-up">{value ?? '—'}</p>
+              <p className="text-4xl font-bold mt-1">{value ?? '—'}</p>
             )}
             {sub && (
               <p className="text-white/60 text-xs mt-1.5">
@@ -102,38 +102,38 @@ export default function DashboardPage() {
     else setRefreshing(true);
     try {
       const [surveyStats, marineStats, monitoringStats, datasetStats] = await Promise.all([
-        api.get('/surveys/stats'),
-        api.get('/marine/stats'),
-        api.get('/monitoring/stats'),
-        api.get('/datasets/stats'),
+        getSurveyStats(),
+        getMarineStats(),
+        getMonitoringStats(),
+        getDatasetStats(),
       ]);
 
       setStats({
-        surveys: surveyStats.data.total,
-        marine: marineStats.data.total,
-        monitoring: monitoringStats.data.total,
-        datasets: datasetStats.data.total,
-        totalAreaHa: marineStats.data.totalAreaHa,
-        avgCoral: monitoringStats.data.avgCoralCover,
-        published: datasetStats.data.published,
+        surveys: surveyStats.total,
+        marine: marineStats.total,
+        monitoring: monitoringStats.total,
+        datasets: datasetStats.total,
+        totalAreaHa: marineStats.totalAreaHa,
+        avgCoral: monitoringStats.avgCoralCover,
+        published: datasetStats.published,
       });
 
       setSurveysByProvince(
-        (surveyStats.data.byProvince || []).map(item => ({
+        (surveyStats.byProvince || []).map(item => ({
           province: (item.province || 'Unknown').substring(0, 6),
           count: parseInt(item.count),
         }))
       );
 
       setDatasetsByType(
-        (datasetStats.data.byType || []).map(item => ({
+        (datasetStats.byType || []).map(item => ({
           name: (item.dataType || 'other').replace(/_/g, ' '),
           value: parseInt(item.count),
         }))
       );
 
       setMonitoringByType(
-        (monitoringStats.data.byType || []).map(item => ({
+        (monitoringStats.byType || []).map(item => ({
           name: (item.monitoringType || 'other').replace(/_/g, ' '),
           count: parseInt(item.count),
         }))
@@ -157,7 +157,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 fade-in">
-      {/* Welcome header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
@@ -183,51 +182,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Users}
-          label="Community Surveys"
-          value={stats.surveys}
-          sub="total records"
-          gradient="bg-gradient-to-br from-ocean-600 to-ocean-800"
-          loading={loading}
-        />
-        <StatCard
-          icon={Anchor}
-          label="Marine Areas"
-          value={stats.marine}
+        <StatCard icon={Users} label="Community Surveys" value={stats.surveys} sub="total records"
+          gradient="bg-gradient-to-br from-ocean-600 to-ocean-800" loading={loading} />
+        <StatCard icon={Anchor} label="Marine Areas" value={stats.marine}
           sub={stats.totalAreaHa ? `${parseFloat(stats.totalAreaHa).toFixed(0)} ha protected` : 'protected zones'}
-          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
-          loading={loading}
-        />
-        <StatCard
-          icon={Activity}
-          label="Bio. Monitoring"
-          value={stats.monitoring}
+          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" loading={loading} />
+        <StatCard icon={Activity} label="Bio. Monitoring" value={stats.monitoring}
           sub={stats.avgCoral ? `avg ${parseFloat(stats.avgCoral).toFixed(1)}% coral cover` : 'surveys logged'}
-          gradient="bg-gradient-to-br from-orange-500 to-orange-600"
-          loading={loading}
-        />
-        <StatCard
-          icon={Database}
-          label="Datasets"
-          value={stats.datasets}
+          gradient="bg-gradient-to-br from-orange-500 to-orange-600" loading={loading} />
+        <StatCard icon={Database} label="Datasets" value={stats.datasets}
           sub={stats.published ? `${stats.published} published` : 'uploaded files'}
-          gradient="bg-gradient-to-br from-violet-600 to-violet-800"
-          loading={loading}
-        />
+          gradient="bg-gradient-to-br from-violet-600 to-violet-800" loading={loading} />
       </div>
 
-      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Surveys by Province"
-          icon={MapPin}
-          loading={loading}
-          empty={!surveysByProvince.length}
-          emptyMsg="No survey data yet — add the first survey"
-        >
+        <ChartCard title="Surveys by Province" icon={MapPin} loading={loading}
+          empty={!surveysByProvince.length} emptyMsg="No survey data yet — add the first survey">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProvince} barSize={36}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -239,27 +210,13 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard
-          title="Datasets by Type"
-          icon={Database}
-          loading={loading}
-          empty={!datasetsByType.length}
-          emptyMsg="No datasets uploaded yet"
-        >
+        <ChartCard title="Datasets by Type" icon={Database} loading={loading}
+          empty={!datasetsByType.length} emptyMsg="No datasets uploaded yet">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
-              <Pie
-                data={datasetsByType}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                innerRadius={40}
-                paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
+              <Pie data={datasetsByType} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                outerRadius={80} innerRadius={40} paddingAngle={3}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                 {datasetsByType.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
@@ -270,14 +227,8 @@ export default function DashboardPage() {
         </ChartCard>
       </div>
 
-      {/* Monitoring chart */}
       {(loading || monitoringByType.length > 0) && (
-        <ChartCard
-          title="Biological Monitoring by Type"
-          icon={Activity}
-          loading={loading}
-          empty={!monitoringByType.length}
-        >
+        <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={loading} empty={!monitoringByType.length}>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monitoringByType} layout="vertical" barSize={22}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
@@ -290,16 +241,12 @@ export default function DashboardPage() {
         </ChartCard>
       )}
 
-      {/* Quick actions */}
       <div>
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map(({ label, to, color, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className={`bg-gradient-to-br ${color} text-white rounded-xl p-4 flex items-center justify-between group hover:shadow-lg hover:scale-[1.02] transition-all duration-200`}
-            >
+            <Link key={to} to={to}
+              className={`bg-gradient-to-br ${color} text-white rounded-xl p-4 flex items-center justify-between group hover:shadow-lg hover:scale-[1.02] transition-all duration-200`}>
               <div>
                 <Icon size={18} className="mb-2 opacity-80" />
                 <p className="text-sm font-semibold leading-tight">{label}</p>

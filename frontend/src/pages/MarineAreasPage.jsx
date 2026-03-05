@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
+import { getMarineAreas, getMarineStats } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
@@ -32,48 +32,34 @@ const BORDER_COLOR = {
 
 function AreaCard({ area }) {
   return (
-    <div
-      className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 p-5 hover:shadow-md transition-shadow duration-200"
-      style={{ borderLeftColor: BORDER_COLOR[area.areaType] || '#6b7280' }}
-    >
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 p-5 hover:shadow-md transition-shadow"
+      style={{ borderLeftColor: BORDER_COLOR[area.areaType] || '#6b7280' }}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 mr-3">
           <h3 className="font-semibold text-gray-900 text-sm leading-tight">{area.areaName}</h3>
           <div className="flex items-center gap-1 mt-1 text-gray-400 text-xs">
-            <MapPin size={11} />
-            {area.province} &middot; {area.island}
+            <MapPin size={11} />{area.province} &middot; {area.island}
           </div>
         </div>
         <span className={`badge ${STATUS_BADGE[area.managementStatus] || 'bg-gray-100 text-gray-600'} flex-shrink-0 capitalize`}>
           {area.managementStatus?.replace(/_/g, ' ')}
         </span>
       </div>
-
       <p className="text-xs text-gray-500 mb-3">Community: {area.community}</p>
-
       <div className="flex flex-wrap gap-1.5">
         <span className={`badge ${AREA_TYPE_BADGE[area.areaType] || 'bg-gray-100 text-gray-600'} capitalize`}>
           {area.areaType?.replace(/_/g, ' ')}
         </span>
         {area.areaSizeHa && (
-          <span className="badge bg-gray-100 text-gray-500">
-            {parseFloat(area.areaSizeHa).toFixed(1)} ha
-          </span>
+          <span className="badge bg-gray-100 text-gray-500">{parseFloat(area.areaSizeHa).toFixed(1)} ha</span>
         )}
         {area.protectionLevel && (
-          <span className="badge bg-gray-50 text-gray-500 capitalize">
-            {area.protectionLevel?.replace(/_/g, ' ')}
-          </span>
+          <span className="badge bg-gray-50 text-gray-500 capitalize">{area.protectionLevel?.replace(/_/g, ' ')}</span>
         )}
       </div>
-
       {area.isCurrentlyOpen !== null && area.isCurrentlyOpen !== undefined && (
         <div className={`flex items-center gap-1.5 mt-3 text-xs font-medium ${area.isCurrentlyOpen ? 'text-emerald-600' : 'text-red-500'}`}>
-          {area.isCurrentlyOpen ? (
-            <><Waves size={12} /> Open to fishing</>
-          ) : (
-            <><Shield size={12} /> Closed &mdash; Taboo</>
-          )}
+          {area.isCurrentlyOpen ? <><Waves size={12} /> Open to fishing</> : <><Shield size={12} /> Closed &mdash; Taboo</>}
         </div>
       )}
     </div>
@@ -86,10 +72,7 @@ function SkeletonCard() {
       <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
       <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
       <div className="h-3 bg-gray-100 rounded w-1/3 mb-3" />
-      <div className="flex gap-2">
-        <div className="h-5 bg-gray-100 rounded-full w-20" />
-        <div className="h-5 bg-gray-100 rounded-full w-14" />
-      </div>
+      <div className="flex gap-2"><div className="h-5 bg-gray-100 rounded-full w-20" /><div className="h-5 bg-gray-100 rounded-full w-14" /></div>
     </div>
   );
 }
@@ -125,14 +108,10 @@ export default function MarineAreasPage() {
   const fetchAreas = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const [areaRes, statsRes] = await Promise.all([
-        api.get(`/marine?${params}`),
-        api.get('/marine/stats'),
-      ]);
-      setAreas(areaRes.data.areas);
-      setPagination(areaRes.data.pagination);
-      setStats(statsRes.data);
+      const [areaRes, statsRes] = await Promise.all([getMarineAreas(filters), getMarineStats()]);
+      setAreas(areaRes.areas);
+      setPagination(areaRes.pagination);
+      setStats(statsRes);
     } catch { toast.error('Failed to load marine areas.'); }
     finally { setLoading(false); }
   };
@@ -143,7 +122,6 @@ export default function MarineAreasPage() {
 
   return (
     <div className="space-y-5 fade-in">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Marine Areas</h2>
@@ -152,31 +130,25 @@ export default function MarineAreasPage() {
           </p>
         </div>
         <Link to="/marine/new" className="btn-primary flex items-center gap-2 text-sm">
-          <Plus size={15} />
-          New Marine Area
+          <Plus size={15} /> New Marine Area
         </Link>
       </div>
 
-      {/* Type summary chips */}
       {stats.byType?.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {stats.byType.map(t => (
-            <button
-              key={t.areaType}
+            <button key={t.areaType}
               onClick={() => setFilters(f => ({ ...f, areaType: f.areaType === t.areaType ? '' : t.areaType, page: 1 }))}
-              className={`badge cursor-pointer transition-all ${
-                filters.areaType === t.areaType
-                  ? (AREA_TYPE_BADGE[t.areaType] || 'bg-gray-200 text-gray-700') + ' ring-2 ring-offset-1 ring-current'
-                  : AREA_TYPE_BADGE[t.areaType] || 'bg-gray-100 text-gray-600'
-              } capitalize hover:opacity-90`}
-            >
+              className={`badge cursor-pointer transition-all ${filters.areaType === t.areaType
+                ? (AREA_TYPE_BADGE[t.areaType] || 'bg-gray-200 text-gray-700') + ' ring-2 ring-offset-1 ring-current'
+                : AREA_TYPE_BADGE[t.areaType] || 'bg-gray-100 text-gray-600'
+              } capitalize hover:opacity-90`}>
               {t.areaType?.replace(/_/g, ' ')}: <strong className="ml-1">{t.count}</strong>
             </button>
           ))}
         </div>
       )}
 
-      {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
         <Filter size={14} className="text-gray-400" />
         <div className="relative flex-1 min-w-48">
@@ -203,14 +175,11 @@ export default function MarineAreasPage() {
           <option value="under_review">Under Review</option>
         </select>
         {hasFilters && (
-          <button
-            onClick={() => setFilters({ province: '', areaType: '', managementStatus: '', search: '', page: 1 })}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline"
-          >Clear</button>
+          <button onClick={() => setFilters({ province: '', areaType: '', managementStatus: '', search: '', page: 1 })}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline">Clear</button>
         )}
       </div>
 
-      {/* Grid */}
       {!loading && areas.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 py-20 text-center">
           <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

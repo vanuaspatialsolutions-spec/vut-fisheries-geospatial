@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { getDatasets, publishDataset, unpublishDataset, submitDatasetForReview } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, Download, Eye, CheckCircle, Clock, Archive, Search, Filter } from 'lucide-react';
+import { Upload, Download, CheckCircle, Clock, Archive, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
@@ -27,49 +27,39 @@ export default function DatasetsPage() {
   const fetchDatasets = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const res = await api.get(`/datasets?${params}`);
-      setDatasets(res.data.datasets);
-      setPagination(res.data.pagination);
-    } catch (err) {
-      toast.error('Failed to load datasets.');
-    } finally {
-      setLoading(false);
-    }
+      const res = await getDatasets(filters);
+      setDatasets(res.datasets);
+      setPagination(res.pagination);
+    } catch { toast.error('Failed to load datasets.'); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchDatasets(); }, [filters]);
 
-  const handleDownload = async (dataset) => {
-    try {
-      const res = await api.get(`/datasets/${dataset.id}/download`);
-      if (res.data.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
-      }
+  const handleDownload = (dataset) => {
+    if (dataset.downloadURL) {
+      window.open(dataset.downloadURL, '_blank');
       toast.success(`Downloading ${dataset.fileName}`);
-    } catch (err) {
-      toast.error('Download failed.');
+    } else {
+      toast.error('Download URL not available.');
     }
   };
 
   const handlePublish = async (id, publish) => {
     try {
-      await api.put(`/datasets/${id}/${publish ? 'publish' : 'unpublish'}`);
+      if (publish) await publishDataset(id);
+      else await unpublishDataset(id);
       toast.success(`Dataset ${publish ? 'published' : 'unpublished'}.`);
       fetchDatasets();
-    } catch (err) {
-      toast.error('Action failed.');
-    }
+    } catch { toast.error('Action failed.'); }
   };
 
   const handleSubmitReview = async (id) => {
     try {
-      await api.put(`/datasets/${id}/review`);
+      await submitDatasetForReview(id);
       toast.success('Submitted for review.');
       fetchDatasets();
-    } catch (err) {
-      toast.error('Failed to submit for review.');
-    }
+    } catch { toast.error('Failed to submit for review.'); }
   };
 
   const fileSizeDisplay = (bytes) => {
@@ -92,17 +82,13 @@ export default function DatasetsPage() {
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="card py-4">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-            <input
-              className="form-input pl-8 py-2 text-sm"
-              placeholder="Search datasets..."
+            <input className="form-input pl-8 py-2 text-sm" placeholder="Search datasets..."
               value={filters.search}
-              onChange={e => setFilters(f => ({ ...f, search: e.target.value, page: 1 }))}
-            />
+              onChange={e => setFilters(f => ({ ...f, search: e.target.value, page: 1 }))} />
           </div>
           {isStaff && (
             <select className="form-input py-2 text-sm w-auto" value={filters.status}
@@ -127,7 +113,6 @@ export default function DatasetsPage() {
         </div>
       </div>
 
-      {/* Dataset list */}
       {loading ? (
         <div className="flex justify-center py-12 text-ocean-600">Loading datasets...</div>
       ) : datasets.length === 0 ? (
@@ -156,48 +141,35 @@ export default function DatasetsPage() {
                     {dataset.community && <span>Community: {dataset.community}</span>}
                     {dataset.collectionDate && <span>Collected: {dataset.collectionDate}</span>}
                     <span>Size: {fileSizeDisplay(dataset.fileSize)}</span>
-                    <span>Downloads: {dataset.downloadCount}</span>
-                    {dataset.uploader && <span>By: {dataset.uploader.firstName} {dataset.uploader.lastName}</span>}
+                    <span>Downloads: {dataset.downloadCount || 0}</span>
+                    {dataset.uploaderName && <span>By: {dataset.uploaderName}</span>}
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => handleDownload(dataset)}
-                    className="p-2 text-ocean-700 hover:bg-ocean-50 rounded-lg transition-colors"
-                    title="Download"
-                  >
+                  <button onClick={() => handleDownload(dataset)}
+                    className="p-2 text-ocean-700 hover:bg-ocean-50 rounded-lg transition-colors" title="Download">
                     <Download size={16} />
                   </button>
 
                   {isStaff && (dataset.status === 'under_review' || dataset.status === 'draft') && (
-                    <button
-                      onClick={() => handlePublish(dataset.id, true)}
-                      className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1"
-                    >
-                      <CheckCircle size={12} />
-                      Publish
+                    <button onClick={() => handlePublish(dataset.id, true)}
+                      className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1">
+                      <CheckCircle size={12} /> Publish
                     </button>
                   )}
 
                   {isStaff && dataset.status === 'published' && (
-                    <button
-                      onClick={() => handlePublish(dataset.id, false)}
-                      className="px-3 py-1.5 text-xs bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-1"
-                    >
-                      <Archive size={12} />
-                      Unpublish
+                    <button onClick={() => handlePublish(dataset.id, false)}
+                      className="px-3 py-1.5 text-xs bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-1">
+                      <Archive size={12} /> Unpublish
                     </button>
                   )}
 
                   {!isStaff && dataset.status === 'draft' && (
-                    <button
-                      onClick={() => handleSubmitReview(dataset.id)}
-                      className="px-3 py-1.5 text-xs bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 flex items-center gap-1"
-                    >
-                      <Clock size={12} />
-                      Submit for Review
+                    <button onClick={() => handleSubmitReview(dataset.id)}
+                      className="px-3 py-1.5 text-xs bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 flex items-center gap-1">
+                      <Clock size={12} /> Submit for Review
                     </button>
                   )}
                 </div>
@@ -207,15 +179,11 @@ export default function DatasetsPage() {
         </div>
       )}
 
-      {/* Pagination */}
       {pagination.pages > 1 && (
         <div className="flex justify-center gap-2">
           {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => setFilters(f => ({ ...f, page: p }))}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filters.page === p ? 'bg-ocean-700 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
-            >
+            <button key={p} onClick={() => setFilters(f => ({ ...f, page: p }))}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filters.page === p ? 'bg-ocean-700 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
               {p}
             </button>
           ))}

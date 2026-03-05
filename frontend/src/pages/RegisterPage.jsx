@@ -1,24 +1,25 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Fish } from 'lucide-react';
 import { VANUATU_PROVINCES } from '../utils/constants';
 
 export default function RegisterPage() {
-  const { login } = useAuth();
+  const { register: registerUser } = useAuth();
   const navigate = useNavigate();
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = async (data) => {
     try {
-      await api.post('/auth/register', data);
-      await login(data.email, data.password);
+      await registerUser(data);
       toast.success('Account created! Welcome.');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed.');
+      if (err.code === 'auth/email-already-in-use') {
+        toast.error('An account with this email already exists.');
+      } else {
+        toast.error(err.message || 'Registration failed.');
+      }
     }
   };
 
@@ -26,8 +27,12 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-ocean-900 via-ocean-800 to-ocean-700 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 backdrop-blur rounded-2xl mb-3">
-            <Fish size={28} className="text-white" />
+          <div className="inline-flex items-center justify-center w-14 h-14 mb-3">
+            <img
+              src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
+              alt="Vanuatu Coat of Arms"
+              className="w-14 h-14 object-contain drop-shadow-lg"
+            />
           </div>
           <h1 className="text-2xl font-bold text-white">Create Account</h1>
           <p className="text-ocean-200 text-sm">CBFM Platform – Vanuatu Dept. of Fisheries</p>

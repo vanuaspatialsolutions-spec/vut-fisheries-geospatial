@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Map, BarChart3, Shield, Users, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Map, BarChart3, Shield, Users } from 'lucide-react';
 
 const features = [
   { icon: Map, label: 'Interactive Mapping', desc: 'Visualise LMMAs & marine zones across Vanuatu' },
@@ -17,28 +16,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
-  const [serverReady, setServerReady] = useState(false);
-  const [serverStarting, setServerStarting] = useState(false);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
-
-  // Wake up the backend as soon as the login page opens
-  useEffect(() => {
-    let bannerTimer;
-    const wake = async () => {
-      bannerTimer = setTimeout(() => setServerStarting(true), 3000);
-      try {
-        await api.get('/health', { timeout: 60000 });
-      } catch {
-        // Even if health check fails, let the user try — login will show the real error
-      } finally {
-        clearTimeout(bannerTimer);
-        setServerStarting(false);
-        setServerReady(true);
-      }
-    };
-    wake();
-    return () => clearTimeout(bannerTimer);
-  }, []);
 
   const onSubmit = async (data) => {
     try {
@@ -46,19 +24,12 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err) {
-      // Network/timeout error = backend still cold starting; retry once
-      if (!err.response) {
-        try {
-          await login(data.email, data.password);
-          toast.success('Welcome back!');
-          navigate('/dashboard');
-          return;
-        } catch (retryErr) {
-          toast.error('Server is slow to respond. Please wait a moment and try again.');
-          return;
-        }
+      const code = err.code;
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        toast.error('Invalid email or password.');
+      } else {
+        toast.error('Login failed. Please try again.');
       }
-      toast.error(err.response?.data?.message || 'Login failed. Check your credentials.');
     }
   };
 
@@ -66,12 +37,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left panel — branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-ocean-900 via-ocean-800 to-ocean-700 bg-animate flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute inset-0 wave-pattern opacity-60" />
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-ocean-500/20 rounded-full blur-3xl" />
 
-        {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-10">
             <img
@@ -93,7 +62,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Feature list */}
         <div className="relative z-10 space-y-4">
           {features.map(({ icon: Icon, label, desc }) => (
             <div key={label} className="flex items-start gap-4">
@@ -108,7 +76,6 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {/* Footer */}
         <p className="text-ocean-500 text-xs relative z-10">
           &copy; {new Date().getFullYear()} Vanuatu Dept. of Fisheries &mdash; All rights reserved
         </p>
@@ -117,7 +84,6 @@ export default function LoginPage() {
       {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md fade-in">
-          {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <img
               src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
@@ -130,15 +96,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Server waking up banner */}
-          {serverStarting && (
-            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 mb-4">
-              <Loader2 size={15} className="animate-spin flex-shrink-0" />
-              <span>Server is starting up, please wait a moment&hellip;</span>
-            </div>
-          )}
-
-          {/* Card */}
           <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 p-8">
             <div className="mb-7">
               <h2 className="text-2xl font-bold text-gray-900">Sign in</h2>
@@ -155,11 +112,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   {...register('email', { required: 'Email is required' })}
                 />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                    {errors.email.message}
-                  </p>
-                )}
+                {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
               </div>
 
               <div>
@@ -181,9 +134,7 @@ export default function LoginPage() {
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>
-                )}
+                {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
               </div>
 
               <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-2.5 text-sm mt-1">

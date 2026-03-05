@@ -1,5 +1,15 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../utils/api';
+import { auth, db } from '../firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+} from 'firebase/auth';
+import {
+  doc, getDoc, setDoc, collection, getDocs, serverTimestamp,
+} from 'firebase/firestore';
 
 const AuthContext = createContext(null);
 
@@ -8,47 +18,56 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('cbfm_token');
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      api.get('/auth/me')
-        .then(res => setUser(res.data.user))
-        .catch(() => { localStorage.removeItem('cbfm_token'); })
-        .finally(() => setLoading(false));
-    } else {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+        setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...snap.data() });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
-    }
+    });
+    return unsub;
   }, []);
 
   const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { token, user } = res.data;
-    localStorage.setItem('cbfm_token', token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    setUser(user);
-    return user;
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const snap = await getDoc(doc(db, 'users', cred.user.uid));
+    const profile = { uid: cred.user.uid, email: cred.user.email, ...snap.data() };
+    setUser(profile);
+    return profile;
   };
 
-  const logout = () => {
-    localStorage.removeItem('cbfm_token');
-    delete api.defaults.headers.common['Authorization'];
-    setUser(null);
+  const register = async ({ firstName, lastName, email, password, organization, province }) => {
+    // First registered user becomes admin
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const role = usersSnap.empty ? 'admin' : 'community_officer';
+
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: `${firstName} ${lastName}` });
+
+    const profile = {
+      firstName,
+      lastName,
+      email,
+      role,
+      organization: organization || '',
+      province: province || '',
+      isActive: true,
+      createdAt: serverTimestamp(),
+    };
+    await setDoc(doc(db, 'users', cred.user.uid), profile);
+    setUser({ uid: cred.user.uid, ...profile });
+    return { uid: cred.user.uid, ...profile };
   };
 
-  // Keep the backend awake while a user is logged in (ping every 9 minutes)
-  useEffect(() => {
-    if (!user) return;
-    const interval = setInterval(() => {
-      api.get('/health').catch(() => {});
-    }, 9 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [user]);
+  const logout = () => signOut(auth).then(() => setUser(null));
 
   const isAdmin = user?.role === 'admin';
   const isStaff = ['admin', 'staff'].includes(user?.role);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isStaff }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin, isStaff }}>
       {children}
     </AuthContext.Provider>
   );

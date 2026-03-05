@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import api from '../utils/api';
+import { createMarineArea } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Info } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
@@ -19,7 +19,6 @@ export default function NewMarineAreaPage() {
 
   const onSubmit = async (data) => {
     if (!geoJsonText.trim()) return toast.error('Boundary geometry (GeoJSON) is required.');
-
     let geometry;
     try {
       geometry = JSON.parse(geoJsonText);
@@ -29,13 +28,12 @@ export default function NewMarineAreaPage() {
       setGeoJsonError('Invalid GeoJSON format. Must be a Polygon or MultiPolygon geometry object.');
       return;
     }
-
     try {
-      await api.post('/marine', { ...data, geometry, habitatTypes: selectedHabitats });
+      await createMarineArea({ ...data, geometry, habitatTypes: selectedHabitats });
       toast.success('Marine area recorded!');
       navigate('/marine');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save.');
+      toast.error(err.message || 'Failed to save.');
     }
   };
 
@@ -52,7 +50,6 @@ export default function NewMarineAreaPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Identification */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Area Identification</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -70,7 +67,6 @@ export default function NewMarineAreaPage() {
           </div>
         </div>
 
-        {/* Location */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Location</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -81,62 +77,39 @@ export default function NewMarineAreaPage() {
                 {VANUATU_PROVINCES.map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
-            <div>
-              <label className="form-label">Island *</label>
-              <input className="form-input" {...register('island', { required: true })} />
-            </div>
-            <div>
-              <label className="form-label">Community *</label>
-              <input className="form-input" {...register('community', { required: true })} />
-            </div>
+            <div><label className="form-label">Island *</label>
+              <input className="form-input" {...register('island', { required: true })} /></div>
+            <div><label className="form-label">Community *</label>
+              <input className="form-input" {...register('community', { required: true })} /></div>
           </div>
         </div>
 
-        {/* Boundary */}
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-ocean-800">Boundary Geometry *</h3>
-            <a
-              href="https://geojson.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-ocean-600 hover:underline flex items-center gap-1"
-            >
-              <Info size={12} />
-              Draw at geojson.io
+            <a href="https://geojson.io" target="_blank" rel="noopener noreferrer"
+              className="text-xs text-ocean-600 hover:underline flex items-center gap-1">
+              <Info size={12} /> Draw at geojson.io
             </a>
           </div>
-          <p className="text-xs text-gray-500">
-            Paste GeoJSON geometry (Polygon or MultiPolygon). Draw your boundary at geojson.io and copy the geometry object.
-          </p>
-          <textarea
-            className={`form-input font-mono text-xs ${geoJsonError ? 'border-red-400' : ''}`}
-            rows={6}
+          <p className="text-xs text-gray-500">Paste GeoJSON geometry (Polygon or MultiPolygon). Draw your boundary at geojson.io and copy the geometry object.</p>
+          <textarea className={`form-input font-mono text-xs ${geoJsonError ? 'border-red-400' : ''}`} rows={6}
             placeholder={`{\n  "type": "Polygon",\n  "coordinates": [[[166.92, -15.37], ...]]\n}`}
-            value={geoJsonText}
-            onChange={e => { setGeoJsonText(e.target.value); setGeoJsonError(''); }}
-          />
+            value={geoJsonText} onChange={e => { setGeoJsonText(e.target.value); setGeoJsonError(''); }} />
           {geoJsonError && <p className="text-red-500 text-xs">{geoJsonError}</p>}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Area Size (ha)</label>
-              <input type="number" step="0.01" className="form-input" {...register('areaSizeHa', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Perimeter (km)</label>
-              <input type="number" step="0.01" className="form-input" {...register('perimeterKm', { valueAsNumber: true })} />
-            </div>
+            <div><label className="form-label">Area Size (ha)</label>
+              <input type="number" step="0.01" className="form-input" {...register('areaSizeHa', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Perimeter (km)</label>
+              <input type="number" step="0.01" className="form-input" {...register('perimeterKm', { valueAsNumber: true })} /></div>
           </div>
         </div>
 
-        {/* Management */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Management Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Year Established</label>
-              <input type="number" className="form-input" placeholder="e.g. 2018" {...register('establishedYear', { valueAsNumber: true })} />
-            </div>
+            <div><label className="form-label">Year Established</label>
+              <input type="number" className="form-input" placeholder="e.g. 2018" {...register('establishedYear', { valueAsNumber: true })} /></div>
             <div>
               <label className="form-label">Management Status</label>
               <select className="form-input" {...register('managementStatus')}>
@@ -167,25 +140,18 @@ export default function NewMarineAreaPage() {
               </select>
             </div>
           </div>
-
-          {/* Taboo/closure info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-3">
               <input type="checkbox" id="isOpen" className="rounded text-ocean-600" {...register('isCurrentlyOpen')} />
               <label htmlFor="isOpen" className="text-sm text-gray-700">Currently Open to Fishing</label>
             </div>
-            <div>
-              <label className="form-label">Last Closure Date</label>
-              <input type="date" className="form-input" {...register('lastClosureDate')} />
-            </div>
-            <div>
-              <label className="form-label">Last Opening Date</label>
-              <input type="date" className="form-input" {...register('lastOpeningDate')} />
-            </div>
+            <div><label className="form-label">Last Closure Date</label>
+              <input type="date" className="form-input" {...register('lastClosureDate')} /></div>
+            <div><label className="form-label">Last Opening Date</label>
+              <input type="date" className="form-input" {...register('lastOpeningDate')} /></div>
           </div>
         </div>
 
-        {/* Habitats */}
         <div className="card">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2 mb-4">Habitat Types Present</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -207,8 +173,7 @@ export default function NewMarineAreaPage() {
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
-            <Save size={16} />
-            {isSubmitting ? 'Saving...' : 'Save Marine Area'}
+            <Save size={16} />{isSubmitting ? 'Saving...' : 'Save Marine Area'}
           </button>
         </div>
       </form>
