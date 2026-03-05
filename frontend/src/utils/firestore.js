@@ -318,19 +318,30 @@ export async function getPublishedGeoJSONDatasets() {
 }
 
 export async function getDatasetGeoJSON(dataset) {
-  // Try Storage SDK first (sends auth token, avoids CORS issues).
-  // Fall back to download URL if filePath is missing or the SDK call fails.
+  // 1. Try Storage SDK getBytes (handles auth + CORS via Firebase SDK).
   if (dataset.filePath) {
     try {
       const bytes = await getBytes(ref(storage, dataset.filePath));
       return JSON.parse(new TextDecoder().decode(bytes));
     } catch (err) {
-      console.warn('getBytes failed, falling back to downloadURL:', err);
+      console.warn('getBytes failed:', err.code, err.message);
+    }
+
+    // 2. Try fresh download URL from the SDK (token is regenerated using current auth).
+    try {
+      const freshUrl = await getDownloadURL(ref(storage, dataset.filePath));
+      const res = await fetch(freshUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    } catch (err) {
+      console.warn('Fresh downloadURL fetch failed:', err.message);
     }
   }
-  if (!dataset.downloadURL) throw new Error('No download URL available for dataset.');
+
+  // 3. Last resort: use the stored download URL (token may be stale).
+  if (!dataset.downloadURL) throw new Error('storage/no-url');
   const res = await fetch(dataset.downloadURL);
-  if (!res.ok) throw new Error(`Failed to fetch dataset: ${res.status}`);
+  if (!res.ok) throw new Error(`storage/http-${res.status}`);
   return res.json();
 }
 

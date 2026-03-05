@@ -51,8 +51,9 @@ export default function MapPage() {
         );
         const failed = results.filter(r => r.status === 'rejected');
         if (failed.length > 0) {
+          const errMsg = failed[0]?.reason?.message || failed[0]?.reason?.code || 'unknown';
           console.error('Failed to load dataset layers:', failed.map(r => r.reason));
-          toast.error(`${failed.length} dataset layer(s) failed to load.`);
+          toast.error(`Dataset load failed: ${errMsg}`, { duration: 8000 });
         }
         setDatasetLayers(results.filter(r => r.status === 'fulfilled').map(r => r.value));
       } else {
