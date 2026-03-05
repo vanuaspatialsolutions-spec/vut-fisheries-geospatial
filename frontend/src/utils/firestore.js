@@ -7,7 +7,7 @@ import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, getBytes } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, getBytes, deleteObject } from 'firebase/storage';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -356,6 +356,18 @@ export async function getPublishedGeoJSONDatasets() {
     .filter(d => d.status === 'published' && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase()));
 }
 
+export async function deleteDataset(id, filePath) {
+  // Delete storage file first (best-effort — may fail if already gone or no permission).
+  if (filePath) {
+    try {
+      await deleteObject(ref(storage, filePath));
+    } catch (err) {
+      console.warn('Storage file delete failed (continuing):', err.message);
+    }
+  }
+  return deleteDoc(doc(db, 'datasets', id));
+}
+
 function withTimeout(promise, ms, label) {
   return Promise.race([
     promise,
@@ -397,10 +409,18 @@ export async function getDatasetGeoJSON(dataset) {
   }
 
   // 4. Stored download URL with timeout.
-  if (!dataset.downloadURL) throw new Error('storage/no-url');
-  const res = await withTimeout(fetch(dataset.downloadURL), 12000, 'fetch storedUrl');
-  if (!res.ok) throw new Error(`storage/http-${res.status}`);
-  return res.json();
+  if (dataset.downloadURL) {
+    try {
+      const res = await withTimeout(fetch(dataset.downloadURL), 12000, 'fetch storedUrl');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    } catch (err) {
+      console.warn('Stored downloadURL fetch failed:', err.message);
+    }
+  }
+
+  // All methods failed — return null so the caller can skip this layer gracefully.
+  return null;
 }
 
 // ── USERS (ADMIN) ──────────────────────────────────────────────────────────

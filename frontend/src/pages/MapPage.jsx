@@ -62,15 +62,16 @@ export default function MapPage() {
     setDatasetsLoading(true);
     try {
       const results = await Promise.allSettled(
-        datasetMeta.map(d => getDatasetGeoJSON(d).then(geojson => ({ meta: d, geojson })))
+        datasetMeta.map(d => getDatasetGeoJSON(d).then(geojson => (geojson ? { meta: d, geojson } : null)))
       );
-      const failed = results.filter(r => r.status === 'rejected');
-      if (failed.length > 0) {
-        const errMsg = failed[0]?.reason?.message || failed[0]?.reason?.code || 'unknown';
-        console.error('Dataset layer load failed:', failed.map(r => r.reason));
-        toast.error(`Dataset layer failed: ${errMsg}`, { duration: 8000 });
+      const loaded = results
+        .filter(r => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+      const skipped = results.length - loaded.length;
+      if (skipped > 0) {
+        console.warn(`${skipped} dataset layer(s) could not be loaded (no inline data + storage CORS blocked). Re-upload to fix.`);
       }
-      setDatasetLayers(results.filter(r => r.status === 'fulfilled').map(r => r.value));
+      setDatasetLayers(loaded);
     } catch (err) {
       console.error('Dataset layer error:', err);
     } finally {

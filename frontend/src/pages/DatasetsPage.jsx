@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getDatasets, publishDataset, unpublishDataset, submitDatasetForReview } from '../utils/firestore';
+import { getDatasets, publishDataset, unpublishDataset, submitDatasetForReview, deleteDataset } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, Download, CheckCircle, Clock, Archive, Search } from 'lucide-react';
+import { Upload, Download, CheckCircle, Clock, Archive, Search, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
@@ -60,6 +60,15 @@ export default function DatasetsPage() {
       toast.success('Submitted for review.');
       fetchDatasets();
     } catch { toast.error('Failed to submit for review.'); }
+  };
+
+  const handleDelete = async (dataset) => {
+    if (!window.confirm(`Delete "${dataset.title}"? This cannot be undone.`)) return;
+    try {
+      await deleteDataset(dataset.id, dataset.filePath);
+      toast.success('Dataset deleted.');
+      fetchDatasets();
+    } catch { toast.error('Failed to delete dataset.'); }
   };
 
   const fileSizeDisplay = (bytes) => {
@@ -170,6 +179,13 @@ export default function DatasetsPage() {
                     <button onClick={() => handleSubmitReview(dataset.id)}
                       className="px-3 py-1.5 text-xs bg-ocean-700 text-white rounded-lg hover:bg-ocean-800 flex items-center gap-1">
                       <Clock size={12} /> Submit for Review
+                    </button>
+                  )}
+
+                  {isStaff && (
+                    <button onClick={() => handleDelete(dataset)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete dataset">
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
