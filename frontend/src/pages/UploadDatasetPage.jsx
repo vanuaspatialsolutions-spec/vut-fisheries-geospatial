@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
-import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { Upload, File, X, CheckCircle } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
@@ -38,26 +37,52 @@ export default function UploadDatasetPage() {
     if (!file) return toast.error('Please select a file to upload.');
     setUploading(true);
 
+    // DEMO — simulate upload progress then save to localStorage
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      Object.entries(data).forEach(([key, val]) => {
-        if (val !== undefined && val !== '') formData.append(key, val);
+      await new Promise(resolve => {
+        let p = 0;
+        const iv = setInterval(() => {
+          p = Math.min(p + 10, 100);
+          setProgress(p);
+          if (p >= 100) { clearInterval(iv); resolve(); }
+        }, 80);
       });
 
-      await api.post('/datasets/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => setProgress(Math.round((e.loaded / e.total) * 100)),
-      });
+      const existing = JSON.parse(localStorage.getItem('cbfm_datasets') || '[]');
+      const record = {
+        id: `local-${Date.now()}`,
+        title: data.title,
+        description: data.description || '',
+        status: 'draft',
+        fileFormat: file.name.split('.').pop().toUpperCase(),
+        fileName: file.name,
+        fileSize: file.size,
+        dataType: data.dataType || '',
+        province: data.province || null,
+        island: data.island || null,
+        community: data.community || null,
+        lmmaName: data.lmmaName || null,
+        collectionDate: data.collectionDate || null,
+        coordinatorName: data.coordinatorName || null,
+        downloadCount: 0,
+        uploadedAt: new Date().toISOString(),
+        uploader: { firstName: 'You', lastName: '' },
+      };
+      localStorage.setItem('cbfm_datasets', JSON.stringify([record, ...existing]));
 
-      toast.success('Dataset uploaded successfully!');
+      toast.success('Dataset saved locally (demo mode).');
       navigate('/datasets');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed.');
+      toast.error('Upload failed.');
     } finally {
       setUploading(false);
       setProgress(0);
     }
+    // END DEMO — replace with real API call when backend is ready:
+    // const formData = new FormData();
+    // formData.append('file', file);
+    // Object.entries(data).forEach(([key, val]) => { if (val) formData.append(key, val); });
+    // await api.post('/datasets/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' }, onUploadProgress: (e) => setProgress(Math.round((e.loaded / e.total) * 100)) });
   };
 
   const fileSizeDisplay = (bytes) => {

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { mockDatasets } from '../utils/mockData';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Upload, Download, Eye, CheckCircle, Clock, Archive, Search, Filter } from 'lucide-react';
+import { Upload, Download, Eye, CheckCircle, Clock, Archive, Search, Filter, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
@@ -30,7 +30,8 @@ export default function DatasetsPage() {
     setLoading(true);
     // DEMO - replace with real API call when backend is ready
     setTimeout(() => {
-      let data = mockDatasets.datasets;
+      const localUploads = JSON.parse(localStorage.getItem('cbfm_datasets') || '[]');
+      let data = [...localUploads, ...mockDatasets.datasets];
       if (filters.status) data = data.filter(d => d.status === filters.status);
       if (filters.dataType) data = data.filter(d => d.dataType === filters.dataType);
       if (filters.province) data = data.filter(d => d.province === filters.province);
@@ -77,6 +78,12 @@ export default function DatasetsPage() {
           <Upload size={16} />
           Upload Dataset
         </Link>
+      </div>
+
+      {/* Demo notice */}
+      <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+        <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 text-amber-500" />
+        <span><strong>Demo mode:</strong> Uploads are saved to this browser only and will not appear on other devices. A backend deployment is required for shared, persistent storage.</span>
       </div>
 
       {/* Filters */}
