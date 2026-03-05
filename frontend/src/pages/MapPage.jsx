@@ -60,7 +60,8 @@ export default function MapPage() {
         setDatasetLayers([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('fetchData error:', err);
+      toast.error(`Map load error: ${err.message || 'unknown'}`, { duration: 6000 });
     } finally {
       setLoading(false);
     }

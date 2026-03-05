@@ -317,20 +317,33 @@ export async function getPublishedGeoJSONDatasets() {
     .filter(d => d.status === 'published' && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase()));
 }
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out`)), ms)
+    ),
+  ]);
+}
+
 export async function getDatasetGeoJSON(dataset) {
-  // 1. Try Storage SDK getBytes (handles auth + CORS via Firebase SDK).
+  // 1. Try Storage SDK getBytes with a 12s timeout.
   if (dataset.filePath) {
     try {
-      const bytes = await getBytes(ref(storage, dataset.filePath));
+      const bytes = await withTimeout(
+        getBytes(ref(storage, dataset.filePath)), 12000, 'getBytes'
+      );
       return JSON.parse(new TextDecoder().decode(bytes));
     } catch (err) {
-      console.warn('getBytes failed:', err.code, err.message);
+      console.warn('getBytes failed:', err.code || err.message);
     }
 
-    // 2. Try fresh download URL from the SDK (token is regenerated using current auth).
+    // 2. Fresh download URL via SDK, then fetch with timeout.
     try {
-      const freshUrl = await getDownloadURL(ref(storage, dataset.filePath));
-      const res = await fetch(freshUrl);
+      const freshUrl = await withTimeout(
+        getDownloadURL(ref(storage, dataset.filePath)), 8000, 'getDownloadURL'
+      );
+      const res = await withTimeout(fetch(freshUrl), 12000, 'fetch freshUrl');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     } catch (err) {
@@ -338,9 +351,9 @@ export async function getDatasetGeoJSON(dataset) {
     }
   }
 
-  // 3. Last resort: use the stored download URL (token may be stale).
+  // 3. Stored download URL with timeout.
   if (!dataset.downloadURL) throw new Error('storage/no-url');
-  const res = await fetch(dataset.downloadURL);
+  const res = await withTimeout(fetch(dataset.downloadURL), 12000, 'fetch storedUrl');
   if (!res.ok) throw new Error(`storage/http-${res.status}`);
   return res.json();
 }
