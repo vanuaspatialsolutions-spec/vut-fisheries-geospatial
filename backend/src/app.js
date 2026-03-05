@@ -25,6 +25,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, cb) => {
       if (!origin || origin.endsWith('.vercel.app') || origin.includes('localhost')) return cb(null, true);
+      if (origin.includes('.github.io')) return cb(null, true);
       if (process.env.FRONTEND_URL && origin.startsWith(process.env.FRONTEND_URL)) return cb(null, true);
       cb(new Error('CORS: origin not allowed'));
     },
@@ -50,7 +51,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.some(o => origin.startsWith(o))) return cb(null, true);
-    if (origin.endsWith('.vercel.app')) return cb(null, true);
+    if (origin.endsWith('.vercel.app') || origin.includes('.github.io')) return cb(null, true);
     cb(new Error('CORS: origin not allowed'));
   },
   credentials: true,

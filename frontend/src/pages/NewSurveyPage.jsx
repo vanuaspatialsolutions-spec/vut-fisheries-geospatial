@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
-import { useEffect, useState } from 'react';
-import api from '../utils/api';
+import { useEffect } from 'react';
+import { getSurvey, createSurvey, updateSurvey } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES, COMMON_CHALLENGES, TRAINING_TYPES } from '../utils/constants';
@@ -17,12 +17,8 @@ function CheckboxGroup({ label, options, value = [], onChange }) {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
         {options.map(opt => (
           <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              checked={value.includes(opt)}
-              onChange={() => toggle(opt)}
-              className="rounded border-gray-300 text-ocean-600"
-            />
+            <input type="checkbox" checked={value.includes(opt)} onChange={() => toggle(opt)}
+              className="rounded border-gray-300 text-ocean-600" />
             <span className="text-gray-600">{opt}</span>
           </label>
         ))}
@@ -41,22 +37,22 @@ export default function NewSurveyPage() {
 
   useEffect(() => {
     if (isEdit) {
-      api.get(`/surveys/${id}`).then(res => reset(res.data.survey)).catch(() => toast.error('Failed to load survey.'));
+      getSurvey(id).then(data => { if (data) reset(data); }).catch(() => toast.error('Failed to load survey.'));
     }
   }, [id]);
 
   const onSubmit = async (data) => {
     try {
       if (isEdit) {
-        await api.put(`/surveys/${id}`, data);
+        await updateSurvey(id, data);
         toast.success('Survey updated.');
       } else {
-        await api.post('/surveys', data);
+        await createSurvey(data);
         toast.success('Survey submitted successfully!');
       }
       navigate('/surveys');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed.');
+      toast.error(err.message || 'Submission failed.');
     }
   };
 
@@ -73,7 +69,6 @@ export default function NewSurveyPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Location */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Location Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -108,7 +103,6 @@ export default function NewSurveyPage() {
           </div>
         </div>
 
-        {/* Survey info */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Survey Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,30 +128,19 @@ export default function NewSurveyPage() {
           </div>
         </div>
 
-        {/* Community profile */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Community Profile</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className="form-label">Total Households</label>
-              <input type="number" className="form-input" {...register('totalHouseholds', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Total Fishers</label>
-              <input type="number" className="form-input" {...register('totalFishers', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Male Fishers</label>
-              <input type="number" className="form-input" {...register('maleFishers', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Female Fishers</label>
-              <input type="number" className="form-input" {...register('femaleFishers', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Youth Fishers (&lt;30)</label>
-              <input type="number" className="form-input" {...register('youthFishers', { valueAsNumber: true })} />
-            </div>
+            <div><label className="form-label">Total Households</label>
+              <input type="number" className="form-input" {...register('totalHouseholds', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Total Fishers</label>
+              <input type="number" className="form-input" {...register('totalFishers', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Male Fishers</label>
+              <input type="number" className="form-input" {...register('maleFishers', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Female Fishers</label>
+              <input type="number" className="form-input" {...register('femaleFishers', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Youth Fishers (&lt;30)</label>
+              <input type="number" className="form-input" {...register('youthFishers', { valueAsNumber: true })} /></div>
             <div>
               <label className="form-label">Primary Income</label>
               <select className="form-input" {...register('primaryIncomeSource')}>
@@ -168,68 +151,47 @@ export default function NewSurveyPage() {
                 <option value="other">Other</option>
               </select>
             </div>
-            <div>
-              <label className="form-label">Avg Monthly Income (VUV)</label>
-              <input type="number" className="form-input" {...register('averageMonthlyIncomeFishing', { valueAsNumber: true })} />
-            </div>
+            <div><label className="form-label">Avg Monthly Income (VUV)</label>
+              <input type="number" className="form-input" {...register('averageMonthlyIncomeFishing', { valueAsNumber: true })} /></div>
           </div>
         </div>
 
-        {/* CBFM Governance */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">CBFM Governance</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
-              <input type="checkbox" id="cbfmCommittee" className="rounded border-gray-300 text-ocean-600"
-                {...register('hasCBFMCommittee')} />
+              <input type="checkbox" id="cbfmCommittee" className="rounded border-gray-300 text-ocean-600" {...register('hasCBFMCommittee')} />
               <label htmlFor="cbfmCommittee" className="text-sm text-gray-700">Has CBFM Committee</label>
             </div>
-            <div>
-              <label className="form-label">Committee Size</label>
-              <input type="number" className="form-input" {...register('committeeSize', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Female Committee Members</label>
-              <input type="number" className="form-input" {...register('femaleMembersOnCommittee', { valueAsNumber: true })} />
-            </div>
+            <div><label className="form-label">Committee Size</label>
+              <input type="number" className="form-input" {...register('committeeSize', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Female Committee Members</label>
+              <input type="number" className="form-input" {...register('femaleMembersOnCommittee', { valueAsNumber: true })} /></div>
             <div className="flex items-center gap-3 mt-4">
-              <input type="checkbox" id="fishingRules" className="rounded border-gray-300 text-ocean-600"
-                {...register('hasFishingRules')} />
+              <input type="checkbox" id="fishingRules" className="rounded border-gray-300 text-ocean-600" {...register('hasFishingRules')} />
               <label htmlFor="fishingRules" className="text-sm text-gray-700">Has Community Fishing Rules</label>
             </div>
             <div className="flex items-center gap-3 mt-4">
-              <input type="checkbox" id="tabooArea" className="rounded border-gray-300 text-ocean-600"
-                {...register('hasTabooArea')} />
+              <input type="checkbox" id="tabooArea" className="rounded border-gray-300 text-ocean-600" {...register('hasTabooArea')} />
               <label htmlFor="tabooArea" className="text-sm text-gray-700">Has Taboo / Closed Area</label>
             </div>
-            <div>
-              <label className="form-label">Taboo Area Size (ha)</label>
-              <input type="number" step="0.1" className="form-input" {...register('tabooAreaSizeHa', { valueAsNumber: true })} />
-            </div>
-            <div>
-              <label className="form-label">Last Taboo Lift (Year)</label>
-              <input type="number" className="form-input" placeholder="e.g. 2023" {...register('lastTabooLiftYear', { valueAsNumber: true })} />
-            </div>
+            <div><label className="form-label">Taboo Area Size (ha)</label>
+              <input type="number" step="0.1" className="form-input" {...register('tabooAreaSizeHa', { valueAsNumber: true })} /></div>
+            <div><label className="form-label">Last Taboo Lift (Year)</label>
+              <input type="number" className="form-input" placeholder="e.g. 2023" {...register('lastTabooLiftYear', { valueAsNumber: true })} /></div>
           </div>
         </div>
 
-        {/* Challenges & Training */}
         <div className="card space-y-5">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Challenges & Capacity</h3>
-          <Controller
-            name="challenges"
-            control={control}
+          <Controller name="challenges" control={control}
             render={({ field }) => (
               <CheckboxGroup label="Challenges Faced" options={COMMON_CHALLENGES} value={field.value} onChange={field.onChange} />
-            )}
-          />
-          <Controller
-            name="trainingReceived"
-            control={control}
+            )} />
+          <Controller name="trainingReceived" control={control}
             render={({ field }) => (
               <CheckboxGroup label="Training Received" options={TRAINING_TYPES} value={field.value} onChange={field.onChange} />
-            )}
-          />
+            )} />
         </div>
 
         <div className="card">

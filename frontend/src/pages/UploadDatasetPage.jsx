@@ -2,9 +2,9 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
-import api from '../utils/api';
+import { uploadDataset } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, File, X, CheckCircle } from 'lucide-react';
+import { Upload, File, X } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
 const ACCEPTED_EXTENSIONS = {
@@ -21,7 +21,7 @@ export default function UploadDatasetPage() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onDrop = useCallback((accepted) => {
     if (accepted[0]) setFile(accepted[0]);
@@ -37,23 +37,12 @@ export default function UploadDatasetPage() {
   const onSubmit = async (data) => {
     if (!file) return toast.error('Please select a file to upload.');
     setUploading(true);
-
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      Object.entries(data).forEach(([key, val]) => {
-        if (val !== undefined && val !== '') formData.append(key, val);
-      });
-
-      await api.post('/datasets/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => setProgress(Math.round((e.loaded / e.total) * 100)),
-      });
-
+      await uploadDataset(file, data, setProgress);
       toast.success('Dataset uploaded successfully!');
       navigate('/datasets');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed.');
+      toast.error(err.message || 'Upload failed.');
     } finally {
       setUploading(false);
       setProgress(0);
@@ -73,22 +62,16 @@ export default function UploadDatasetPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* File dropzone */}
         <div className="card">
           <h3 className="font-semibold text-gray-700 mb-4">Select File</h3>
-
           {!file ? (
-            <div
-              {...getRootProps()}
+            <div {...getRootProps()}
               className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
-                ${isDragActive ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-400 hover:bg-gray-50'}`}
-            >
+                ${isDragActive ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-400 hover:bg-gray-50'}`}>
               <input {...getInputProps()} />
               <Upload size={40} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-600 font-medium">Drop your file here, or click to browse</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Supported: ZIP, Shapefile (.shp, .dbf, .shx), CSV, KML, GeoJSON
-              </p>
+              <p className="text-gray-400 text-sm mt-1">Supported: ZIP, Shapefile (.shp, .dbf, .shx), CSV, KML, GeoJSON</p>
               <p className="text-gray-400 text-xs mt-1">Maximum file size: 500 MB</p>
             </div>
           ) : (
@@ -109,7 +92,7 @@ export default function UploadDatasetPage() {
           {uploading && (
             <div className="mt-4">
               <div className="flex justify-between text-sm text-gray-500 mb-1">
-                <span>Uploading...</span>
+                <span>Uploading to Firebase Storage...</span>
                 <span>{progress}%</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -119,10 +102,8 @@ export default function UploadDatasetPage() {
           )}
         </div>
 
-        {/* Dataset metadata */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-gray-700">Dataset Information</h3>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="form-label">Dataset Title *</label>
@@ -130,13 +111,11 @@ export default function UploadDatasetPage() {
                 {...register('title', { required: 'Title is required' })} />
               {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
             </div>
-
             <div className="md:col-span-2">
               <label className="form-label">Description</label>
               <textarea className="form-input" rows={3} placeholder="Describe the dataset contents and purpose..."
                 {...register('description')} />
             </div>
-
             <div>
               <label className="form-label">Data Type *</label>
               <select className="form-input" {...register('dataType', { required: true })}>
@@ -144,7 +123,6 @@ export default function UploadDatasetPage() {
                 {DATA_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
-
             <div>
               <label className="form-label">Province</label>
               <select className="form-input" {...register('province')}>
@@ -152,66 +130,31 @@ export default function UploadDatasetPage() {
                 {VANUATU_PROVINCES.map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
-
-            <div>
-              <label className="form-label">Island</label>
-              <input className="form-input" placeholder="e.g. Efate, Espiritu Santo" {...register('island')} />
-            </div>
-
-            <div>
-              <label className="form-label">Community / Village</label>
-              <input className="form-input" placeholder="e.g. Pele Island Community" {...register('community')} />
-            </div>
-
-            <div>
-              <label className="form-label">LMMA Name</label>
-              <input className="form-input" placeholder="Locally Managed Marine Area name" {...register('lmmaName')} />
-            </div>
-
-            <div>
-              <label className="form-label">Collection Start Date</label>
-              <input type="date" className="form-input" {...register('collectionDate')} />
-            </div>
-
-            <div>
-              <label className="form-label">Collection End Date</label>
-              <input type="date" className="form-input" {...register('collectionEndDate')} />
-            </div>
-
-            <div>
-              <label className="form-label">Data Coordinator</label>
-              <input className="form-input" placeholder="Name of coordinator" {...register('coordinatorName')} />
-            </div>
-
-            <div>
-              <label className="form-label">Coordinator Contact</label>
-              <input className="form-input" placeholder="Email or phone" {...register('coordinatorContact')} />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="form-label">Methodology</label>
-              <textarea className="form-input" rows={2} placeholder="Data collection methodology..."
-                {...register('methodology')} />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="form-label">Tags (comma-separated)</label>
-              <input className="form-input" placeholder="e.g. reef fish, 2024, baseline, Shefa"
-                {...register('tags')} />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="form-label">Notes</label>
-              <textarea className="form-input" rows={2} placeholder="Additional notes or data quality notes..."
-                {...register('notes')} />
-            </div>
+            <div><label className="form-label">Island</label>
+              <input className="form-input" placeholder="e.g. Efate, Espiritu Santo" {...register('island')} /></div>
+            <div><label className="form-label">Community / Village</label>
+              <input className="form-input" placeholder="e.g. Pele Island Community" {...register('community')} /></div>
+            <div><label className="form-label">LMMA Name</label>
+              <input className="form-input" placeholder="Locally Managed Marine Area name" {...register('lmmaName')} /></div>
+            <div><label className="form-label">Collection Start Date</label>
+              <input type="date" className="form-input" {...register('collectionDate')} /></div>
+            <div><label className="form-label">Collection End Date</label>
+              <input type="date" className="form-input" {...register('collectionEndDate')} /></div>
+            <div><label className="form-label">Data Coordinator</label>
+              <input className="form-input" placeholder="Name of coordinator" {...register('coordinatorName')} /></div>
+            <div><label className="form-label">Coordinator Contact</label>
+              <input className="form-input" placeholder="Email or phone" {...register('coordinatorContact')} /></div>
+            <div className="md:col-span-2"><label className="form-label">Methodology</label>
+              <textarea className="form-input" rows={2} placeholder="Data collection methodology..." {...register('methodology')} /></div>
+            <div className="md:col-span-2"><label className="form-label">Tags (comma-separated)</label>
+              <input className="form-input" placeholder="e.g. reef fish, 2024, baseline, Shefa" {...register('tags')} /></div>
+            <div className="md:col-span-2"><label className="form-label">Notes</label>
+              <textarea className="form-input" rows={2} placeholder="Additional notes or data quality notes..." {...register('notes')} /></div>
           </div>
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
-            Cancel
-          </button>
+          <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={uploading || !file} className="btn-primary flex items-center gap-2">
             <Upload size={16} />
             {uploading ? `Uploading ${progress}%...` : 'Upload Dataset'}

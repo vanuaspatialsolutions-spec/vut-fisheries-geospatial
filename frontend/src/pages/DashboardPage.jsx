@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, CartesianGrid,
+} from 'recharts';
+import { useAuth } from '../context/AuthContext';
+import { getSurveyStats, getMarineStats, getMonitoringStats, getDatasetStats } from '../utils/firestore';
+import {
+  Users, Anchor, Activity, Database, Plus,
+  TrendingUp, MapPin, ArrowRight, RefreshCw,
+  BarChart2,
   CartesianGrid, Cell, ReferenceLine,
 } from 'recharts';
 import api from '../utils/api';
@@ -15,6 +23,29 @@ import { format, isValid } from 'date-fns';
 
 function SectionLabel({ label, desc }) {
   return (
+    <div className={`rounded-2xl shadow-md ${gradient} p-5 text-white relative overflow-hidden`}>
+      <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full" />
+      <div className="absolute -right-2 bottom-0 w-16 h-16 bg-white/5 rounded-full" />
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-white/70 text-xs font-medium uppercase tracking-wide">{label}</p>
+            {loading ? (
+              <div className="h-9 w-16 bg-white/20 rounded animate-pulse mt-1.5" />
+            ) : (
+              <p className="text-4xl font-bold mt-1">{value ?? '—'}</p>
+            )}
+            {sub && (
+              <p className="text-white/60 text-xs mt-1.5">
+                {loading ? <span className="inline-block h-3 w-24 bg-white/20 rounded animate-pulse" /> : sub}
+              </p>
+            )}
+          </div>
+          <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Icon size={20} />
+          </div>
+        </div>
+      </div>
     <div className="mb-3">
       <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.12em]">{label}</h2>
       {desc && <p className="text-[11px] text-gray-300 mt-0.5">{desc}</p>}
@@ -135,6 +166,45 @@ export default function DashboardPage() {
     if (!quiet) setLoading(true);
     else setRefreshing(true);
     try {
+      const [surveyStats, marineStats, monitoringStats, datasetStats] = await Promise.all([
+        getSurveyStats(),
+        getMarineStats(),
+        getMonitoringStats(),
+        getDatasetStats(),
+      ]);
+
+      setStats({
+        surveys: surveyStats.total,
+        marine: marineStats.total,
+        monitoring: monitoringStats.total,
+        datasets: datasetStats.total,
+        totalAreaHa: marineStats.totalAreaHa,
+        avgCoral: monitoringStats.avgCoralCover,
+        published: datasetStats.published,
+      });
+
+      setSurveysByProvince(
+        (surveyStats.byProvince || []).map(item => ({
+          province: (item.province || 'Unknown').substring(0, 6),
+          count: parseInt(item.count),
+        }))
+      );
+
+      setDatasetsByType(
+        (datasetStats.byType || []).map(item => ({
+          name: (item.dataType || 'other').replace(/_/g, ' '),
+          value: parseInt(item.count),
+        }))
+      );
+
+      setMonitoringByType(
+        (monitoringStats.byType || []).map(item => ({
+          name: (item.monitoringType || 'other').replace(/_/g, ' '),
+          count: parseInt(item.count),
+        }))
+      );
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
       const res = await api.get('/dashboard/stats');
       const d = res.data;
       setStats({
@@ -196,6 +266,78 @@ export default function DashboardPage() {
         </button>
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Users} label="Community Surveys" value={stats.surveys} sub="total records"
+          gradient="bg-gradient-to-br from-ocean-600 to-ocean-800" loading={loading} />
+        <StatCard icon={Anchor} label="Marine Areas" value={stats.marine}
+          sub={stats.totalAreaHa ? `${parseFloat(stats.totalAreaHa).toFixed(0)} ha protected` : 'protected zones'}
+          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" loading={loading} />
+        <StatCard icon={Activity} label="Bio. Monitoring" value={stats.monitoring}
+          sub={stats.avgCoral ? `avg ${parseFloat(stats.avgCoral).toFixed(1)}% coral cover` : 'surveys logged'}
+          gradient="bg-gradient-to-br from-orange-500 to-orange-600" loading={loading} />
+        <StatCard icon={Database} label="Datasets" value={stats.datasets}
+          sub={stats.published ? `${stats.published} published` : 'uploaded files'}
+          gradient="bg-gradient-to-br from-violet-600 to-violet-800" loading={loading} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="Surveys by Province" icon={MapPin} loading={loading}
+          empty={!surveysByProvince.length} emptyMsg="No survey data yet — add the first survey">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={surveysByProvince} barSize={36}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis dataKey="province" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="count" fill="#0369a1" radius={[6, 6, 0, 0]} name="Surveys" />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Datasets by Type" icon={Database} loading={loading}
+          empty={!datasetsByType.length} emptyMsg="No datasets uploaded yet">
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={datasetsByType} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                outerRadius={80} innerRadius={40} paddingAngle={3}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                {datasetsByType.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      {(loading || monitoringByType.length > 0) && (
+        <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={loading} empty={!monitoringByType.length}>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={monitoringByType} layout="vertical" barSize={22}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} width={150} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="count" fill="#059669" radius={[0, 6, 6, 0]} name="Records" />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      )}
+
+      <div>
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {quickActions.map(({ label, to, color, icon: Icon }) => (
+            <Link key={to} to={to}
+              className={`bg-gradient-to-br ${color} text-white rounded-xl p-4 flex items-center justify-between group hover:shadow-lg hover:scale-[1.02] transition-all duration-200`}>
+              <div>
+                <Icon size={18} className="mb-2 opacity-80" />
+                <p className="text-sm font-semibold leading-tight">{label}</p>
+              </div>
+              <ArrowRight size={16} className="opacity-0 group-hover:opacity-70 transition-opacity -translate-x-1 group-hover:translate-x-0 duration-200" />
+            </Link>
+          ))}
       <section>
         <SectionLabel label="Programme Reach" desc="Coverage and enrollment across all provinces" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

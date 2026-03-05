@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Fish, Eye, EyeOff, Map, BarChart3, Shield, Users } from 'lucide-react';
+import { Eye, EyeOff, Map, BarChart3, Shield, Users } from 'lucide-react';
 
 const features = [
   { icon: Map, label: 'Interactive Mapping', desc: 'Visualise LMMAs & marine zones across Vanuatu' },
@@ -24,7 +24,12 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed. Check your credentials.');
+      const code = err.code;
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        toast.error('Invalid email or password.');
+      } else {
+        toast.error('Login failed. Please try again.');
+      }
     }
   };
 
@@ -32,17 +37,17 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left panel — branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-ocean-900 via-ocean-800 to-ocean-700 bg-animate flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute inset-0 wave-pattern opacity-60" />
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-ocean-500/20 rounded-full blur-3xl" />
 
-        {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 bg-white/15 backdrop-blur rounded-2xl flex items-center justify-center ring-2 ring-white/20">
-              <Fish size={26} className="text-white" />
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
+              alt="Vanuatu Coat of Arms"
+              className="w-14 h-14 object-contain drop-shadow-lg"
+            />
             <div>
               <p className="font-bold text-white text-lg leading-tight">CBFM Platform</p>
               <p className="text-ocean-300 text-xs">Vanuatu Department of Fisheries</p>
@@ -57,7 +62,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Feature list */}
         <div className="relative z-10 space-y-4">
           {features.map(({ icon: Icon, label, desc }) => (
             <div key={label} className="flex items-start gap-4">
@@ -72,7 +76,6 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {/* Footer */}
         <p className="text-ocean-500 text-xs relative z-10">
           &copy; {new Date().getFullYear()} Vanuatu Dept. of Fisheries &mdash; All rights reserved
         </p>
@@ -81,18 +84,18 @@ export default function LoginPage() {
       {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md fade-in">
-          {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 bg-ocean-700 rounded-xl flex items-center justify-center">
-              <Fish size={20} className="text-white" />
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
+              alt="Vanuatu Coat of Arms"
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <p className="font-bold text-gray-900 text-base">CBFM Platform</p>
               <p className="text-gray-500 text-xs">Vanuatu Dept. of Fisheries</p>
             </div>
           </div>
 
-          {/* Card */}
           <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 p-8">
             <div className="mb-7">
               <h2 className="text-2xl font-bold text-gray-900">Sign in</h2>
@@ -109,11 +112,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   {...register('email', { required: 'Email is required' })}
                 />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                    {errors.email.message}
-                  </p>
-                )}
+                {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
               </div>
 
               <div>
@@ -135,9 +134,7 @@ export default function LoginPage() {
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>
-                )}
+                {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
               </div>
 
               <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-2.5 text-sm mt-1">

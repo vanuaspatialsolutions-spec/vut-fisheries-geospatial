@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
+import { getMonitoringRecords } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Plus, Search, Activity, Filter, Waves } from 'lucide-react';
+import { Plus, Search, Filter, Waves } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
 
 const TYPE_BADGE = {
@@ -79,10 +79,9 @@ export default function MonitoringPage() {
   const fetchRecords = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const res = await api.get(`/monitoring?${params}`);
-      setRecords(res.data.records);
-      setPagination(res.data.pagination);
+      const res = await getMonitoringRecords(filters);
+      setRecords(res.records);
+      setPagination(res.pagination);
     } catch { toast.error('Failed to load records.'); }
     finally { setLoading(false); }
   };
@@ -99,12 +98,10 @@ export default function MonitoringPage() {
           <p className="text-gray-400 text-sm">{pagination.total ?? 0} total records</p>
         </div>
         <Link to="/monitoring/new" className="btn-primary flex items-center gap-2 text-sm">
-          <Plus size={15} />
-          New Record
+          <Plus size={15} /> New Record
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
         <Filter size={14} className="text-gray-400" />
         <div className="relative flex-1 min-w-48">
@@ -123,14 +120,11 @@ export default function MonitoringPage() {
           {MONITORING_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         {hasFilters && (
-          <button
-            onClick={() => setFilters({ province: '', monitoringType: '', search: '', page: 1 })}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline"
-          >Clear</button>
+          <button onClick={() => setFilters({ province: '', monitoringType: '', search: '', page: 1 })}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors underline">Clear</button>
         )}
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         {!loading && records.length === 0 ? (
           <div className="py-20 text-center">
@@ -179,15 +173,11 @@ export default function MonitoringPage() {
                       <p className="text-xs text-gray-400">{r.community}</p>
                     </td>
                     <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">{r.surveyDate}</td>
-                    <td className="px-4 py-3.5">
-                      <CoralBar pct={r.liveCoralCoverPct} />
-                    </td>
+                    <td className="px-4 py-3.5"><CoralBar pct={r.liveCoralCoverPct} /></td>
                     <td className="px-4 py-3.5 text-right font-medium text-gray-700">
-                      {r.totalFishBiomassKg != null ? `${r.totalFishBiomassKg}` : '—'}
+                      {r.totalFishBiomassKg != null ? r.totalFishBiomassKg : '—'}
                     </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <HealthScore score={r.reefHealthScore} />
-                    </td>
+                    <td className="px-4 py-3.5 text-center"><HealthScore score={r.reefHealthScore} /></td>
                   </tr>
                 ))}
             </tbody>

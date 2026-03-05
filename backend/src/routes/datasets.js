@@ -51,6 +51,20 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// GET /api/datasets/map  - list published GeoJSON datasets for map display
+router.get('/map', protect, async (req, res) => {
+  try {
+    const datasets = await Dataset.findAll({
+      where: { status: 'published', fileFormat: 'geojson' },
+      attributes: ['id', 'title', 'dataType', 'province', 'community', 'fileSize'],
+      order: [['publishedAt', 'DESC']],
+    });
+    res.json({ datasets });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // GET /api/datasets/stats  - summary stats
 router.get('/stats', protect, async (req, res) => {
   try {
@@ -228,6 +242,34 @@ router.get('/:id/download', protect, async (req, res) => {
         return res.status(404).json({ message: 'File not available. The server may have restarted since upload.' });
       }
       res.download(filePath, dataset.fileName);
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/datasets/:id/geojson  - serve GeoJSON content for map display
+router.get('/:id/geojson', protect, async (req, res) => {
+  try {
+    const dataset = await Dataset.findByPk(req.params.id);
+    if (!dataset) return res.status(404).json({ message: 'Dataset not found.' });
+    if (dataset.fileFormat !== 'geojson') return res.status(400).json({ message: 'Not a GeoJSON dataset.' });
+
+    if (!['admin', 'staff'].includes(req.user.role) && dataset.status !== 'published') {
+      return res.status(403).json({ message: 'Dataset not yet published.' });
+    }
+
+    if (process.env.AWS_S3_BUCKET) {
+      const { GetObjectCommand } = require('@aws-sdk/client-s3');
+      const { s3Client: s3 } = require('../config/storage');
+      const command = new GetObjectCommand({ Bucket: process.env.AWS_S3_BUCKET, Key: dataset.filePath });
+      const { Body } = await s3.send(command);
+      const chunks = [];
+      for await (const chunk of Body) chunks.push(chunk);
+      res.json(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+    } else {
+      if (!fs.existsSync(dataset.filePath)) return res.status(404).json({ message: 'File not found.' });
+      res.json(JSON.parse(fs.readFileSync(dataset.filePath, 'utf8')));
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
