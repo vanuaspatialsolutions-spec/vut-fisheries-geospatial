@@ -1,7 +1,7 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { useState } from 'react';
-import { createMonitoring } from '../utils/firestore';
+import { useState, useEffect } from 'react';
+import { createMonitoring, updateMonitoring, getMonitoringRecord } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
@@ -9,14 +9,30 @@ import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
 const THREATS = ['blast_fishing', 'poison_fishing', 'overfishing', 'runoff', 'sedimentation', 'tourism_pressure', 'anchor_damage', 'coral_bleaching'];
 
 export default function NewMonitoringPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const isEdit = !!id;
   const [selectedThreats, setSelectedThreats] = useState([]);
   const [teamInput, setTeamInput] = useState('');
   const [team, setTeam] = useState([]);
-  const { register, handleSubmit, control, watch, formState: { isSubmitting } } = useForm({
+  const { register, handleSubmit, control, reset, watch, formState: { isSubmitting } } = useForm({
     defaultValues: { speciesData: [] },
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'speciesData' });
+
+  useEffect(() => {
+    if (isEdit) {
+      getMonitoringRecord(id)
+        .then(data => {
+          if (data) {
+            reset(data);
+            if (data.threatsObserved) setSelectedThreats(data.threatsObserved);
+            if (data.surveyTeam) setTeam(data.surveyTeam);
+          }
+        })
+        .catch(() => toast.error('Failed to load monitoring record.'));
+    }
+  }, [id]);
 
   const toggleThreat = (t) => setSelectedThreats(prev =>
     prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]
@@ -28,8 +44,13 @@ export default function NewMonitoringPage() {
 
   const onSubmit = async (data) => {
     try {
-      await createMonitoring({ ...data, threatsObserved: selectedThreats, surveyTeam: team });
-      toast.success('Monitoring record submitted!');
+      if (isEdit) {
+        await updateMonitoring(id, { ...data, threatsObserved: selectedThreats, surveyTeam: team });
+        toast.success('Monitoring record updated!');
+      } else {
+        await createMonitoring({ ...data, threatsObserved: selectedThreats, surveyTeam: team });
+        toast.success('Monitoring record submitted!');
+      }
       navigate('/monitoring');
     } catch (err) {
       toast.error(err.message || 'Submission failed.');
@@ -45,7 +66,7 @@ export default function NewMonitoringPage() {
           <ArrowLeft size={20} className="text-gray-500" />
         </button>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">New Biological Monitoring Record</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit' : 'New'} Biological Monitoring Record</h2>
           <p className="text-gray-500 text-sm">Record reef survey, coral cover, species counts and health data</p>
         </div>
       </div>
@@ -219,7 +240,7 @@ export default function NewMonitoringPage() {
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
-            <Save size={16} />{isSubmitting ? 'Saving...' : 'Submit Record'}
+            <Save size={16} />{isSubmitting ? 'Saving...' : isEdit ? 'Update Record' : 'Submit Record'}
           </button>
         </div>
       </form>

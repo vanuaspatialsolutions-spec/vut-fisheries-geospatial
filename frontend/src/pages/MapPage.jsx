@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getSurveysForMap, getMarineGeoJSON, getMonitoringForMap, getPublishedGeoJSONDatasets, getDatasetGeoJSON } from '../utils/firestore';
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
-import { Layers, Filter, RefreshCw, Users, Anchor, Activity, Database } from 'lucide-react';
+import { Layers, Filter, RefreshCw, Users, Anchor, Activity, Database, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const LAYER_CONFIG = [
@@ -28,6 +29,7 @@ export default function MapPage() {
   const [marineAreas, setMarineAreas] = useState(null);
   const [monitoring, setMonitoring] = useState([]);
   const [datasetLayers, setDatasetLayers] = useState([]);
+  const [datasetsFailed, setDatasetsFailed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
   const [layers, setLayers] = useState({ surveys: true, marine: true, monitoring: true, datasets: true });
@@ -36,6 +38,7 @@ export default function MapPage() {
   const fetchData = async () => {
     setLoading(true);
     setDatasetLayers([]);
+    setDatasetsFailed(0);
 
     // Phase 1: Load base layers from Firestore (fast). Map appears immediately.
     let datasetMeta = [];
@@ -69,9 +72,10 @@ export default function MapPage() {
         .map(r => r.value);
       const skipped = results.length - loaded.length;
       if (skipped > 0) {
-        console.warn(`${skipped} dataset layer(s) could not be loaded (no inline data + storage CORS blocked). Re-upload to fix.`);
+        console.warn(`${skipped} dataset layer(s) could not be loaded — GeoJSON not cached in Firestore yet.`);
       }
       setDatasetLayers(loaded);
+      setDatasetsFailed(skipped);
     } catch (err) {
       console.error('Dataset layer error:', err);
     } finally {
@@ -146,10 +150,17 @@ export default function MapPage() {
         {!datasetsLoading && datasetLayers.length > 0 && (
           <span className="ml-auto text-purple-600 font-medium">
             {datasetLayers.length} dataset layer{datasetLayers.length !== 1 ? 's' : ''} loaded
+            {datasetsFailed > 0 && <span className="text-amber-500 ml-1">({datasetsFailed} need fixing)</span>}
           </span>
         )}
-        {!loading && !datasetsLoading && datasetLayers.length === 0 && layers.datasets && (
+        {!loading && !datasetsLoading && datasetLayers.length === 0 && layers.datasets && datasetsFailed === 0 && (
           <span className="ml-auto text-gray-400">No published dataset layers</span>
+        )}
+        {!loading && !datasetsLoading && datasetsFailed > 0 && datasetLayers.length === 0 && (
+          <Link to="/datasets" className="ml-auto flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-medium text-xs bg-amber-50 px-2 py-1 rounded-lg">
+            <AlertTriangle size={12} />
+            {datasetsFailed} dataset{datasetsFailed !== 1 ? 's' : ''} need fixing — go to Datasets
+          </Link>
         )}
         {(loading || datasetsLoading) && (
           <span className="ml-auto flex items-center gap-1.5 text-ocean-500">

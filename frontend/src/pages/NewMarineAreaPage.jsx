@@ -1,17 +1,33 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useState } from 'react';
-import { createMarineArea } from '../utils/firestore';
+import { useState, useEffect } from 'react';
+import { createMarineArea, updateMarineArea, getMarineArea } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Info } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
 
 export default function NewMarineAreaPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const isEdit = !!id;
   const [geoJsonText, setGeoJsonText] = useState('');
   const [geoJsonError, setGeoJsonError] = useState('');
   const [selectedHabitats, setSelectedHabitats] = useState([]);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
+
+  useEffect(() => {
+    if (isEdit) {
+      getMarineArea(id)
+        .then(data => {
+          if (data) {
+            reset(data);
+            if (data.geometry) setGeoJsonText(JSON.stringify(data.geometry, null, 2));
+            if (data.habitatTypes) setSelectedHabitats(data.habitatTypes);
+          }
+        })
+        .catch(() => toast.error('Failed to load marine area.'));
+    }
+  }, [id]);
 
   const toggleHabitat = (h) => setSelectedHabitats(prev =>
     prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h]
@@ -29,8 +45,13 @@ export default function NewMarineAreaPage() {
       return;
     }
     try {
-      await createMarineArea({ ...data, geometry, habitatTypes: selectedHabitats });
-      toast.success('Marine area recorded!');
+      if (isEdit) {
+        await updateMarineArea(id, { ...data, geometry, habitatTypes: selectedHabitats });
+        toast.success('Marine area updated!');
+      } else {
+        await createMarineArea({ ...data, geometry, habitatTypes: selectedHabitats });
+        toast.success('Marine area recorded!');
+      }
       navigate('/marine');
     } catch (err) {
       toast.error(err.message || 'Failed to save.');
@@ -44,7 +65,7 @@ export default function NewMarineAreaPage() {
           <ArrowLeft size={20} className="text-gray-500" />
         </button>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">New Marine Area</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit' : 'New'} Marine Area</h2>
           <p className="text-gray-500 text-sm">Record an LMMA, taboo area, or other managed marine zone</p>
         </div>
       </div>
@@ -56,6 +77,7 @@ export default function NewMarineAreaPage() {
             <div>
               <label className="form-label">Area Name *</label>
               <input className="form-input" placeholder="e.g. Pele Island LMMA" {...register('areaName', { required: true })} />
+              {errors.areaName && <p className="text-red-500 text-xs mt-1">Required</p>}
             </div>
             <div>
               <label className="form-label">Area Type *</label>
@@ -173,7 +195,7 @@ export default function NewMarineAreaPage() {
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
-            <Save size={16} />{isSubmitting ? 'Saving...' : 'Save Marine Area'}
+            <Save size={16} />{isSubmitting ? 'Saving...' : isEdit ? 'Update Marine Area' : 'Save Marine Area'}
           </button>
         </div>
       </form>

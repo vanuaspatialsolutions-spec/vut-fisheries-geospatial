@@ -115,6 +115,15 @@ export async function updateMarineArea(id, data) {
   return updateDoc(doc(db, 'marine_areas', id), { ...data, updatedAt: serverTimestamp() });
 }
 
+export async function deleteMarineArea(id) {
+  return deleteDoc(doc(db, 'marine_areas', id));
+}
+
+export async function getMarineArea(id) {
+  const snap = await getDoc(doc(db, 'marine_areas', id));
+  return snap.exists() ? docToObj(snap) : null;
+}
+
 export async function getMarineStats() {
   const snap = await getDocs(collection(db, 'marine_areas'));
   const list = snap.docs.map(d => d.data());
@@ -183,6 +192,15 @@ export async function createMonitoring(data) {
 
 export async function updateMonitoring(id, data) {
   return updateDoc(doc(db, 'monitoring', id), { ...data, updatedAt: serverTimestamp() });
+}
+
+export async function deleteMonitoring(id) {
+  return deleteDoc(doc(db, 'monitoring', id));
+}
+
+export async function getMonitoringRecord(id) {
+  const snap = await getDoc(doc(db, 'monitoring', id));
+  return snap.exists() ? docToObj(snap) : null;
 }
 
 export async function getMonitoringStats() {
@@ -375,6 +393,7 @@ export async function getPublishedGeoJSONDatasets() {
 // Staff can re-select the original file locally to cache GeoJSON in Firestore,
 // bypassing Storage SDK and CORS entirely.
 export async function recacheDatasetGeoJSON(id, file) {
+  if (file.size > 900000) throw new Error(`File is ${(file.size / 1024).toFixed(0)} KB — must be under 900 KB to cache in Firestore.`);
   const text = await file.text();
   const parsed = JSON.parse(text);
   if (!parsed || (parsed.type !== 'FeatureCollection' && parsed.type !== 'Feature')) {
