@@ -1,22 +1,4 @@
 services:
-  # ── Frontend (static site) ────────────────────────────────────────────────
-  - type: static
-    name: cbfm-frontend
-    region: singapore
-    plan: free
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_BASE
-        value: /
-      - key: VITE_API_URL
-        # Render service URLs follow this pattern — update if service name changes
-        value: https://cbfm-backend.onrender.com/api
-
   # ── Backend (Node.js API) ─────────────────────────────────────────────────
   - type: web
     name: cbfm-backend
