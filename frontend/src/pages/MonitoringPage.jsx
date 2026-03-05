@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
+// DEMO - remove mock import and restore api when backend is ready
+// import api from '../utils/api';
+import { mockMonitoringRecords } from '../utils/mockData';
 import toast from 'react-hot-toast';
 import { Plus, Search, Activity, Filter, Waves } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
@@ -78,13 +80,20 @@ export default function MonitoringPage() {
 
   const fetchRecords = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const res = await api.get(`/monitoring?${params}`);
-      setRecords(res.data.records);
-      setPagination(res.data.pagination);
-    } catch { toast.error('Failed to load records.'); }
-    finally { setLoading(false); }
+    // DEMO - replace with real API call when backend is ready
+    setTimeout(() => {
+      let data = mockMonitoringRecords.records;
+      if (filters.province) data = data.filter(r => r.province === filters.province);
+      if (filters.monitoringType) data = data.filter(r => r.monitoringType === filters.monitoringType);
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        data = data.filter(r => r.siteName.toLowerCase().includes(q) || r.surveyName?.toLowerCase().includes(q));
+      }
+      setRecords(data);
+      setPagination({ pages: mockMonitoringRecords.pagination.pages, total: data.length });
+      setLoading(false);
+    }, 300);
+    // END DEMO
   };
 
   useEffect(() => { fetchRecords(); }, [filters]);

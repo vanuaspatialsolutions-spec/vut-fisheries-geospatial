@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
+// DEMO - remove mock import and restore api when backend is ready
+// import api from '../utils/api';
+import { mockDatasets } from '../utils/mockData';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Upload, Download, Eye, CheckCircle, Clock, Archive, Search, Filter } from 'lucide-react';
@@ -26,51 +28,36 @@ export default function DatasetsPage() {
 
   const fetchDatasets = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const res = await api.get(`/datasets?${params}`);
-      setDatasets(res.data.datasets);
-      setPagination(res.data.pagination);
-    } catch (err) {
-      toast.error('Failed to load datasets.');
-    } finally {
+    // DEMO - replace with real API call when backend is ready
+    setTimeout(() => {
+      let data = mockDatasets.datasets;
+      if (filters.status) data = data.filter(d => d.status === filters.status);
+      if (filters.dataType) data = data.filter(d => d.dataType === filters.dataType);
+      if (filters.province) data = data.filter(d => d.province === filters.province);
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        data = data.filter(d => d.title.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q));
+      }
+      setDatasets(data);
+      setPagination({ pages: mockDatasets.pagination.pages, total: data.length });
       setLoading(false);
-    }
+    }, 300);
+    // END DEMO
   };
 
   useEffect(() => { fetchDatasets(); }, [filters]);
 
+  // DEMO - restore real API calls when backend is ready
   const handleDownload = async (dataset) => {
-    try {
-      const res = await api.get(`/datasets/${dataset.id}/download`);
-      if (res.data.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
-      }
-      toast.success(`Downloading ${dataset.fileName}`);
-    } catch (err) {
-      toast.error('Download failed.');
-    }
+    toast.success(`Demo: would download ${dataset.fileName}`);
   };
-
   const handlePublish = async (id, publish) => {
-    try {
-      await api.put(`/datasets/${id}/${publish ? 'publish' : 'unpublish'}`);
-      toast.success(`Dataset ${publish ? 'published' : 'unpublished'}.`);
-      fetchDatasets();
-    } catch (err) {
-      toast.error('Action failed.');
-    }
+    toast.success(`Demo: would ${publish ? 'publish' : 'unpublish'} dataset.`);
   };
-
   const handleSubmitReview = async (id) => {
-    try {
-      await api.put(`/datasets/${id}/review`);
-      toast.success('Submitted for review.');
-      fetchDatasets();
-    } catch (err) {
-      toast.error('Failed to submit for review.');
-    }
+    toast.success('Demo: would submit for review.');
   };
+  // END DEMO
 
   const fileSizeDisplay = (bytes) => {
     if (!bytes) return '—';

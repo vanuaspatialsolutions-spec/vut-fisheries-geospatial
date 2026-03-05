@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
+// DEMO - remove mock import and restore api when backend is ready
+// import api from '../utils/api';
+import { mockMarineAreas, mockMarineStats } from '../utils/mockData';
 import toast from 'react-hot-toast';
 import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
@@ -124,17 +126,22 @@ export default function MarineAreasPage() {
 
   const fetchAreas = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-      const [areaRes, statsRes] = await Promise.all([
-        api.get(`/marine?${params}`),
-        api.get('/marine/stats'),
-      ]);
-      setAreas(areaRes.data.areas);
-      setPagination(areaRes.data.pagination);
-      setStats(statsRes.data);
-    } catch { toast.error('Failed to load marine areas.'); }
-    finally { setLoading(false); }
+    // DEMO - replace with real API call when backend is ready
+    setTimeout(() => {
+      let data = mockMarineAreas.areas;
+      if (filters.province) data = data.filter(a => a.province === filters.province);
+      if (filters.areaType) data = data.filter(a => a.areaType === filters.areaType);
+      if (filters.managementStatus) data = data.filter(a => a.managementStatus === filters.managementStatus);
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        data = data.filter(a => a.areaName.toLowerCase().includes(q) || a.community?.toLowerCase().includes(q));
+      }
+      setAreas(data);
+      setPagination({ pages: mockMarineAreas.pagination.pages, total: data.length });
+      setStats(mockMarineStats);
+      setLoading(false);
+    }, 300);
+    // END DEMO
   };
 
   useEffect(() => { fetchAreas(); }, [filters]);

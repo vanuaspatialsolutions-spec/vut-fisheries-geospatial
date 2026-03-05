@@ -4,7 +4,9 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, CartesianGrid,
 } from 'recharts';
-import api from '../utils/api';
+// DEMO - remove mock imports and restore api when backend is ready
+// import api from '../utils/api';
+import { mockSurveyStats, mockMarineStats, mockMonitoringStats, mockDatasetStats } from '../utils/mockData';
 import { useAuth } from '../context/AuthContext';
 import {
   Users, Anchor, Activity, Database, Plus,
@@ -100,50 +102,33 @@ export default function DashboardPage() {
   const fetchAll = async (quiet = false) => {
     if (!quiet) setLoading(true);
     else setRefreshing(true);
-    try {
-      const [surveyStats, marineStats, monitoringStats, datasetStats] = await Promise.all([
-        api.get('/surveys/stats'),
-        api.get('/marine/stats'),
-        api.get('/monitoring/stats'),
-        api.get('/datasets/stats'),
-      ]);
-
+    // DEMO - replace with real API calls when backend is ready
+    setTimeout(() => {
       setStats({
-        surveys: surveyStats.data.total,
-        marine: marineStats.data.total,
-        monitoring: monitoringStats.data.total,
-        datasets: datasetStats.data.total,
-        totalAreaHa: marineStats.data.totalAreaHa,
-        avgCoral: monitoringStats.data.avgCoralCover,
-        published: datasetStats.data.published,
+        surveys: mockSurveyStats.total,
+        marine: mockMarineStats.total,
+        monitoring: mockMonitoringStats.total,
+        datasets: mockDatasetStats.total,
+        totalAreaHa: mockMarineStats.totalAreaHa,
+        avgCoral: mockMonitoringStats.avgCoralCover,
+        published: mockDatasetStats.published,
       });
-
-      setSurveysByProvince(
-        (surveyStats.data.byProvince || []).map(item => ({
-          province: (item.province || 'Unknown').substring(0, 6),
-          count: parseInt(item.count),
-        }))
-      );
-
-      setDatasetsByType(
-        (datasetStats.data.byType || []).map(item => ({
-          name: (item.dataType || 'other').replace(/_/g, ' '),
-          value: parseInt(item.count),
-        }))
-      );
-
-      setMonitoringByType(
-        (monitoringStats.data.byType || []).map(item => ({
-          name: (item.monitoringType || 'other').replace(/_/g, ' '),
-          count: parseInt(item.count),
-        }))
-      );
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-    } finally {
+      setSurveysByProvince(mockSurveyStats.byProvince.map(item => ({
+        province: (item.province || 'Unknown').substring(0, 6),
+        count: item.count,
+      })));
+      setDatasetsByType(mockDatasetStats.byType.map(item => ({
+        name: (item.dataType || 'other').replace(/_/g, ' '),
+        value: item.count,
+      })));
+      setMonitoringByType(mockMonitoringStats.byType.map(item => ({
+        name: (item.monitoringType || 'other').replace(/_/g, ' '),
+        count: item.count,
+      })));
       setLoading(false);
       setRefreshing(false);
-    }
+    }, 400);
+    // END DEMO
   };
 
   useEffect(() => { fetchAll(); }, []);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import api from '../utils/api';
+// DEMO - remove mock import and restore api when backend is ready
+// import api from '../utils/api';
+import { mockSurveyMapFeatures, mockMarineGeoJSON, mockMonitoringMapFeatures } from '../utils/mockData';
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 import { Layers, Filter, RefreshCw, Users, Anchor, Activity } from 'lucide-react';
@@ -30,23 +32,25 @@ export default function MapPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (filters.province) params.set('province', filters.province);
-      if (filters.areaType) params.set('areaType', filters.areaType);
-      const [surveyRes, marineRes, monRes] = await Promise.all([
-        api.get('/surveys/map'),
-        api.get(`/marine/geojson?${params}`),
-        api.get('/monitoring/map'),
-      ]);
-      setSurveys(surveyRes.data.features || []);
-      setMarineAreas(marineRes.data);
-      setMonitoring(monRes.data.features || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
+    // DEMO - replace with real API calls when backend is ready
+    setTimeout(() => {
+      let surveyFeatures = mockSurveyMapFeatures.features;
+      let marineFeatures = { ...mockMarineGeoJSON };
+      let monFeatures = mockMonitoringMapFeatures.features;
+      if (filters.province) {
+        surveyFeatures = surveyFeatures.filter(f => f.properties.province === filters.province);
+        marineFeatures = { ...marineFeatures, features: marineFeatures.features.filter(f => f.properties.province === filters.province) };
+        monFeatures = monFeatures.filter(f => f.properties.province === filters.province);
+      }
+      if (filters.areaType) {
+        marineFeatures = { ...marineFeatures, features: marineFeatures.features.filter(f => f.properties.areaType === filters.areaType) };
+      }
+      setSurveys(surveyFeatures);
+      setMarineAreas(marineFeatures);
+      setMonitoring(monFeatures);
       setLoading(false);
-    }
+    }, 400);
+    // END DEMO
   };
 
   useEffect(() => { fetchData(); }, [filters]);
