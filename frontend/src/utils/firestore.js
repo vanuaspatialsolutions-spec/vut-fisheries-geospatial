@@ -7,7 +7,7 @@ import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, getBytes } from 'firebase/storage';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -318,6 +318,12 @@ export async function getPublishedGeoJSONDatasets() {
 }
 
 export async function getDatasetGeoJSON(dataset) {
+  // Use the Storage SDK (avoids CORS issues from non-Firebase origins).
+  // Fall back to fetch+downloadURL if filePath is unavailable.
+  if (dataset.filePath) {
+    const bytes = await getBytes(ref(storage, dataset.filePath));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
   const res = await fetch(dataset.downloadURL);
   if (!res.ok) throw new Error(`Failed to fetch dataset: ${res.status}`);
   return res.json();
