@@ -4,9 +4,15 @@
   <meta charset="utf-8" />
   <title>CBFM Platform</title>
   <script>
-    // Redirect all 404s to the root — HashRouter handles all navigation client-side
-    var base = window.location.pathname.split('/').slice(0, 2).join('/');
-    window.location.replace(window.location.origin + base + '/');
+    // SPA redirect for GitHub Pages
+    // Converts /vut-fisheries-geospatial/path to /?p=/path then index.html handles it
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 2).join('/') +
+      '/?p=' + encodeURIComponent(l.pathname.slice(l.pathname.indexOf('/', 1)) + l.search) +
+      (l.hash || '')
+    );
   </script>
 </head>
 <body></body>
