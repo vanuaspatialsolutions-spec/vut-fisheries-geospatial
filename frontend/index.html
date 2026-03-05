@@ -2,10 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/svg+xml" href="/fish-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CBFM Platform – Vanuatu Department of Fisheries</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- GitHub Pages SPA redirect handler -->
+    <script>
+      (function() {
+        var q = window.location.search;
+        if (q && q.indexOf('?p=') === 0) {
+          var base = '/vut-fisheries-geospatial';
+          var path = decodeURIComponent(q.slice(3)) || '/';
+          history.replaceState(null, null, base + path);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

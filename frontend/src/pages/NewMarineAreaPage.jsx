@@ -27,6 +27,16 @@ export default function NewMarineAreaPage() {
     } catch {
       setGeoJsonError('Invalid GeoJSON format. Must be a Polygon or MultiPolygon geometry object.');
       return;
+    let geometry = null;
+    if (geoJsonText.trim()) {
+      try {
+        geometry = JSON.parse(geoJsonText);
+        if (!geometry.type || !geometry.coordinates) throw new Error();
+        setGeoJsonError('');
+      } catch {
+        setGeoJsonError('Invalid GeoJSON format. Must be a Polygon or MultiPolygon geometry object.');
+        return;
+      }
     }
     try {
       await createMarineArea({ ...data, geometry, habitatTypes: selectedHabitats });
