@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-// DEMO - remove mock import and restore api when backend is ready
-// import api from '../utils/api';
-import { mockDatasets } from '../utils/mockData';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Upload, Download, Eye, CheckCircle, Clock, Archive, Search, Filter, AlertTriangle } from 'lucide-react';
+import { Upload, Download, Eye, CheckCircle, Clock, Archive, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
@@ -28,37 +26,51 @@ export default function DatasetsPage() {
 
   const fetchDatasets = async () => {
     setLoading(true);
-    // DEMO - replace with real API call when backend is ready
-    setTimeout(() => {
-      const localUploads = JSON.parse(localStorage.getItem('cbfm_datasets') || '[]');
-      let data = [...localUploads, ...mockDatasets.datasets];
-      if (filters.status) data = data.filter(d => d.status === filters.status);
-      if (filters.dataType) data = data.filter(d => d.dataType === filters.dataType);
-      if (filters.province) data = data.filter(d => d.province === filters.province);
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        data = data.filter(d => d.title.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q));
-      }
-      setDatasets(data);
-      setPagination({ pages: mockDatasets.pagination.pages, total: data.length });
+    try {
+      const params = new URLSearchParams({ limit: 15, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
+      const res = await api.get(`/datasets?${params}`);
+      setDatasets(res.data.datasets);
+      setPagination(res.data.pagination);
+    } catch (err) {
+      toast.error('Failed to load datasets.');
+    } finally {
       setLoading(false);
-    }, 300);
-    // END DEMO
+    }
   };
 
   useEffect(() => { fetchDatasets(); }, [filters]);
 
-  // DEMO - restore real API calls when backend is ready
   const handleDownload = async (dataset) => {
-    toast.success(`Demo: would download ${dataset.fileName}`);
+    try {
+      const res = await api.get(`/datasets/${dataset.id}/download`);
+      if (res.data.downloadUrl) {
+        window.open(res.data.downloadUrl, '_blank');
+      }
+      toast.success(`Downloading ${dataset.fileName}`);
+    } catch (err) {
+      toast.error('Download failed.');
+    }
   };
+
   const handlePublish = async (id, publish) => {
-    toast.success(`Demo: would ${publish ? 'publish' : 'unpublish'} dataset.`);
+    try {
+      await api.put(`/datasets/${id}/${publish ? 'publish' : 'unpublish'}`);
+      toast.success(`Dataset ${publish ? 'published' : 'unpublished'}.`);
+      fetchDatasets();
+    } catch (err) {
+      toast.error('Action failed.');
+    }
   };
+
   const handleSubmitReview = async (id) => {
-    toast.success('Demo: would submit for review.');
+    try {
+      await api.put(`/datasets/${id}/review`);
+      toast.success('Submitted for review.');
+      fetchDatasets();
+    } catch (err) {
+      toast.error('Failed to submit for review.');
+    }
   };
-  // END DEMO
 
   const fileSizeDisplay = (bytes) => {
     if (!bytes) return '—';
@@ -78,12 +90,6 @@ export default function DatasetsPage() {
           <Upload size={16} />
           Upload Dataset
         </Link>
-      </div>
-
-      {/* Demo notice */}
-      <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
-        <AlertTriangle size={15} className="mt-0.5 flex-shrink-0 text-amber-500" />
-        <span><strong>Demo mode:</strong> Uploads are saved to this browser only and will not appear on other devices. A backend deployment is required for shared, persistent storage.</span>
       </div>
 
       {/* Filters */}

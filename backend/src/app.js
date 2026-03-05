@@ -9,7 +9,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 
-const { syncDatabase } = require('./models');
+const { syncDatabase, User } = require('./models');
 const authRoutes = require('./routes/auth');
 const datasetRoutes = require('./routes/datasets');
 const surveyRoutes = require('./routes/surveys');
@@ -41,6 +41,7 @@ app.use(helmet({
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  'https://vanuaspatialsolutions-spec.github.io',
   'http://localhost:3000',
   'http://localhost:5173',
 ].filter(Boolean);
@@ -114,7 +115,25 @@ io.on('connection', (socket) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 
-syncDatabase().then(() => {
+async function seedAdmin() {
+  const email = process.env.ADMIN_EMAIL || 'admin@fisheries.gov.vu';
+  const existing = await User.findOne({ where: { email } });
+  if (!existing) {
+    await User.create({
+      firstName: 'Admin',
+      lastName: 'Fisheries',
+      email,
+      password: process.env.ADMIN_PASSWORD || 'Admin@CBFM2024',
+      role: 'admin',
+      organization: 'Vanuatu Department of Fisheries',
+      province: 'Efate',
+    });
+    console.log(`Admin user created: ${email}`);
+  }
+}
+
+syncDatabase().then(async () => {
+  await seedAdmin();
   server.listen(PORT, () => {
     console.log(`\nCBFM Platform API running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);

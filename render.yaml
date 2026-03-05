@@ -39,7 +39,7 @@ services:
           name: cbfm-db
           property: connectionString
       - key: FRONTEND_URL
-        value: https://cbfm-frontend.onrender.com
+        value: https://vanuaspatialsolutions-spec.github.io
 
 # ── PostgreSQL Database ───────────────────────────────────────────────────
 databases:
