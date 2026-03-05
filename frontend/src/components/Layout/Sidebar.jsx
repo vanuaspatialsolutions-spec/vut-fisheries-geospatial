@@ -1,20 +1,19 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Map, Database, Users, Activity,
-  Anchor, Settings, Fish, ChevronRight,
+  LayoutDashboard, Map, Database, Activity,
+  Anchor, Fish, ClipboardList,
 } from 'lucide-react';
 
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/map', icon: Map, label: 'Interactive Map' },
+  { to: '/map',       icon: Map,             label: 'Interactive Map' },
 ];
 
 const dataNav = [
-  { to: '/surveys', icon: Users, label: 'Community Surveys' },
-  { to: '/marine', icon: Anchor, label: 'Marine Areas' },
-  { to: '/monitoring', icon: Activity, label: 'Bio. Monitoring' },
-  { to: '/datasets', icon: Database, label: 'Datasets' },
+  { to: '/surveys',    icon: ClipboardList, label: 'Community Surveys' },
+  { to: '/marine',     icon: Anchor,        label: 'Marine Areas' },
+  { to: '/monitoring', icon: Activity,      label: 'Bio. Monitoring' },
+  { to: '/datasets',   icon: Database,      label: 'Datasets' },
 ];
 
 function NavItem({ to, icon: Icon, label }) {
@@ -22,20 +21,18 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative
+        `flex items-center gap-3 py-2 pr-3 text-sm font-medium transition-colors duration-100 rounded-r relative
+        border-l-2 pl-[14px]
         ${isActive
-          ? 'bg-white/15 text-white shadow-sm'
-          : 'text-ocean-200 hover:bg-white/8 hover:text-white'}`
+          ? 'border-white bg-white/10 text-white'
+          : 'border-transparent text-ocean-300 hover:bg-white/6 hover:text-ocean-100'
+        }`
       }
     >
       {({ isActive }) => (
         <>
-          {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full" />
-          )}
-          <Icon size={17} className={`transition-transform duration-150 ${isActive ? '' : 'group-hover:scale-110'}`} />
-          <span className="flex-1">{label}</span>
-          {isActive && <ChevronRight size={14} className="opacity-60" />}
+          <Icon size={15} className={isActive ? 'text-white' : 'text-ocean-400'} />
+          <span className="leading-none">{label}</span>
         </>
       )}
     </NavLink>
@@ -44,54 +41,46 @@ function NavItem({ to, icon: Icon, label }) {
 
 function SectionLabel({ label }) {
   return (
-    <p className="text-ocean-500 text-[10px] font-semibold uppercase tracking-widest px-3 pt-4 pb-1">
+    <p className="text-[9px] font-bold text-ocean-600 uppercase tracking-[0.18em] px-4 pt-5 pb-1.5">
       {label}
     </p>
   );
 }
 
 export default function Sidebar() {
-  const { isAdmin } = useAuth();
-
   return (
-    <aside className="w-64 bg-ocean-900 text-white flex flex-col shadow-xl flex-shrink-0">
+    <aside className="w-56 bg-ocean-900 flex flex-col flex-shrink-0">
+
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-white/8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-ocean-500 to-ocean-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-white/10">
-            <Fish size={20} className="text-white" />
+      <div className="px-4 py-4 border-b border-white/8">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-ocean-700 rounded flex items-center justify-center flex-shrink-0">
+            <Fish size={14} className="text-white" />
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight text-white">CBFM Platform</p>
-            <p className="text-ocean-400 text-[11px] mt-0.5">Dept. of Fisheries · VUT</p>
+            <p className="font-bold text-[13px] text-white leading-tight">CBFM Platform</p>
+            <p className="text-ocean-400 text-[10px] leading-tight mt-0.5">Dept. of Fisheries · Vanuatu</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 py-1 pl-2 pr-2 overflow-y-auto space-y-0.5">
         <SectionLabel label="Overview" />
         {mainNav.map(item => <NavItem key={item.to} {...item} />)}
 
         <SectionLabel label="Data Management" />
         {dataNav.map(item => <NavItem key={item.to} {...item} />)}
-
-        {isAdmin && (
-          <>
-            <SectionLabel label="Administration" />
-            <NavItem to="/admin" icon={Settings} label="Admin Panel" />
-          </>
-        )}
       </nav>
 
-      {/* Status footer */}
-      <div className="px-4 py-4 border-t border-white/8">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-          <span className="text-ocean-300 text-[11px]">System Online</span>
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-white/8">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+          <span className="text-ocean-400 text-[10px]">System Online · Demo Mode</span>
         </div>
-        <p className="text-ocean-500 text-[10px]">
-          Vanuatu Dept. of Fisheries &copy; {new Date().getFullYear()}
+        <p className="text-ocean-600 text-[10px]">
+          © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
         </p>
       </div>
     </aside>
