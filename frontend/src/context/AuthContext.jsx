@@ -20,8 +20,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-        setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...snap.data() });
+        try {
+          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+          setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...(snap.exists() ? snap.data() : {}) });
+        } catch {
+          setUser({ uid: firebaseUser.uid, email: firebaseUser.email });
+        }
       } else {
         setUser(null);
       }
@@ -51,8 +55,14 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    const snap = await getDoc(doc(db, 'users', cred.user.uid));
-    const profile = { uid: cred.user.uid, email: cred.user.email, ...snap.data() };
+    let profileData = {};
+    try {
+      const snap = await getDoc(doc(db, 'users', cred.user.uid));
+      if (snap.exists()) profileData = snap.data();
+    } catch {
+      // Firestore read failed — user is still authenticated
+    }
+    const profile = { uid: cred.user.uid, email: cred.user.email, ...profileData };
     setUser(profile);
     return profile;
   };
