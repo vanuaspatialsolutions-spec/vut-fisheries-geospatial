@@ -2,8 +2,9 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Map, Database, Users, Activity,
-  Anchor, Settings, Fish, ChevronRight,
+  Anchor, Settings, ChevronRight,
 } from 'lucide-react';
+import fisheriesLogo from '/fisheries-logo.png';
 
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -58,8 +59,8 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-4 py-5 border-b border-white/8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-ocean-500 to-ocean-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-white/10">
-            <Fish size={20} className="text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-white/10 bg-white flex items-center justify-center">
+            <img src={fisheriesLogo} alt="Fisheries Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <p className="font-bold text-sm leading-tight text-white">CBFM Platform</p>
