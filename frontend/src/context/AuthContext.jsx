@@ -29,6 +29,25 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null);
       }
+    const token = localStorage.getItem('cbfm_token');
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      api.get('/auth/me')
+        .then(res => setUser(res.data.user))
+        .catch(err => {
+          // Only clear token on explicit 401 — not on network errors or cold-start timeouts
+          if (err.response?.status === 401) {
+            localStorage.removeItem('cbfm_token');
+          } else {
+            // Network/timeout: keep the token; try to read basic info from JWT payload
+            try {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              if (payload?.id) setUser({ id: payload.id, role: payload.role || 'community_officer' });
+            } catch { /* ignore malformed token */ }
+          }
+        })
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
     });
     return unsub;
