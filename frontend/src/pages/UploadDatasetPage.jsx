@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
@@ -33,6 +33,8 @@ export default function UploadDatasetPage() {
   const [progress, setProgress] = useState(0);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
+  const nativeInputRef = useRef(null);
+
   const onDrop = useCallback((accepted, rejected) => {
     if (accepted[0]) {
       setFile(accepted[0]);
@@ -40,6 +42,13 @@ export default function UploadDatasetPage() {
       const reason = rejected[0]?.errors?.[0]?.message || 'File not accepted';
       toast.error(`File rejected: ${reason}`);
     }
+  }, []);
+
+  // Separate native handler for the label+input approach (works on iOS Safari).
+  const handleNativeChange = useCallback((e) => {
+    const f = e.target.files?.[0];
+    if (f) setFile(f);
+    if (nativeInputRef.current) nativeInputRef.current.value = '';
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -89,8 +98,23 @@ export default function UploadDatasetPage() {
             <div {...getRootProps()}
               className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
                 ${isDragActive ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-400 hover:bg-gray-50'}`}>
-              {/* Overlay the native input so iOS taps it directly (bypasses blocked programmatic click) */}
-              <input {...getInputProps()} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }} />
+              {/* react-dropzone input — handles drag-and-drop only (noClick: true) */}
+              <input {...getInputProps()} />
+              {/* Native file input + label: most reliable way to open picker on iOS Safari.
+                  A <label htmlFor> activating a file input is a native browser behaviour
+                  that iOS allows — no JavaScript .click() needed. */}
+              <input
+                ref={nativeInputRef}
+                id="dataset-file-input"
+                type="file"
+                accept=".zip,.csv,.geojson,.json,.shp,.gpkg,.kml"
+                style={{ display: 'none' }}
+                onChange={handleNativeChange}
+              />
+              <label
+                htmlFor="dataset-file-input"
+                style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, cursor: 'pointer', zIndex: 10 }}
+              />
               <Upload size={40} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-600 font-medium">Drop your file here, or click to browse</p>
               <p className="text-gray-400 text-sm mt-1">
