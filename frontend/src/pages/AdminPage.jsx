@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { getAllUsers, updateUserProfile, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
+import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench } from 'lucide-react';
+import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 function TabButton({ active, onClick, children }) {
   return (
@@ -15,10 +15,14 @@ function TabButton({ active, onClick, children }) {
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(null);
 
-  useEffect(() => {
+  const fetchUsers = () => {
+    setLoading(true);
     getAllUsers().then(setUsers).finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
 
   const updateUser = async (uid, data) => {
     try {
@@ -28,61 +32,158 @@ function UsersTab() {
     } catch { toast.error('Update failed.'); }
   };
 
+  const handleApprove = async (uid) => {
+    setWorking(uid);
+    try {
+      await approveUser(uid);
+      setUsers(prev => prev.map(u => u.id === uid ? { ...u, status: 'approved', isActive: true } : u));
+      toast.success('Account approved. The user will be notified on next login.');
+    } catch { toast.error('Approval failed.'); }
+    finally { setWorking(null); }
+  };
+
+  const handleRejectAccount = async (uid) => {
+    setWorking(uid);
+    try {
+      await rejectUser(uid);
+      setUsers(prev => prev.map(u => u.id === uid ? { ...u, status: 'rejected', isActive: false } : u));
+      toast.success('Account rejected.');
+    } catch { toast.error('Rejection failed.'); }
+    finally { setWorking(null); }
+  };
+
+  const handleDelete = async (uid, name) => {
+    if (!window.confirm(`Delete ${name}'s account? This cannot be undone.`)) return;
+    setWorking(uid);
+    try {
+      await deleteUserProfile(uid);
+      setUsers(prev => prev.filter(u => u.id !== uid));
+      toast.success('User deleted.');
+    } catch { toast.error('Delete failed.'); }
+    finally { setWorking(null); }
+  };
+
   const roleColors = {
     admin: 'bg-purple-100 text-purple-800',
     staff: 'bg-blue-100 text-blue-800',
     community_officer: 'bg-green-100 text-green-800',
   };
 
+  // Backwards-compat: users created before this feature have no status field
+  const pending = users.filter(u => u.status === 'pending');
+  const others  = users.filter(u => u.status !== 'pending');
+
   if (loading) return <div className="text-center py-8 text-ocean-600">Loading users...</div>;
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-500">{users.length} registered users</p>
-      <div className="card overflow-x-auto p-0">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">User</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Organization</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Province</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-600">Role</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-4 py-3">
+    <div className="space-y-6">
+      {/* ── Pending approvals ── */}
+      {pending.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-amber-600" />
+            <h3 className="font-semibold text-gray-800">Pending Approval</h3>
+            <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-amber-500 text-white rounded-full">{pending.length}</span>
+          </div>
+          <div className="space-y-2">
+            {pending.map(user => (
+              <div key={user.id} className="card border-l-4 border-amber-400 bg-amber-50/40 flex items-center justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
                   <p className="font-medium text-gray-800">{user.firstName} {user.lastName}</p>
-                  <p className="text-xs text-gray-400">{user.email}</p>
-                </td>
-                <td className="px-4 py-3 text-gray-500">{user.organization || '—'}</td>
-                <td className="px-4 py-3 text-gray-500">{user.province || '—'}</td>
-                <td className="px-4 py-3 text-center">
-                  <select value={user.role}
-                    onChange={e => updateUser(user.id, { role: e.target.value })}
-                    className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${roleColors[user.role]}`}>
-                    <option value="community_officer">Community Officer</option>
-                    <option value="staff">Staff</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <button onClick={() => updateUser(user.id, { isActive: !user.isActive })}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
-                      ${user.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}>
-                    {user.isActive ? <><UserCheck size={12} />Active</> : <><UserX size={12} />Inactive</>}
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                  {user.organization && <p className="text-xs text-gray-400">{user.organization}{user.province ? ` · ${user.province}` : ''}</p>}
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleApprove(user.id)}
+                    disabled={working === user.id}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-60">
+                    <ThumbsUp size={12} /> Approve
                   </button>
-                </td>
-                <td className="px-4 py-3">
-                  {user.role === 'admin' && <Shield size={14} className="text-purple-500" />}
-                </td>
-              </tr>
+                  <button
+                    onClick={() => handleRejectAccount(user.id)}
+                    disabled={working === user.id}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-lg disabled:opacity-60">
+                    <ThumbsDown size={12} /> Reject
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
+                    disabled={working === user.id}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-gray-400 hover:bg-gray-500 text-white rounded-lg disabled:opacity-60">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── All other users ── */}
+      <div className="space-y-3">
+        <p className="text-sm text-gray-500">{others.length} registered user{others.length !== 1 ? 's' : ''}</p>
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">User</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Organization</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Province</th>
+                <th className="text-center px-4 py-3 font-medium text-gray-600">Role</th>
+                <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {others.map(user => (
+                <tr key={user.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="font-medium text-gray-800">{user.firstName} {user.lastName}</p>
+                        <p className="text-xs text-gray-400">{user.email}</p>
+                      </div>
+                      {user.role === 'admin' && <Shield size={13} className="text-purple-500 flex-shrink-0" />}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{user.organization || '—'}</td>
+                  <td className="px-4 py-3 text-gray-500">{user.province || '—'}</td>
+                  <td className="px-4 py-3 text-center">
+                    <select value={user.role}
+                      onChange={e => updateUser(user.id, { role: e.target.value })}
+                      className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${roleColors[user.role] || 'bg-gray-100 text-gray-700'}`}>
+                      <option value="community_officer">Community Officer</option>
+                      <option value="staff">Staff</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {user.status === 'rejected' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <XCircle size={12} /> Rejected
+                      </span>
+                    ) : (
+                      <button onClick={() => updateUser(user.id, { isActive: !user.isActive })}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
+                          ${user.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                        {user.isActive ? <><UserCheck size={12} /> Active</> : <><UserX size={12} /> Inactive</>}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
+                      disabled={working === user.id}
+                      title="Delete user"
+                      className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -20,12 +20,18 @@ export default function LoginPage() {
 
   const onSubmit = async (data) => {
     try {
-      await login(data.email, data.password);
-      toast.success('Welcome back!');
+      const profile = await login(data.email, data.password);
+      if (profile?._showApprovalToast) {
+        toast.success('Your account has been approved! Welcome to the CBFM Platform.');
+      } else {
+        toast.success('Welcome back!');
+      }
       navigate('/dashboard');
     } catch (err) {
       const code = err.code;
-      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      if (code === 'auth/account-pending' || code === 'auth/account-rejected') {
+        toast.error(err.message, { duration: 6000 });
+      } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         toast.error('Invalid email or password.');
       } else {
         toast.error('Login failed. Please try again.');
@@ -46,6 +52,11 @@ export default function LoginPage() {
             <img
               src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
               alt="Vanuatu Coat of Arms"
+              className="w-14 h-14 object-contain drop-shadow-lg"
+            />
+            <img
+              src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
+              alt="Vanuatu Fisheries"
               className="w-14 h-14 object-contain drop-shadow-lg"
             />
             <div>
@@ -88,6 +99,11 @@ export default function LoginPage() {
             <img
               src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
               alt="Vanuatu Coat of Arms"
+              className="w-10 h-10 object-contain"
+            />
+            <img
+              src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
+              alt="Vanuatu Fisheries"
               className="w-10 h-10 object-contain"
             />
             <div>

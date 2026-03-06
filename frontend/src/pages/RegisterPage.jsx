@@ -11,9 +11,14 @@ export default function RegisterPage() {
 
   const onSubmit = async (data) => {
     try {
-      await registerUser(data);
-      toast.success('Account created! Welcome.');
-      navigate('/dashboard');
+      const profile = await registerUser(data);
+      if (profile.status === 'pending') {
+        toast.success('Registration submitted! You will be notified once an admin approves your account.', { duration: 7000 });
+        navigate('/login');
+      } else {
+        toast.success('Account created! Welcome.');
+        navigate('/dashboard');
+      }
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         toast.error('An account with this email already exists.');

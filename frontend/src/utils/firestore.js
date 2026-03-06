@@ -775,3 +775,26 @@ export async function getAllUsers() {
 export async function updateUserProfile(uid, data) {
   return updateDoc(doc(db, 'users', uid), { ...data, updatedAt: serverTimestamp() });
 }
+
+export async function approveUser(uid) {
+  return updateDoc(doc(db, 'users', uid), {
+    status: 'approved',
+    isActive: true,
+    approvalNotified: false, // triggers welcome toast on user's next login
+    approvedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function rejectUser(uid) {
+  return updateDoc(doc(db, 'users', uid), {
+    status: 'rejected',
+    isActive: false,
+    rejectedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteUserProfile(uid) {
+  return deleteDoc(doc(db, 'users', uid));
+}

@@ -8,7 +8,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import {
-  doc, getDoc, setDoc, collection, getDocs, serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, collection, getDocs, serverTimestamp,
 } from 'firebase/firestore';
 
 const AuthContext = createContext(null);
@@ -43,15 +43,37 @@ export function AuthProvider({ children }) {
     } catch {
       // Firestore read failed — user is still authenticated
     }
-    const profile = { uid: cred.user.uid, email: cred.user.email, ...profileData };
+
+    // Block accounts that haven't been approved yet (backwards-compat: no status = approved)
+    if (profileData.status === 'pending') {
+      await signOut(auth);
+      throw Object.assign(new Error('Your account is pending admin approval. You will be notified by email when approved.'), { code: 'auth/account-pending' });
+    }
+    if (profileData.status === 'rejected') {
+      await signOut(auth);
+      throw Object.assign(new Error('Your account registration was not approved. Please contact the administrator.'), { code: 'auth/account-rejected' });
+    }
+
+    // First login after admin approval — flag so the UI can show a welcome toast
+    let showApprovalToast = false;
+    if (profileData.status === 'approved' && profileData.approvalNotified === false) {
+      try {
+        await updateDoc(doc(db, 'users', cred.user.uid), { approvalNotified: true });
+        profileData.approvalNotified = true;
+        showApprovalToast = true;
+      } catch { /* non-critical */ }
+    }
+
+    const profile = { uid: cred.user.uid, email: cred.user.email, ...profileData, _showApprovalToast: showApprovalToast };
     setUser(profile);
     return profile;
   };
 
   const register = async ({ firstName, lastName, email, password, organization, province }) => {
-    // First registered user becomes admin
+    // First registered user becomes admin (auto-approved); everyone else waits for approval
     const usersSnap = await getDocs(collection(db, 'users'));
-    const role = usersSnap.empty ? 'admin' : 'community_officer';
+    const isFirst = usersSnap.empty;
+    const role = isFirst ? 'admin' : 'community_officer';
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: `${firstName} ${lastName}` });
@@ -63,11 +85,19 @@ export function AuthProvider({ children }) {
       role,
       organization: organization || '',
       province: province || '',
-      isActive: true,
+      isActive: isFirst,
+      status: isFirst ? 'approved' : 'pending',
+      approvalNotified: isFirst, // admin needs no notification
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
-    setUser({ uid: cred.user.uid, ...profile });
+
+    if (isFirst) {
+      setUser({ uid: cred.user.uid, ...profile });
+    } else {
+      // Sign out immediately — non-admin users must wait for approval
+      await signOut(auth);
+    }
     return { uid: cred.user.uid, ...profile };
   };
 
