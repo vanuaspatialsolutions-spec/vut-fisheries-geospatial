@@ -36,6 +36,9 @@ export default function UploadDatasetPage() {
     accept: ACCEPTED_EXTENSIONS,
     maxFiles: 1,
     maxSize: 500 * 1024 * 1024,
+    // iOS Safari blocks programmatic input.click() — use noClick so the
+    // native <input> element (overlaid below) captures the tap directly.
+    noClick: true,
   });
 
   const onSubmit = async (data) => {
@@ -73,9 +76,10 @@ export default function UploadDatasetPage() {
           <h3 className="font-semibold text-gray-700 mb-4">Select File</h3>
           {!file ? (
             <div {...getRootProps()}
-              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
+              className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
                 ${isDragActive ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-400 hover:bg-gray-50'}`}>
-              <input {...getInputProps()} />
+              {/* Overlay the native input so iOS taps it directly (bypasses blocked programmatic click) */}
+              <input {...getInputProps()} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }} />
               <Upload size={40} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-600 font-medium">Drop your file here, or click to browse</p>
               <p className="text-gray-400 text-sm mt-1">
