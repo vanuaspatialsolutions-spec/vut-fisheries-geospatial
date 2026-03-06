@@ -17,7 +17,14 @@ function docToObj(d) {
 
 /**
  * Parse a file (GeoJSON or shapefile ZIP) into a GeoJSON FeatureCollection.
- * Uses shpjs for ZIP files so shapefiles are supported without a backend.
+ *
+ * ZIP handling strategy (in order):
+ *  1. Try shpjs.parseZip() — works when .shp files are at the root of the ZIP.
+ *  2. If shpjs says "no layers found", use JSZip to inspect the archive:
+ *     a. Find .shp files at any depth. For each, load the matching .dbf (same
+ *        base name, any directory) and call shpjs.combine(parseShp, parseDbf).
+ *     b. If no .shp found, look for a .geojson or .json file and parse that.
+ *  3. Merge all resulting FeatureCollections into one.
  */
 export async function parseFileToGeoJSON(file) {
   const ext = file.name.split('.').pop().toLowerCase();
@@ -32,17 +39,63 @@ export async function parseFileToGeoJSON(file) {
   }
 
   if (ext === 'zip') {
-    const { parseZip } = await import('shpjs');
     const buffer = await file.arrayBuffer();
-    const result = await parseZip(buffer);
-    // shpjs may return a FeatureCollection or an array (one per layer); merge them.
-    if (Array.isArray(result)) {
-      return {
-        type: 'FeatureCollection',
-        features: result.flatMap(fc => fc.features || []),
-      };
+
+    // ── Attempt 1: shpjs.parseZip (fast path, works for flat ZIPs) ──────────
+    try {
+      const { parseZip } = await import('shpjs');
+      const result = await parseZip(buffer);
+      const layers = Array.isArray(result) ? result : [result];
+      const features = layers.flatMap(fc => fc?.features || []);
+      if (features.length > 0) {
+        return { type: 'FeatureCollection', features };
+      }
+    } catch (shpErr) {
+      // "no layers founds" means shapefiles aren't at the root — fall through.
+      if (!shpErr.message?.includes('no layers')) throw shpErr;
     }
-    return result;
+
+    // ── Attempt 2: JSZip — inspect archive, handle nested directories ────────
+    const JSZip = (await import('jszip')).default;
+    const zip = await JSZip.loadAsync(buffer);
+    const names = Object.keys(zip.files).filter(n => !zip.files[n].dir);
+
+    // 2a. Try each .shp file with its matching .dbf
+    const shpFiles = names.filter(n => n.toLowerCase().endsWith('.shp'));
+    if (shpFiles.length > 0) {
+      const { parseShp, parseDbf, combine } = await import('shpjs');
+      const allFeatures = [];
+      for (const shpPath of shpFiles) {
+        const base = shpPath.replace(/\.shp$/i, '');
+        const dbfPath = names.find(n => n.toLowerCase() === (base + '.dbf').toLowerCase());
+        const shpBuf = await zip.files[shpPath].async('arraybuffer');
+        const shpGeo = parseShp(shpBuf);
+        let fc;
+        if (dbfPath) {
+          const dbfBuf = await zip.files[dbfPath].async('arraybuffer');
+          const dbfData = parseDbf(dbfBuf);
+          fc = combine([shpGeo, dbfData]);
+        } else {
+          fc = { type: 'FeatureCollection', features: shpGeo.map(g => ({ type: 'Feature', geometry: g, properties: {} })) };
+        }
+        allFeatures.push(...(fc?.features || []));
+      }
+      if (allFeatures.length > 0) {
+        return { type: 'FeatureCollection', features: allFeatures };
+      }
+    }
+
+    // 2b. Look for a GeoJSON or JSON file inside the ZIP
+    const geoFile = names.find(n => /\.(geojson|json)$/i.test(n));
+    if (geoFile) {
+      const text = await zip.files[geoFile].async('text');
+      const parsed = JSON.parse(text);
+      if (parsed?.type) return parsed;
+    }
+
+    // List what's actually in the ZIP to help the user
+    const listed = names.slice(0, 8).join(', ');
+    throw new Error(`No mappable data found in ZIP. Contents: ${listed || '(empty)'}. Expected: .shp shapefile or .geojson file.`);
   }
 
   throw new Error('Unsupported file type. Accepted: .geojson, .json, .zip (shapefile)');
