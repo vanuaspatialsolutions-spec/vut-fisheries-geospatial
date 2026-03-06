@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -8,65 +8,177 @@ import { useAuth } from '../context/AuthContext';
 import { getSurveyStats, getMarineStats, getMonitoringStats, getDatasetStats } from '../utils/firestore';
 import {
   Users, Anchor, Activity, Database, Plus,
-  TrendingUp, MapPin, ArrowRight, RefreshCw,
-  BarChart2,
+  MapPin, ArrowUpRight, RefreshCw, BarChart2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-const CHART_COLORS = ['#0369a1', '#059669', '#ea580c', '#7c3aed', '#dc2626', '#ca8a04'];
-
-const quickActions = [
-  { label: 'New Survey', to: '/surveys/new', color: 'from-ocean-600 to-ocean-700', icon: Users },
-  { label: 'Marine Area', to: '/marine/new', color: 'from-emerald-500 to-emerald-700', icon: Anchor },
-  { label: 'Bio. Record', to: '/monitoring/new', color: 'from-orange-500 to-orange-600', icon: Activity },
-  { label: 'Upload Data', to: '/datasets/upload', color: 'from-violet-600 to-violet-700', icon: Database },
+/* ─────────────────────────────────────────────────────────────
+   Palette
+───────────────────────────────────────────────────────────── */
+const CARDS = [
+  {
+    key: 'surveys', icon: Users, label: 'Community Surveys', subKey: null,
+    accent: '#38bdf8',   // sky-400
+    glow:   'rgba(56,189,248,0.20)',
+    grad:   'linear-gradient(135deg, #0c2040 0%, #0f3260 100%)',
+    border: '#38bdf8',
+  },
+  {
+    key: 'marine', icon: Anchor, label: 'Marine Areas', subKey: 'totalAreaHa',
+    accent: '#2dd4bf',   // teal-400
+    glow:   'rgba(45,212,191,0.20)',
+    grad:   'linear-gradient(135deg, #0c2040 0%, #0d3d3a 100%)',
+    border: '#2dd4bf',
+  },
+  {
+    key: 'monitoring', icon: Activity, label: 'Bio. Monitoring', subKey: 'avgCoral',
+    accent: '#a78bfa',   // violet-400
+    glow:   'rgba(167,139,250,0.20)',
+    grad:   'linear-gradient(135deg, #0c2040 0%, #1e1547 100%)',
+    border: '#a78bfa',
+  },
+  {
+    key: 'datasets', icon: Database, label: 'Datasets', subKey: 'published',
+    accent: '#d4a92a',   // gold
+    glow:   'rgba(212,169,42,0.20)',
+    grad:   'linear-gradient(135deg, #0c2040 0%, #2a1f00 100%)',
+    border: '#d4a92a',
+  },
 ];
 
-function StatCard({ icon: Icon, label, value, sub, gradient, loading }) {
+const QUICK = [
+  { label: 'New Survey',   to: '/surveys/new',     icon: Users,    accent: '#38bdf8', grad: 'linear-gradient(135deg,#0c2040,#0f3260)' },
+  { label: 'Marine Area',  to: '/marine/new',      icon: Anchor,   accent: '#2dd4bf', grad: 'linear-gradient(135deg,#0c2040,#0d3d3a)' },
+  { label: 'Bio. Record',  to: '/monitoring/new',  icon: Activity, accent: '#a78bfa', grad: 'linear-gradient(135deg,#0c2040,#1e1547)' },
+  { label: 'Upload Data',  to: '/datasets/upload', icon: Database, accent: '#d4a92a', grad: 'linear-gradient(135deg,#0c2040,#2a1f00)' },
+];
+
+const CHART_COLORS = ['#38bdf8', '#2dd4bf', '#a78bfa', '#d4a92a', '#fb7185', '#34d399'];
+
+/* ─────────────────────────────────────────────────────────────
+   Animated count-up hook
+───────────────────────────────────────────────────────────── */
+function useCountUp(target, duration = 1000) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (target == null || target === 0) { setVal(0); return; }
+    let current = 0;
+    const steps = 50;
+    const inc = target / steps;
+    const ms = duration / steps;
+    const t = setInterval(() => {
+      current += inc;
+      if (current >= target) { setVal(target); clearInterval(t); }
+      else setVal(Math.round(current));
+    }, ms);
+    return () => clearInterval(t);
+  }, [target, duration]);
+  return val;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3-D tilt helper
+───────────────────────────────────────────────────────────── */
+function use3DTilt() {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const onMove = useCallback((e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientY - r.top)  / r.height - 0.5) * -14;
+    const y = ((e.clientX - r.left) / r.width  - 0.5) *  14;
+    setTilt({ x, y });
+  }, []);
+  const onLeave = useCallback(() => setTilt({ x: 0, y: 0 }), []);
+  const style = {
+    transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateZ(4px)`,
+    transition: 'transform 0.18s ease',
+  };
+  return { onMove, onLeave, style };
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Stat Card
+───────────────────────────────────────────────────────────── */
+function StatCard({ cfg, value, sub, loading, index }) {
+  const { icon: Icon, label, accent, glow, grad, border } = cfg;
+  const counted = useCountUp(loading ? 0 : (value ?? 0));
+  const { onMove, onLeave, style } = use3DTilt();
+
   return (
-    <div className={`rounded-2xl shadow-md ${gradient} p-5 text-white relative overflow-hidden`}>
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full" />
-      <div className="absolute -right-2 bottom-0 w-16 h-16 bg-white/5 rounded-full" />
-      <div className="relative z-10">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-white/70 text-xs font-medium uppercase tracking-wide">{label}</p>
-            {loading ? (
-              <div className="h-9 w-16 bg-white/20 rounded animate-pulse mt-1.5" />
-            ) : (
-              <p className="text-4xl font-bold mt-1">{value ?? '—'}</p>
-            )}
-            {sub && (
-              <p className="text-white/60 text-xs mt-1.5">
-                {loading ? <span className="inline-block h-3 w-24 bg-white/20 rounded animate-pulse" /> : sub}
-              </p>
-            )}
-          </div>
-          <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Icon size={20} />
-          </div>
+    <div
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{
+        ...style,
+        background: grad,
+        boxShadow: `0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)`,
+        animationDelay: `${index * 80}ms`,
+      }}
+      className="relative rounded-2xl p-5 text-white overflow-hidden stat-card-entrance cursor-default select-none"
+    >
+      {/* Coloured top accent bar */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl"
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+
+      {/* Background glow blob */}
+      <div className="absolute -bottom-8 -right-8 w-36 h-36 rounded-full blur-2xl pointer-events-none"
+        style={{ background: glow }} />
+
+      {/* Icon */}
+      <div className="relative z-10 flex items-start justify-between mb-4">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+          style={{ background: `rgba(255,255,255,0.08)`, border: `1px solid ${accent}30` }}>
+          <Icon size={19} style={{ color: accent }} />
         </div>
+        <ArrowUpRight size={14} className="opacity-20 mt-1" />
+      </div>
+
+      {/* Label */}
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1 relative z-10"
+        style={{ color: accent }}>
+        {label}
+      </p>
+
+      {/* Number */}
+      <div className="relative z-10">
+        {loading ? (
+          <div className="h-10 w-16 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.10)' }} />
+        ) : (
+          <p className="text-4xl font-bold leading-none tracking-tight text-white">
+            {counted}
+          </p>
+        )}
+        {sub && (
+          <p className="text-[11px] mt-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            {loading
+              ? <span className="inline-block h-3 w-24 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              : sub}
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Chart Card
+───────────────────────────────────────────────────────────── */
 function ChartCard({ title, icon: Icon, children, loading, empty, emptyMsg }) {
   return (
     <div className="card">
-      <div className="flex items-center gap-2 mb-5">
-        <div className="w-8 h-8 bg-ocean-50 rounded-lg flex items-center justify-center">
-          <Icon size={15} className="text-ocean-600" />
+      <div className="flex items-center gap-2.5 mb-5">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: 'rgba(12,32,64,0.06)', border: '1px solid rgba(12,32,64,0.08)' }}>
+          <Icon size={15} className="text-navy-700" />
         </div>
         <h3 className="font-semibold text-gray-800 text-sm">{title}</h3>
       </div>
       {loading ? (
-        <div className="h-48 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-ocean-200 border-t-ocean-600 rounded-full animate-spin" />
+        <div className="h-52 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-navy-100 border-t-navy-600 rounded-full animate-spin" />
         </div>
       ) : empty ? (
-        <div className="h-48 flex flex-col items-center justify-center text-gray-300 gap-2">
-          <BarChart2 size={32} />
+        <div className="h-52 flex flex-col items-center justify-center gap-2">
+          <BarChart2 size={30} className="text-gray-200" />
           <p className="text-sm text-gray-400">{emptyMsg || 'No data yet'}</p>
         </div>
       ) : children}
@@ -74,13 +186,16 @@ function ChartCard({ title, icon: Icon, children, loading, empty, emptyMsg }) {
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Tooltip
+───────────────────────────────────────────────────────────── */
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 text-sm">
-      <p className="font-semibold text-gray-800 mb-1">{label}</p>
+    <div className="bg-navy-900 text-white rounded-xl border border-white/10 px-4 py-3 text-xs shadow-xl">
+      <p className="font-semibold mb-1 text-white/80">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.fill || p.stroke }} className="text-xs">
+        <p key={i} style={{ color: p.fill || p.stroke }}>
           {p.name || 'Count'}: <strong>{p.value}</strong>
         </p>
       ))}
@@ -88,6 +203,37 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+/* ─────────────────────────────────────────────────────────────
+   Quick Action Card
+───────────────────────────────────────────────────────────── */
+function QuickAction({ label, to, icon: Icon, accent, grad }) {
+  const { onMove, onLeave, style } = use3DTilt();
+  return (
+    <Link
+      to={to}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{ ...style, background: grad, boxShadow: '0 6px 24px rgba(0,0,0,0.30)' }}
+      className="group relative rounded-xl p-4 flex items-center justify-between overflow-hidden text-white"
+    >
+      {/* accent glow */}
+      <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full blur-2xl pointer-events-none opacity-30"
+        style={{ background: accent }} />
+      <div className="relative z-10 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+          style={{ background: `${accent}20`, border: `1px solid ${accent}40` }}>
+          <Icon size={17} style={{ color: accent }} />
+        </div>
+        <p className="text-sm font-semibold">{label}</p>
+      </div>
+      <ArrowUpRight size={15} className="relative z-10 opacity-0 group-hover:opacity-60 transition-opacity duration-200 flex-shrink-0" />
+    </Link>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Dashboard Page
+───────────────────────────────────────────────────────────── */
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({});
@@ -101,49 +247,24 @@ export default function DashboardPage() {
     if (!quiet) setLoading(true);
     else setRefreshing(true);
     try {
-      const [surveyStats, marineStats, monitoringStats, datasetStats] = await Promise.all([
-        getSurveyStats(),
-        getMarineStats(),
-        getMonitoringStats(),
-        getDatasetStats(),
+      const [sv, mr, mo, ds] = await Promise.all([
+        getSurveyStats(), getMarineStats(), getMonitoringStats(), getDatasetStats(),
       ]);
-
       setStats({
-        surveys: surveyStats.total,
-        marine: marineStats.total,
-        monitoring: monitoringStats.total,
-        datasets: datasetStats.total,
-        totalAreaHa: marineStats.totalAreaHa,
-        avgCoral: monitoringStats.avgCoralCover,
-        published: datasetStats.published,
+        surveys: sv.total, marine: mr.total, monitoring: mo.total, datasets: ds.total,
+        totalAreaHa: mr.totalAreaHa, avgCoral: mo.avgCoralCover, published: ds.published,
       });
-
-      setSurveysByProvince(
-        (surveyStats.byProvince || []).map(item => ({
-          province: (item.province || 'Unknown').substring(0, 6),
-          count: parseInt(item.count),
-        }))
-      );
-
-      setDatasetsByType(
-        (datasetStats.byType || []).map(item => ({
-          name: (item.dataType || 'other').replace(/_/g, ' '),
-          value: parseInt(item.count),
-        }))
-      );
-
-      setMonitoringByType(
-        (monitoringStats.byType || []).map(item => ({
-          name: (item.monitoringType || 'other').replace(/_/g, ' '),
-          count: parseInt(item.count),
-        }))
-      );
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+      setSurveysByProvince((sv.byProvince || []).map(i => ({
+        province: (i.province || 'Unknown').substring(0, 6), count: parseInt(i.count),
+      })));
+      setDatasetsByType((ds.byType || []).map(i => ({
+        name: (i.dataType || 'other').replace(/_/g, ' '), value: parseInt(i.count),
+      })));
+      setMonitoringByType((mo.byType || []).map(i => ({
+        name: (i.monitoringType || 'other').replace(/_/g, ' '), count: parseInt(i.count),
+      })));
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); setRefreshing(false); }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -155,9 +276,19 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
+  const cardSubs = [
+    stats.surveys != null ? 'total records' : undefined,
+    stats.totalAreaHa ? `${parseFloat(stats.totalAreaHa).toFixed(0)} ha protected` : 'protected zones',
+    stats.avgCoral   ? `avg ${parseFloat(stats.avgCoral).toFixed(1)}% coral cover` : 'surveys logged',
+    stats.published  ? `${stats.published} published` : 'uploaded files',
+  ];
+  const cardVals = [stats.surveys, stats.marine, stats.monitoring, stats.datasets];
+
   return (
     <div className="space-y-6 fade-in">
-      <div className="flex items-start justify-between">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
             {greeting()}, {user?.firstName || 'there'} 👋
@@ -167,45 +298,35 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => fetchAll(true)}
-            disabled={refreshing}
-            className="btn-secondary flex items-center gap-2 text-sm py-2"
-          >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+          <button onClick={() => fetchAll(true)} disabled={refreshing} className="btn-secondary text-sm py-2">
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
-          <Link to="/surveys/new" className="btn-primary flex items-center gap-2 text-sm py-2">
-            <Plus size={14} />
+          <Link to="/surveys/new" className="btn-primary text-sm py-2">
+            <Plus size={13} />
             New Entry
           </Link>
         </div>
       </div>
 
+      {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Community Surveys" value={stats.surveys} sub="total records"
-          gradient="bg-gradient-to-br from-ocean-600 to-ocean-800" loading={loading} />
-        <StatCard icon={Anchor} label="Marine Areas" value={stats.marine}
-          sub={stats.totalAreaHa ? `${parseFloat(stats.totalAreaHa).toFixed(0)} ha protected` : 'protected zones'}
-          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" loading={loading} />
-        <StatCard icon={Activity} label="Bio. Monitoring" value={stats.monitoring}
-          sub={stats.avgCoral ? `avg ${parseFloat(stats.avgCoral).toFixed(1)}% coral cover` : 'surveys logged'}
-          gradient="bg-gradient-to-br from-orange-500 to-orange-600" loading={loading} />
-        <StatCard icon={Database} label="Datasets" value={stats.datasets}
-          sub={stats.published ? `${stats.published} published` : 'uploaded files'}
-          gradient="bg-gradient-to-br from-violet-600 to-violet-800" loading={loading} />
+        {CARDS.map((cfg, i) => (
+          <StatCard key={cfg.key} cfg={cfg} value={cardVals[i]} sub={cardSubs[i]} loading={loading} index={i} />
+        ))}
       </div>
 
+      {/* ── Charts ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Surveys by Province" icon={MapPin} loading={loading}
           empty={!surveysByProvince.length} emptyMsg="No survey data yet — add the first survey">
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={surveysByProvince} barSize={36}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis dataKey="province" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" fill="#0369a1" radius={[6, 6, 0, 0]} name="Surveys" />
+            <BarChart data={surveysByProvince} barSize={32}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="province" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(12,32,64,0.04)' }} />
+              <Bar dataKey="count" fill="#1a4470" radius={[6, 6, 0, 0]} name="Surveys" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -215,7 +336,7 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={datasetsByType} dataKey="value" nameKey="name" cx="50%" cy="50%"
-                outerRadius={80} innerRadius={40} paddingAngle={3}
+                outerRadius={85} innerRadius={42} paddingAngle={3}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                 {datasetsByType.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -230,30 +351,22 @@ export default function DashboardPage() {
       {(loading || monitoringByType.length > 0) && (
         <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={loading} empty={!monitoringByType.length}>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={monitoringByType} layout="vertical" barSize={22}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} width={150} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" fill="#059669" radius={[0, 6, 6, 0]} name="Records" />
+            <BarChart data={monitoringByType} layout="vertical" barSize={20}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} width={150} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(12,32,64,0.04)' }} />
+              <Bar dataKey="count" fill="#2dd4bf" radius={[0, 6, 6, 0]} name="Records" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       )}
 
+      {/* ── Quick Actions ── */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em] mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quickActions.map(({ label, to, color, icon: Icon }) => (
-            <Link key={to} to={to}
-              className={`bg-gradient-to-br ${color} text-white rounded-xl p-4 flex items-center justify-between group hover:shadow-lg hover:scale-[1.02] transition-all duration-200`}>
-              <div>
-                <Icon size={18} className="mb-2 opacity-80" />
-                <p className="text-sm font-semibold leading-tight">{label}</p>
-              </div>
-              <ArrowRight size={16} className="opacity-0 group-hover:opacity-70 transition-opacity -translate-x-1 group-hover:translate-x-0 duration-200" />
-            </Link>
-          ))}
+          {QUICK.map(q => <QuickAction key={q.to} {...q} />)}
         </div>
       </div>
     </div>
