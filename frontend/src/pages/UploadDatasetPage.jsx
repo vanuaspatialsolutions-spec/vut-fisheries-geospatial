@@ -7,14 +7,20 @@ import toast from 'react-hot-toast';
 import { Upload, File, X, MapPin } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
+// iOS Safari often reports unexpected MIME types for geo files (e.g. geojson
+// as application/octet-stream or text/plain). Listing the extension under every
+// plausible MIME type ensures react-dropzone accepts the file on all platforms.
 const ACCEPTED_EXTENSIONS = {
   'application/zip': ['.zip'],
+  'application/x-zip-compressed': ['.zip'],
   'text/csv': ['.csv'],
   'application/json': ['.geojson', '.json'],
-  'application/octet-stream': ['.shp', '.dbf', '.shx', '.prj', '.gpkg'],
+  'application/geo+json': ['.geojson'],
+  'application/octet-stream': ['.shp', '.dbf', '.shx', '.prj', '.gpkg', '.geojson', '.json', '.kml', '.zip', '.csv'],
   'application/vnd.google-earth.kml+xml': ['.kml'],
   'application/geopackage+sqlite3': ['.gpkg'],
-  'text/plain': ['.csv', '.kml'],
+  'text/plain': ['.csv', '.kml', '.geojson', '.json'],
+  'text/xml': ['.kml'],
 };
 
 const MAP_FORMATS = new Set(['geojson', 'json', 'zip', 'kml', 'gpkg', 'shp']);
@@ -27,8 +33,13 @@ export default function UploadDatasetPage() {
   const [progress, setProgress] = useState(0);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const onDrop = useCallback((accepted) => {
-    if (accepted[0]) setFile(accepted[0]);
+  const onDrop = useCallback((accepted, rejected) => {
+    if (accepted[0]) {
+      setFile(accepted[0]);
+    } else if (rejected?.length) {
+      const reason = rejected[0]?.errors?.[0]?.message || 'File not accepted';
+      toast.error(`File rejected: ${reason}`);
+    }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -79,7 +90,7 @@ export default function UploadDatasetPage() {
               className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors
                 ${isDragActive ? 'border-ocean-500 bg-ocean-50' : 'border-gray-200 hover:border-ocean-400 hover:bg-gray-50'}`}>
               {/* Overlay the native input so iOS taps it directly (bypasses blocked programmatic click) */}
-              <input {...getInputProps()} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }} />
+              <input {...getInputProps()} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }} />
               <Upload size={40} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-600 font-medium">Drop your file here, or click to browse</p>
               <p className="text-gray-400 text-sm mt-1">
