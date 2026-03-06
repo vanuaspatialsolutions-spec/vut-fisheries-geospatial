@@ -1,21 +1,20 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Map, Database, Users, Activity,
   Anchor, Settings, ChevronRight,
 } from 'lucide-react';
-import fisheriesLogo from '/fisheries-logo.png';
 
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/map', icon: Map, label: 'Interactive Map' },
+  { to: '/map',       icon: Map,             label: 'Interactive Map' },
 ];
 
 const dataNav = [
-  { to: '/surveys', icon: Users, label: 'Community Surveys' },
-  { to: '/marine', icon: Anchor, label: 'Marine Areas' },
+  { to: '/surveys',    icon: Users,    label: 'Community Surveys' },
+  { to: '/marine',     icon: Anchor,   label: 'Marine Areas' },
   { to: '/monitoring', icon: Activity, label: 'Bio. Monitoring' },
-  { to: '/datasets', icon: Database, label: 'Datasets' },
+  { to: '/datasets',   icon: Database, label: 'Datasets' },
 ];
 
 function NavItem({ to, icon: Icon, label }) {
@@ -23,20 +22,21 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative
+        `group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
         ${isActive
-          ? 'bg-white/15 text-white shadow-sm'
-          : 'text-ocean-200 hover:bg-white/8 hover:text-white'}`
+          ? 'bg-white/12 text-white'
+          : 'text-navy-300 hover:bg-white/6 hover:text-white'}`
       }
     >
       {({ isActive }) => (
         <>
           {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+              style={{ background: '#d4a92a' }} />
           )}
-          <Icon size={17} className={`transition-transform duration-150 ${isActive ? '' : 'group-hover:scale-110'}`} />
-          <span className="flex-1">{label}</span>
-          {isActive && <ChevronRight size={14} className="opacity-60" />}
+          <Icon size={16} className={`flex-shrink-0 transition-transform duration-150 ${!isActive && 'group-hover:scale-110'}`} />
+          <span className="flex-1 truncate">{label}</span>
+          {isActive && <ChevronRight size={13} className="opacity-40 flex-shrink-0" />}
         </>
       )}
     </NavLink>
@@ -45,7 +45,7 @@ function NavItem({ to, icon: Icon, label }) {
 
 function SectionLabel({ label }) {
   return (
-    <p className="text-ocean-500 text-[10px] font-semibold uppercase tracking-widest px-3 pt-4 pb-1">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-navy-500 select-none">
       {label}
     </p>
   );
@@ -55,22 +55,37 @@ export default function Sidebar() {
   const { isAdmin } = useAuth();
 
   return (
-    <aside className="w-64 bg-ocean-900 text-white flex flex-col shadow-xl flex-shrink-0">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-white/8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-white/10 bg-white flex items-center justify-center">
-            <img src={fisheriesLogo} alt="Fisheries Logo" className="w-full h-full object-contain" />
+    <aside className="w-64 flex flex-col flex-shrink-0 shadow-xl"
+      style={{ background: 'linear-gradient(180deg, #071529 0%, #0c2040 100%)' }}>
+
+      {/* ── Logo block ── */}
+      <div className="px-5 py-5 border-b border-white/8">
+        {/* Both logos side by side */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <img
+              src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
+              alt="Vanuatu Coat of Arms"
+              className="w-9 h-9 object-contain drop-shadow"
+            />
+            <img
+              src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
+              alt="Vanuatu Fisheries"
+              className="w-9 h-9 object-contain drop-shadow"
+            />
           </div>
-          <div>
-            <p className="font-bold text-sm leading-tight text-white">CBFM Platform</p>
-            <p className="text-ocean-400 text-[11px] mt-0.5">Dept. of Fisheries · VUT</p>
+          <div className="w-px h-8 bg-white/10" />
+          <div className="min-w-0">
+            <p className="text-white font-bold text-sm leading-tight truncate">CBFM Platform</p>
+            <p className="text-navy-400 text-[10px] mt-0.5 leading-tight truncate">Dept. of Fisheries · VUT</p>
           </div>
         </div>
+        {/* Gold accent line */}
+        <div className="gold-line" />
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
+      {/* ── Navigation ── */}
+      <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5">
         <SectionLabel label="Overview" />
         {mainNav.map(item => <NavItem key={item.to} {...item} />)}
 
@@ -85,14 +100,14 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Status footer */}
-      <div className="px-4 py-4 border-t border-white/8">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-          <span className="text-ocean-300 text-[11px]">System Online</span>
+      {/* ── Status footer ── */}
+      <div className="px-5 py-4 border-t border-white/8">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
+          <span className="text-navy-400 text-[11px]">System Online</span>
         </div>
-        <p className="text-ocean-500 text-[10px]">
-          Vanuatu Dept. of Fisheries &copy; {new Date().getFullYear()}
+        <p className="text-navy-600 text-[10px]">
+          &copy; {new Date().getFullYear()} Vanuatu Dept. of Fisheries
         </p>
       </div>
     </aside>
