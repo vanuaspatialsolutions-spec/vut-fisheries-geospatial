@@ -88,12 +88,14 @@ export default function UploadDatasetPage() {
                   <X size={18} />
                 </button>
               </div>
-              {/* GeoJSON map-readiness indicator */}
-              {['geojson', 'json'].includes(file.name.split('.').pop().toLowerCase()) && (
+              {/* Map-readiness indicator for GeoJSON and shapefile ZIPs */}
+              {['geojson', 'json', 'zip'].includes(file.name.split('.').pop().toLowerCase()) && (
                 file.size < 900000 ? (
                   <div className="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
                     <MapPin size={13} className="flex-shrink-0" />
-                    This GeoJSON will be cached inline and appear automatically on the interactive map when published.
+                    {file.name.endsWith('.zip')
+                      ? 'Shapefile ZIP will be converted to GeoJSON and cached — it will appear on the map when published.'
+                      : 'This GeoJSON will be cached inline and appear automatically on the interactive map when published.'}
                   </div>
                 ) : (
                   <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

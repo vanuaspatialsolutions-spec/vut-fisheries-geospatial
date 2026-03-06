@@ -15,6 +15,39 @@ function docToObj(d) {
   return { id: d.id, ...d.data() };
 }
 
+/**
+ * Parse a file (GeoJSON or shapefile ZIP) into a GeoJSON FeatureCollection.
+ * Uses shpjs for ZIP files so shapefiles are supported without a backend.
+ */
+export async function parseFileToGeoJSON(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (['geojson', 'json'].includes(ext)) {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if (!parsed || (parsed.type !== 'FeatureCollection' && parsed.type !== 'Feature')) {
+      throw new Error('File does not appear to be valid GeoJSON.');
+    }
+    return parsed;
+  }
+
+  if (ext === 'zip') {
+    const { parseZip } = await import('shpjs');
+    const buffer = await file.arrayBuffer();
+    const result = await parseZip(buffer);
+    // shpjs may return a FeatureCollection or an array (one per layer); merge them.
+    if (Array.isArray(result)) {
+      return {
+        type: 'FeatureCollection',
+        features: result.flatMap(fc => fc.features || []),
+      };
+    }
+    return result;
+  }
+
+  throw new Error('Unsupported file type. Accepted: .geojson, .json, .zip (shapefile)');
+}
+
 function paginate(arr, page, pageSize) {
   const total = arr.length;
   return {
@@ -270,18 +303,14 @@ export async function uploadDataset(file, metadata, onProgress) {
   const ext = file.name.split('.').pop().toLowerCase();
   const fileFormat = ext === 'json' ? 'geojson' : ext;
 
-  // For GeoJSON files, read and store inline in Firestore so the map can load
-  // without needing Firebase Storage SDK access or CORS configuration.
+  // For GeoJSON and shapefile ZIP files, parse and store inline in Firestore so
+  // the map can load without needing Firebase Storage SDK access or CORS config.
   let geojsonData = null;
-  if (['json', 'geojson'].includes(ext) && file.size < 950000) {
+  if (['json', 'geojson', 'zip'].includes(ext) && file.size < 950000) {
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
-        geojsonData = parsed;
-      }
+      geojsonData = await parseFileToGeoJSON(file);
     } catch (e) {
-      // not valid GeoJSON — that's fine, just skip inline storage
+      console.warn('Could not parse file for inline map storage:', e.message);
     }
   }
 
@@ -387,18 +416,22 @@ export async function getPublishedGeoJSONDatasets() {
   const snap = await getDocs(collection(db, 'datasets'));
   return snap.docs
     .map(docToObj)
-    .filter(d => d.status === 'published' && ['geojson', 'json'].includes(d.fileFormat?.toLowerCase()));
+    .filter(d => {
+      if (d.status !== 'published') return false;
+      const fmt = d.fileFormat?.toLowerCase();
+      // Native GeoJSON files are always candidates (even if not yet cached).
+      if (['geojson', 'json'].includes(fmt)) return true;
+      // ZIP / shapefile datasets are only map-eligible when GeoJSON has been cached.
+      if (fmt === 'zip' && d.hasGeojsonData) return true;
+      return false;
+    });
 }
 
-// Staff can re-select the original file locally to cache GeoJSON in Firestore,
-// bypassing Storage SDK and CORS entirely.
+// Staff can re-select the original file (GeoJSON or shapefile ZIP) to cache
+// the GeoJSON data inline in Firestore, bypassing Storage SDK and CORS entirely.
 export async function recacheDatasetGeoJSON(id, file) {
   if (file.size > 900000) throw new Error(`File is ${(file.size / 1024).toFixed(0)} KB — must be under 900 KB to cache in Firestore.`);
-  const text = await file.text();
-  const parsed = JSON.parse(text);
-  if (!parsed || (parsed.type !== 'FeatureCollection' && parsed.type !== 'Feature')) {
-    throw new Error('File is not valid GeoJSON.');
-  }
+  const parsed = await parseFileToGeoJSON(file);
   return updateDoc(doc(db, 'datasets', id), {
     geojsonData: parsed,
     hasGeojsonData: true,

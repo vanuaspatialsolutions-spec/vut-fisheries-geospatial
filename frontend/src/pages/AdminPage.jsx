@@ -88,8 +88,8 @@ function UsersTab() {
   );
 }
 
-function isGeoJSONDataset(d) {
-  return ['geojson', 'json'].includes(d.fileFormat?.toLowerCase());
+function isMapEligibleDataset(d) {
+  return ['geojson', 'json', 'zip'].includes(d.fileFormat?.toLowerCase());
 }
 
 function DatasetsAdminTab() {
@@ -132,7 +132,7 @@ function DatasetsAdminTab() {
 
   const handlePublish = async (dataset) => {
     // GeoJSON without inline data: prompt for file first
-    if (isGeoJSONDataset(dataset) && !dataset.hasGeojsonData) {
+    if (isMapEligibleDataset(dataset) && !dataset.hasGeojsonData) {
       toast('Select the GeoJSON file to cache it — the dataset will then be published automatically.', {
         icon: '📂',
         duration: 5000,
@@ -167,7 +167,7 @@ function DatasetsAdminTab() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".geojson,.json"
+        accept=".geojson,.json,.zip"
         className="hidden"
         onChange={handleFileSelected}
       />
@@ -180,7 +180,7 @@ function DatasetsAdminTab() {
         </div>
       ) : (
         datasets.map(dataset => {
-          const needsFile = isGeoJSONDataset(dataset) && !dataset.hasGeojsonData;
+          const needsFile = isMapEligibleDataset(dataset) && !dataset.hasGeojsonData;
           return (
             <div key={dataset.id} className="card">
               <div className="flex items-start justify-between gap-4">
