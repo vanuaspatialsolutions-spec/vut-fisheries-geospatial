@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
@@ -169,6 +169,7 @@ function QuickAction({label,to,icon:Icon,accent,grad}){
 
 export default function DashboardPage(){
   const{user}=useAuth();
+  const location=useLocation();
   const[marine,setMarine]=useState({});
   const[surveys,setSurveys]=useState({});
   const[monitoring,setMonitor]=useState({});
@@ -209,18 +210,34 @@ export default function DashboardPage(){
     }catch{}finally{setDatasetsLoading(false);}
   };
 
-  useEffect(()=>{fetchAll();},[filters]);
+  // Re-fetch every time the user navigates to this page (location.key changes on each visit)
+  useEffect(()=>{fetchAll();},[filters,location.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const greeting=()=>{const h=new Date().getHours();return h<12?'Good morning':h<18?'Good afternoon':'Good evening';};
-  const mpaPct=marine.protectedAreaHa?parseFloat(((marine.protectedAreaHa/VANUATU_MARINE_HA)*100).toFixed(3)):0;
+
+  // Merge published dataset area into hero card metrics.
+  // datasets.byType entries: { dataType, count, totalAreaHa, publishedAreaHa }
+  const dsByType = Object.fromEntries((datasets.byType||[]).map(d=>[d.dataType,d]));
+  const dsSpatialCount   = (dsByType.marine_spatial_plan?.count||0);
+  const dsSpatialHa      = (dsByType.marine_spatial_plan?.publishedAreaHa||0);
+  const dsProtectedCount = (dsByType.protected_marine?.count||0);
+  const dsProtectedHa    = (dsByType.protected_marine?.publishedAreaHa||0);
+  const dsRestorationHa  = (dsByType.habitat_restoration?.publishedAreaHa||0);
+
+  const totalSpatialCount   = (marine.total??0) + dsSpatialCount;
+  const totalSpatialHa      = (marine.totalAreaHa||0) + dsSpatialHa;
+  const totalProtectedCount = (marine.protectedCount??0) + dsProtectedCount;
+  const totalProtectedHa    = (marine.protectedAreaHa||0) + dsProtectedHa;
+  const totalRestorationHa  = (marine.restorationAreaHa||0) + dsRestorationHa;
+  const mpaPct=totalProtectedHa?parseFloat(((totalProtectedHa/VANUATU_MARINE_HA)*100).toFixed(3)):0;
 
   const heroCards=[
-    {icon:Anchor,  label:'Marine Areas — Spatial Plan',  value:marine.total??0,        sub:'total managed marine zones',    accent:'#38bdf8',glow:'rgba(56,189,248,0.20)', grad:'linear-gradient(135deg,#0c2040,#0f3260)'},
-    {icon:Waves,   label:'Total Spatial Coverage',       value:marine.totalAreaHa?parseFloat(marine.totalAreaHa.toFixed(1)):0, unit:'ha', sub:'hectares under spatial plan', accent:'#2dd4bf',glow:'rgba(45,212,191,0.20)', grad:'linear-gradient(135deg,#0c2040,#0d3d3a)',decimals:1},
-    {icon:Shield,  label:'Marine Areas Protected',       value:marine.protectedCount??0, sub:`${marine.protectedAreaHa?Math.round(marine.protectedAreaHa).toLocaleString():0} ha protected`, accent:'#a78bfa',glow:'rgba(167,139,250,0.20)',grad:'linear-gradient(135deg,#0c2040,#1e1547)'},
+    {icon:Anchor,  label:'Marine Areas — Spatial Plan',  value:totalSpatialCount,        sub:'total managed marine zones',    accent:'#38bdf8',glow:'rgba(56,189,248,0.20)', grad:'linear-gradient(135deg,#0c2040,#0f3260)'},
+    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalSpatialHa.toFixed(1)), unit:'ha', sub:'hectares under spatial plan', accent:'#2dd4bf',glow:'rgba(45,212,191,0.20)', grad:'linear-gradient(135deg,#0c2040,#0d3d3a)',decimals:1},
+    {icon:Shield,  label:'Marine Areas Protected',       value:totalProtectedCount, sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, accent:'#a78bfa',glow:'rgba(167,139,250,0.20)',grad:'linear-gradient(135deg,#0c2040,#1e1547)'},
     {icon:Globe,   label:'% MPA of Vanuatu Waters',      value:mpaPct,unit:'%',          sub:'of ~50,000 km² territorial sea', accent:'#d4a92a',glow:'rgba(212,169,42,0.20)', grad:'linear-gradient(135deg,#0c2040,#2a1f00)',decimals:3},
     {icon:Users,   label:'Communities in Conservation',  value:Math.max(marine.communityCount??0,surveys.communityCount??0), sub:'unique communities engaged', accent:'#fb7185',glow:'rgba(251,113,133,0.20)',grad:'linear-gradient(135deg,#0c2040,#3a0c1a)'},
-    {icon:TreePine,label:'Habitat Restoration Areas',    value:marine.restorationAreaHa?parseFloat(marine.restorationAreaHa.toFixed(1)):0,unit:'ha',sub:'mangrove & seagrass habitats', accent:'#34d399',glow:'rgba(52,211,153,0.20)',grad:'linear-gradient(135deg,#0c2040,#063b2a)',decimals:1},
+    {icon:TreePine,label:'Habitat Restoration Areas',    value:parseFloat(totalRestorationHa.toFixed(1)),unit:'ha',sub:'mangrove & seagrass habitats', accent:'#34d399',glow:'rgba(52,211,153,0.20)',grad:'linear-gradient(135deg,#0c2040,#063b2a)',decimals:1},
   ];
 
   const marineByType     =(marine.byType||[]).map(d=>({name:AREA_TYPE_LABEL[d.areaType]||d.areaType,value:d.count,ha:parseFloat((d.totalHa||0).toFixed(1))}));
