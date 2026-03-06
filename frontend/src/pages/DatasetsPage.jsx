@@ -16,10 +16,18 @@ function StatusBadge({ status }) {
   return map[status] || <span className="badge bg-gray-100 text-gray-600">{status}</span>;
 }
 
+// All formats that produce a map layer — GeoJSON natively; others via conversion.
+const MAP_FORMATS = ['geojson', 'json', 'zip', 'kml', 'gpkg', 'shp'];
+
 // Returns true for map-eligible datasets that don't yet have inline Firestore data.
-// Covers GeoJSON files AND shapefile ZIPs (both can be converted and cached).
 function needsGeojsonCache(d) {
-  return ['geojson', 'json', 'zip'].includes(d.fileFormat?.toLowerCase()) && !d.hasGeojsonData;
+  return MAP_FORMATS.includes(d.fileFormat?.toLowerCase()) && !d.hasGeojsonData;
+}
+
+// Human-readable label for the "needs conversion" badge on non-GeoJSON formats.
+function conversionLabel(fmt) {
+  const labels = { zip: 'Shapefile — needs conversion', kml: 'KML — needs conversion', gpkg: 'GeoPackage — needs conversion', shp: 'Shapefile — needs conversion' };
+  return labels[fmt?.toLowerCase()] || 'Needs map conversion';
 }
 
 export default function DatasetsPage() {
@@ -82,7 +90,7 @@ export default function DatasetsPage() {
     // GeoJSON datasets without inline data: require the user to provide the file
     // so we can cache it before publishing. Storage SDK + fetch are both CORS-blocked.
     if (needsGeojsonCache(dataset)) {
-      toast('Select the GeoJSON file to cache it, then it will be published automatically.', {
+      toast('Select the original file to convert and cache it — it will be published automatically.', {
         icon: '📂',
         duration: 5000,
       });
@@ -142,7 +150,7 @@ export default function DatasetsPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".geojson,.json,.zip"
+        accept=".geojson,.json,.zip,.kml,.gpkg,.shp"
         className="hidden"
         onChange={handleFileSelected}
       />
@@ -215,7 +223,7 @@ export default function DatasetsPage() {
                     {needsFix(dataset) && (
                       <span className="badge bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
                         <Wrench size={10} />
-                        {dataset.fileFormat?.toLowerCase() === 'zip' ? 'Shapefile — needs conversion' : 'Map layer not cached'}
+                        {['geojson', 'json'].includes(dataset.fileFormat?.toLowerCase()) ? 'Map layer not cached' : conversionLabel(dataset.fileFormat)}
                       </span>
                     )}
                   </div>
@@ -248,7 +256,7 @@ export default function DatasetsPage() {
                           ? 'bg-amber-500 hover:bg-amber-600'
                           : 'bg-green-600 hover:bg-green-700'}`}
                       title={needsGeojsonCache(dataset)
-                        ? 'GeoJSON file required — you will be prompted to select it'
+                        ? 'Select the original file to convert and cache it, then publish'
                         : 'Publish dataset'}>
                       {working === dataset.id
                         ? 'Publishing...'

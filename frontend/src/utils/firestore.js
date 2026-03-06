@@ -8,6 +8,9 @@ import {
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, getBytes, deleteObject } from 'firebase/storage';
+// sql-wasm.wasm is imported as a URL string only (no WASM bytes in the main bundle).
+// It is copied to /dist/assets/ by Vite and used only when a .gpkg file is parsed.
+import sqlWasm from 'sql.js/dist/sql-wasm.wasm?url';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -15,20 +18,120 @@ function docToObj(d) {
   return { id: d.id, ...d.data() };
 }
 
+// ── GeoPackage WKB geometry parsing ────────────────────────────────────────
+
 /**
- * Parse a file (GeoJSON or shapefile ZIP) into a GeoJSON FeatureCollection.
+ * Parse a GPKG geometry blob (GPKG header + WKB) into a GeoJSON geometry object.
+ * GPKG geometry header: 2 bytes magic (GP) + 1 byte version + 1 byte flags +
+ * 4 bytes srs_id + optional envelope (size depends on flags bits 1-3) + WKB.
+ */
+function parseGpkgGeometry(blob) {
+  const buf = blob instanceof Uint8Array ? blob : new Uint8Array(blob);
+  if (buf[0] !== 0x47 || buf[1] !== 0x50) throw new Error('Not a valid GPKG geometry blob');
+  const flags = buf[3];
+  const envelopeIndicator = (flags >> 1) & 7;
+  const envelopeBytes = [0, 32, 48, 48, 64][envelopeIndicator] || 0;
+  const state = { offset: 8 + envelopeBytes }; // 2+1+1+4 header + envelope
+  return parseWKBGeometry(new DataView(buf.buffer, buf.byteOffset, buf.byteLength), state);
+}
+
+/** Recursively parse a WKB geometry. `state.offset` is advanced as bytes are read. */
+function parseWKBGeometry(view, state) {
+  const byteOrder = view.getUint8(state.offset); state.offset += 1;
+  const le = byteOrder === 1;
+  const u32 = () => { const v = view.getUint32(state.offset, le); state.offset += 4; return v; };
+  const f64 = () => { const v = view.getFloat64(state.offset, le); state.offset += 8; return v; };
+
+  const rawType = u32();
+  const hasZ = !!(rawType & 0x80000000) || (rawType > 1000 && rawType < 2000);
+  const hasM = !!(rawType & 0x40000000) || (rawType >= 2000 && rawType < 4000);
+  const geomBase = rawType & 0xFFFF;
+  // Normalise ISO Z/M type codes (1001→1, 2001→1, 3001→1, etc.) to 1-7
+  const geomType = geomBase > 1000 ? ((geomBase - 1) % 1000) + 1 : geomBase;
+
+  const pt = () => {
+    const c = [f64(), f64()];
+    if (hasZ) c.push(f64()); else if (geomBase > 1000 && geomBase < 2000) c.push(f64());
+    if (hasM) f64(); // consume M, don't include in GeoJSON
+    return c;
+  };
+  const ring = () => Array.from({ length: u32() }, pt);
+
+  switch (geomType) {
+    case 1: return { type: 'Point', coordinates: pt() };
+    case 2: return { type: 'LineString', coordinates: Array.from({ length: u32() }, pt) };
+    case 3: return { type: 'Polygon', coordinates: Array.from({ length: u32() }, ring) };
+    case 4: return { type: 'MultiPoint', coordinates: Array.from({ length: u32() }, () => parseWKBGeometry(view, state).coordinates) };
+    case 5: return { type: 'MultiLineString', coordinates: Array.from({ length: u32() }, () => parseWKBGeometry(view, state).coordinates) };
+    case 6: return { type: 'MultiPolygon', coordinates: Array.from({ length: u32() }, () => parseWKBGeometry(view, state).coordinates) };
+    case 7: return { type: 'GeometryCollection', geometries: Array.from({ length: u32() }, () => parseWKBGeometry(view, state)) };
+    default: throw new Error(`Unsupported WKB geometry type: ${geomType}`);
+  }
+}
+
+/** Parse a GeoPackage (.gpkg) file and return a GeoJSON FeatureCollection. */
+async function parseGeoPackage(file) {
+  const initSqlJs = (await import('sql.js')).default;
+  const SQL = await initSqlJs({ locateFile: () => sqlWasm });
+  const buf = await file.arrayBuffer();
+  const db = new SQL.Database(new Uint8Array(buf));
+
+  let tablesResult;
+  try {
+    tablesResult = db.exec('SELECT table_name, column_name FROM gpkg_geometry_columns');
+  } catch {
+    db.close();
+    throw new Error('File does not appear to be a valid GeoPackage (missing gpkg_geometry_columns).');
+  }
+
+  if (!tablesResult.length || !tablesResult[0].values.length) {
+    db.close();
+    throw new Error('GeoPackage contains no feature layers.');
+  }
+
+  const features = [];
+  for (const [tableName, geomCol] of tablesResult[0].values) {
+    let rows;
+    try {
+      rows = db.exec(`SELECT * FROM "${tableName}"`);
+    } catch { continue; }
+    if (!rows.length) continue;
+
+    const cols = rows[0].columns;
+    const geomIdx = cols.indexOf(geomCol);
+    for (const row of rows[0].values) {
+      const geomBlob = row[geomIdx];
+      if (!geomBlob) continue;
+      try {
+        const geometry = parseGpkgGeometry(geomBlob);
+        const properties = {};
+        cols.forEach((col, i) => { if (i !== geomIdx) properties[col] = row[i]; });
+        features.push({ type: 'Feature', geometry, properties });
+      } catch { /* skip invalid geometry rows */ }
+    }
+  }
+  db.close();
+
+  if (!features.length) throw new Error('GeoPackage was read but contained no valid geometries.');
+  return { type: 'FeatureCollection', features };
+}
+
+// ── File → GeoJSON conversion ───────────────────────────────────────────────
+
+/**
+ * Parse any supported geospatial file into a GeoJSON FeatureCollection.
  *
- * ZIP handling strategy (in order):
- *  1. Try shpjs.parseZip() — works when .shp files are at the root of the ZIP.
- *  2. If shpjs says "no layers found", use JSZip to inspect the archive:
- *     a. Find .shp files at any depth. For each, load the matching .dbf (same
- *        base name, any directory) and call shpjs.combine(parseShp, parseDbf).
- *     b. If no .shp found, look for a .geojson or .json file and parse that.
- *  3. Merge all resulting FeatureCollections into one.
+ * Supported formats: .geojson, .json, .kml, .gpkg, .shp (standalone), .zip
+ *
+ * ZIP handling strategy:
+ *  1. shpjs.parseZip() — fast path for flat shapefile ZIPs
+ *  2. JSZip deep scan — finds .shp at any subdirectory depth
+ *  3. Embedded .geojson/.json — reads GeoJSON bundled inside the ZIP
  */
 export async function parseFileToGeoJSON(file) {
   const ext = file.name.split('.').pop().toLowerCase();
 
+  // ── GeoJSON / JSON ────────────────────────────────────────────────────────
   if (['geojson', 'json'].includes(ext)) {
     const text = await file.text();
     const parsed = JSON.parse(text);
@@ -38,29 +141,55 @@ export async function parseFileToGeoJSON(file) {
     return parsed;
   }
 
+  // ── KML ───────────────────────────────────────────────────────────────────
+  if (ext === 'kml') {
+    const { kml: parseKML } = await import('@mapbox/togeojson');
+    const text = await file.text();
+    const dom = new DOMParser().parseFromString(text, 'text/xml');
+    const result = parseKML(dom);
+    if (!result?.features?.length) throw new Error('KML file contains no mappable features.');
+    return result;
+  }
+
+  // ── GeoPackage ────────────────────────────────────────────────────────────
+  if (ext === 'gpkg') {
+    return await parseGeoPackage(file);
+  }
+
+  // ── Standalone Shapefile (.shp) ───────────────────────────────────────────
+  if (ext === 'shp') {
+    const { parseShp } = await import('shpjs');
+    const buffer = await file.arrayBuffer();
+    const geometries = parseShp(buffer);
+    if (!geometries?.length) {
+      throw new Error('Shapefile contains no geometry. For best results, ZIP all shapefile components (.shp, .dbf, .shx, .prj) together.');
+    }
+    return {
+      type: 'FeatureCollection',
+      features: geometries.map(g => ({ type: 'Feature', geometry: g, properties: {} })),
+    };
+  }
+
+  // ── ZIP (shapefile bundle or embedded GeoJSON) ────────────────────────────
   if (ext === 'zip') {
     const buffer = await file.arrayBuffer();
 
-    // ── Attempt 1: shpjs.parseZip (fast path, works for flat ZIPs) ──────────
+    // Attempt 1: shpjs fast path (works when .shp files are at the ZIP root)
     try {
       const { parseZip } = await import('shpjs');
       const result = await parseZip(buffer);
       const layers = Array.isArray(result) ? result : [result];
       const features = layers.flatMap(fc => fc?.features || []);
-      if (features.length > 0) {
-        return { type: 'FeatureCollection', features };
-      }
+      if (features.length > 0) return { type: 'FeatureCollection', features };
     } catch (shpErr) {
-      // "no layers founds" means shapefiles aren't at the root — fall through.
       if (!shpErr.message?.includes('no layers')) throw shpErr;
     }
 
-    // ── Attempt 2: JSZip — inspect archive, handle nested directories ────────
+    // Attempt 2: JSZip deep scan — handles nested directory structure
     const JSZip = (await import('jszip')).default;
     const zip = await JSZip.loadAsync(buffer);
     const names = Object.keys(zip.files).filter(n => !zip.files[n].dir);
 
-    // 2a. Try each .shp file with its matching .dbf
     const shpFiles = names.filter(n => n.toLowerCase().endsWith('.shp'));
     if (shpFiles.length > 0) {
       const { parseShp, parseDbf, combine } = await import('shpjs');
@@ -73,19 +202,16 @@ export async function parseFileToGeoJSON(file) {
         let fc;
         if (dbfPath) {
           const dbfBuf = await zip.files[dbfPath].async('arraybuffer');
-          const dbfData = parseDbf(dbfBuf);
-          fc = combine([shpGeo, dbfData]);
+          fc = combine([shpGeo, parseDbf(dbfBuf)]);
         } else {
           fc = { type: 'FeatureCollection', features: shpGeo.map(g => ({ type: 'Feature', geometry: g, properties: {} })) };
         }
         allFeatures.push(...(fc?.features || []));
       }
-      if (allFeatures.length > 0) {
-        return { type: 'FeatureCollection', features: allFeatures };
-      }
+      if (allFeatures.length > 0) return { type: 'FeatureCollection', features: allFeatures };
     }
 
-    // 2b. Look for a GeoJSON or JSON file inside the ZIP
+    // Attempt 3: GeoJSON file embedded inside the ZIP
     const geoFile = names.find(n => /\.(geojson|json)$/i.test(n));
     if (geoFile) {
       const text = await zip.files[geoFile].async('text');
@@ -93,21 +219,24 @@ export async function parseFileToGeoJSON(file) {
       if (parsed?.type) return parsed;
     }
 
-    // List what's actually in the ZIP to help the user
     const listed = names.slice(0, 8).join(', ');
     throw new Error(`No mappable data found in ZIP. Contents: ${listed || '(empty)'}. Expected: .shp shapefile or .geojson file.`);
   }
 
-  throw new Error('Unsupported file type. Accepted: .geojson, .json, .zip (shapefile)');
+  throw new Error('Unsupported file type. Accepted: .geojson, .json, .zip, .kml, .gpkg, .shp');
 }
 
 /**
- * Reduce coordinate decimal precision to shrink GeoJSON size for Firestore storage.
- * Tries precision 6 → 5 → 4 → 3 until the JSON fits within maxBytes.
- * Precision 5 = ~1 m accuracy, 4 = ~10 m, 3 = ~100 m — all fine for web maps.
- * Returns the (possibly compressed) GeoJSON, or null if it can't fit.
+ * Shrink a GeoJSON FeatureCollection to fit within maxBytes for Firestore inline storage.
+ *
+ * Strategy (applied in order until data fits):
+ *  1. Turf topology simplification — dramatically reduces vertex count on complex polygons
+ *  2. Coordinate decimal precision reduction (5→4→3 decimal places)
+ *
+ * Returns the compressed GeoJSON, or null if it still can't fit (data will be
+ * served from Firebase Storage instead, which supports unlimited sizes).
  */
-function fitGeoJSONToLimit(geojson, maxBytes = 880000) {
+async function fitGeoJSONToLimit(geojson, maxBytes = 880000) {
   function roundCoord(c, p) {
     return typeof c === 'number' ? parseFloat(c.toFixed(p)) : c.map(x => roundCoord(x, p));
   }
@@ -115,10 +244,28 @@ function fitGeoJSONToLimit(geojson, maxBytes = 880000) {
     if (!geom || !geom.coordinates) return geom;
     return { ...geom, coordinates: roundCoord(geom.coordinates, p) };
   }
+  const byteSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
 
-  const raw = JSON.stringify(geojson);
-  if (new TextEncoder().encode(raw).length <= maxBytes) return geojson;
+  if (byteSize(geojson) <= maxBytes) return geojson;
 
+  // Step 1: Topology simplification (most effective for complex polygon/line datasets)
+  try {
+    const { default: simplify } = await import('@turf/simplify');
+    for (const tolerance of [0.0001, 0.001, 0.005, 0.01]) {
+      try {
+        const simplified = simplify(
+          { type: 'FeatureCollection', features: (geojson.features || []).filter(f => f.geometry) },
+          { tolerance, highQuality: false, mutate: false }
+        );
+        if (byteSize(simplified) <= maxBytes) return simplified;
+        geojson = simplified; // feed into next round of coordinate rounding
+      } catch { break; } // stop if simplify throws (e.g. invalid geometry)
+    }
+  } catch (e) {
+    console.warn('Turf simplify not available:', e.message);
+  }
+
+  // Step 2: Coordinate precision reduction (fast, always applicable)
   for (const precision of [5, 4, 3]) {
     const compressed = {
       ...geojson,
@@ -127,10 +274,10 @@ function fitGeoJSONToLimit(geojson, maxBytes = 880000) {
         geometry: roundGeom(f.geometry, precision),
       })),
     };
-    const size = new TextEncoder().encode(JSON.stringify(compressed)).length;
-    if (size <= maxBytes) return compressed;
+    if (byteSize(compressed) <= maxBytes) return compressed;
   }
-  return null; // Still too large — cannot cache inline
+
+  return null; // Too large — will be served from Firebase Storage
 }
 
 function paginate(arr, page, pageSize) {
@@ -381,28 +528,38 @@ export async function getDatasetStats() {
   };
 }
 
-export async function uploadDataset(file, metadata, onProgress) {
+/**
+ * Upload a dataset file to Firebase Storage and record its metadata in Firestore.
+ *
+ * @param {File}     file       - The file to upload
+ * @param {object}   metadata   - Form metadata (title, description, dataType, …)
+ * @param {function} onProgress - Called with 0-100 upload progress values
+ * @param {function} onStage    - Called with stage strings: 'processing' | 'uploading'
+ */
+export async function uploadDataset(file, metadata, onProgress, onStage) {
   if (!auth.currentUser) throw new Error('Must be signed in to upload datasets.');
   const path = `datasets/${auth.currentUser.uid}/${Date.now()}_${file.name}`;
   const storageRef = ref(storage, path);
   const ext = file.name.split('.').pop().toLowerCase();
   const fileFormat = ext === 'json' ? 'geojson' : ext;
 
-  // For GeoJSON and shapefile ZIP files, parse and store inline in Firestore so
-  // the map can load without needing Firebase Storage SDK access or CORS config.
-  // For ZIPs, the compressed size ≠ GeoJSON size, so we don't pre-check file.size.
-  // We parse, then fit to the 880 KB Firestore limit via coordinate precision reduction.
+  // For all map-eligible formats, parse to GeoJSON and try to cache inline in Firestore.
+  // Inline caching means the map loads without Storage SDK / CORS requirements.
+  // If the GeoJSON is too large even after simplification, it's served from Storage instead.
+  const mapFormats = ['json', 'geojson', 'zip', 'kml', 'gpkg', 'shp'];
   let geojsonData = null;
-  if (['json', 'geojson', 'zip'].includes(ext)) {
+  if (mapFormats.includes(ext)) {
     try {
+      onStage?.('processing');
       const raw = await parseFileToGeoJSON(file);
-      geojsonData = fitGeoJSONToLimit(raw);
+      geojsonData = await fitGeoJSONToLimit(raw);
       if (!geojsonData) {
-        console.warn('GeoJSON too large even after coordinate simplification — inline cache skipped. Use "Fix Map Layer" at publish time.');
+        console.warn('GeoJSON too large even after simplification — inline cache skipped. Staff can use "Fix Map Layer" at publish time.');
       }
     } catch (e) {
       console.warn('Could not parse file for inline map storage:', e.message);
     }
+    onStage?.('uploading');
   }
 
   return new Promise((resolve, reject) => {
@@ -510,10 +667,10 @@ export async function getPublishedGeoJSONDatasets() {
     .filter(d => {
       if (d.status !== 'published') return false;
       const fmt = d.fileFormat?.toLowerCase();
-      // Native GeoJSON files are always candidates (even if not yet cached).
+      // Native GeoJSON: always map-eligible (served from Firestore or Storage)
       if (['geojson', 'json'].includes(fmt)) return true;
-      // ZIP / shapefile datasets are only map-eligible when GeoJSON has been cached.
-      if (fmt === 'zip' && d.hasGeojsonData) return true;
+      // All other geo formats: only eligible once GeoJSON has been cached
+      if (['zip', 'kml', 'gpkg', 'shp'].includes(fmt) && d.hasGeojsonData) return true;
       return false;
     });
 }
@@ -523,10 +680,10 @@ export async function getPublishedGeoJSONDatasets() {
 // Coordinate precision reduction is applied automatically if the GeoJSON is too large.
 export async function recacheDatasetGeoJSON(id, file) {
   const raw = await parseFileToGeoJSON(file);
-  const fitted = fitGeoJSONToLimit(raw);
+  const fitted = await fitGeoJSONToLimit(raw);
   if (!fitted) {
     const kb = (new TextEncoder().encode(JSON.stringify(raw)).length / 1024).toFixed(0);
-    throw new Error(`GeoJSON is ${kb} KB — too large to cache in Firestore even after simplification. Try reducing the number of features or use a more generalised shapefile.`);
+    throw new Error(`GeoJSON is ${kb} KB — too large to cache in Firestore even after simplification. The dataset will still be available for download; staff can publish it and the map will stream it from Storage.`);
   }
   return updateDoc(doc(db, 'datasets', id), {
     geojsonData: fitted,

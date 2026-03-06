@@ -56,6 +56,19 @@ const DATASET_COLORS = ['#7c3aed', '#0891b2', '#b45309', '#be123c', '#047857'];
 
 const esc = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// Maximum features rendered per dataset layer. Beyond this, features are sampled
+// evenly to keep the map responsive with 30 MB+ datasets.
+const MAX_RENDER_FEATURES = 5000;
+
+function capFeatures(geojson) {
+  const features = geojson?.features;
+  if (!features || features.length <= MAX_RENDER_FEATURES) return geojson;
+  // Sample evenly across the dataset so spatial distribution is preserved
+  const step = features.length / MAX_RENDER_FEATURES;
+  const sampled = Array.from({ length: MAX_RENDER_FEATURES }, (_, i) => features[Math.floor(i * step)]);
+  return { ...geojson, features: sampled, _truncated: true, _original: features.length };
+}
+
 export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], datasetLayers = [], flyTo }) {
   const onEachFeature = (feature, layer) => {
     const p = feature.properties;
@@ -122,31 +135,34 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
       ))}
 
       {/* Published dataset GeoJSON layers */}
-      {datasetLayers.map(({ meta, geojson }, idx) => (
-        <GeoJSON
-          key={meta.id}
-          data={geojson}
-          style={() => ({
-            color: DATASET_COLORS[idx % DATASET_COLORS.length],
-            weight: 2,
-            opacity: 0.9,
-            fillOpacity: 0.2,
-            fillColor: DATASET_COLORS[idx % DATASET_COLORS.length],
-          })}
-          onEachFeature={(feature, layer) => {
-            const p = feature.properties || {};
-            const name = p.name || p.NAME || p.Name || p.title || meta.title;
-            layer.bindPopup(`
-              <div class="text-sm">
-                <strong>${esc(name)}</strong><br/>
-                <span class="text-gray-500">Dataset: ${esc(meta.title)}</span><br/>
-                ${meta.province ? `<span class="text-gray-500">Province: ${esc(meta.province)}</span><br/>` : ''}
-                ${meta.community ? `<span class="text-gray-500">Community: ${esc(meta.community)}</span>` : ''}
-              </div>
-            `);
-          }}
-        />
-      ))}
+      {datasetLayers.map(({ meta, geojson }, idx) => {
+        const capped = capFeatures(geojson);
+        const color = DATASET_COLORS[idx % DATASET_COLORS.length];
+        return (
+          <GeoJSON
+            key={meta.id}
+            data={capped}
+            style={() => ({ color, weight: 2, opacity: 0.9, fillOpacity: 0.2, fillColor: color })}
+            pointToLayer={(_, latlng) => L.circleMarker(latlng, { radius: 5, color, fillColor: color, fillOpacity: 0.7, weight: 1.5 })}
+            onEachFeature={(feature, layer) => {
+              const p = feature.properties || {};
+              const name = p.name || p.NAME || p.Name || p.NAMES || p.label || p.id || meta.title;
+              const truncNote = capped._truncated
+                ? `<div class="text-xs text-amber-600 mt-1">Showing ${MAX_RENDER_FEATURES.toLocaleString()} of ${capped._original.toLocaleString()} features</div>`
+                : '';
+              layer.bindPopup(`
+                <div class="text-sm">
+                  <strong>${esc(name)}</strong><br/>
+                  <span class="text-gray-500">Dataset: ${esc(meta.title)}</span><br/>
+                  ${meta.province ? `<span class="text-gray-500">Province: ${esc(meta.province)}</span><br/>` : ''}
+                  ${meta.community ? `<span class="text-gray-500">Community: ${esc(meta.community)}</span>` : ''}
+                  ${truncNote}
+                </div>
+              `);
+            }}
+          />
+        );
+      })}
 
       {/* Biological monitoring points */}
       {monitoringPoints.map((m) => (

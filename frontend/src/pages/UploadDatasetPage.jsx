@@ -11,15 +11,19 @@ const ACCEPTED_EXTENSIONS = {
   'application/zip': ['.zip'],
   'text/csv': ['.csv'],
   'application/json': ['.geojson', '.json'],
-  'application/octet-stream': ['.shp', '.dbf', '.shx', '.prj'],
+  'application/octet-stream': ['.shp', '.dbf', '.shx', '.prj', '.gpkg'],
   'application/vnd.google-earth.kml+xml': ['.kml'],
+  'application/geopackage+sqlite3': ['.gpkg'],
   'text/plain': ['.csv', '.kml'],
 };
+
+const MAP_FORMATS = new Set(['geojson', 'json', 'zip', 'kml', 'gpkg', 'shp']);
 
 export default function UploadDatasetPage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [stage, setStage] = useState('uploading'); // 'processing' | 'uploading'
   const [progress, setProgress] = useState(0);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
@@ -37,14 +41,17 @@ export default function UploadDatasetPage() {
   const onSubmit = async (data) => {
     if (!file) return toast.error('Please select a file to upload.');
     setUploading(true);
+    setStage('processing');
+    setProgress(0);
     try {
-      await uploadDataset(file, data, setProgress);
+      await uploadDataset(file, data, setProgress, setStage);
       toast.success('Dataset uploaded successfully!');
       navigate('/datasets');
     } catch (err) {
       toast.error(err.message || 'Upload failed.');
     } finally {
       setUploading(false);
+      setStage('uploading');
       setProgress(0);
     }
   };
@@ -58,7 +65,7 @@ export default function UploadDatasetPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Upload Dataset</h2>
-        <p className="text-gray-500 text-sm">Upload historical or current CBFM datasets (ZIP, Shapefile, CSV, KML, GeoJSON)</p>
+        <p className="text-gray-500 text-sm">Upload historical or current CBFM datasets — ZIP, Shapefile, KML, GeoJSON, GeoPackage, CSV</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -71,8 +78,10 @@ export default function UploadDatasetPage() {
               <input {...getInputProps()} />
               <Upload size={40} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-600 font-medium">Drop your file here, or click to browse</p>
-              <p className="text-gray-400 text-sm mt-1">Supported: ZIP, Shapefile (.shp, .dbf, .shx), CSV, KML, GeoJSON</p>
-              <p className="text-gray-400 text-xs mt-1">Maximum file size: 500 MB</p>
+              <p className="text-gray-400 text-sm mt-1">
+                Supported: <strong className="text-gray-500">ZIP</strong> (shapefile bundle) · <strong className="text-gray-500">Shapefile</strong> (.shp) · <strong className="text-gray-500">KML</strong> · <strong className="text-gray-500">GeoJSON</strong> · <strong className="text-gray-500">GeoPackage</strong> (.gpkg) · CSV
+              </p>
+              <p className="text-gray-400 text-xs mt-1">Maximum file size: 500 MB · Large files are automatically simplified for map display</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -88,13 +97,18 @@ export default function UploadDatasetPage() {
                   <X size={18} />
                 </button>
               </div>
-              {/* Map-readiness indicator for GeoJSON and shapefile ZIPs */}
-              {['geojson', 'json', 'zip'].includes(file.name.split('.').pop().toLowerCase()) && (
+              {/* Map-readiness indicator for all spatial formats */}
+              {MAP_FORMATS.has(file.name.split('.').pop().toLowerCase()) && (
                 <div className="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
                   <MapPin size={13} className="flex-shrink-0" />
-                  {file.name.endsWith('.zip')
-                    ? 'Shapefile ZIP will be converted to GeoJSON and cached for the map. If needed, coordinate precision will be reduced automatically to fit the storage limit.'
-                    : 'This GeoJSON will be cached inline and appear automatically on the interactive map when published.'}
+                  {(() => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (ext === 'zip') return 'Shapefile ZIP will be converted to GeoJSON. Large files are simplified automatically to fit the map cache — the original is always preserved for download.';
+                    if (ext === 'kml') return 'KML will be converted to GeoJSON and cached for the interactive map.';
+                    if (ext === 'gpkg') return 'GeoPackage will be read in the browser and converted to GeoJSON for the map.';
+                    if (ext === 'shp') return 'Shapefile geometry will be extracted. For attributes, ZIP all components (.shp, .dbf, .shx, .prj) together.';
+                    return 'This file will be cached and appear automatically on the interactive map when published.';
+                  })()}
                 </div>
               )}
             </div>
@@ -103,11 +117,16 @@ export default function UploadDatasetPage() {
           {uploading && (
             <div className="mt-4">
               <div className="flex justify-between text-sm text-gray-500 mb-1">
-                <span>Uploading to Firebase Storage...</span>
-                <span>{progress}%</span>
+                {stage === 'processing'
+                  ? <span className="animate-pulse">Processing file — converting to GeoJSON&hellip;</span>
+                  : <span>Uploading to Firebase Storage&hellip;</span>}
+                {stage === 'uploading' && <span>{progress}%</span>}
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-ocean-600 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                <div
+                  className={`h-full rounded-full transition-all ${stage === 'processing' ? 'bg-amber-400 w-full animate-pulse' : 'bg-ocean-600'}`}
+                  style={stage === 'uploading' ? { width: `${progress}%` } : undefined}
+                />
               </div>
             </div>
           )}
@@ -168,7 +187,9 @@ export default function UploadDatasetPage() {
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
           <button type="submit" disabled={uploading || !file} className="btn-primary flex items-center gap-2">
             <Upload size={16} />
-            {uploading ? `Uploading ${progress}%...` : 'Upload Dataset'}
+            {uploading
+              ? stage === 'processing' ? 'Processing...' : `Uploading ${progress}%...`
+              : 'Upload Dataset'}
           </button>
         </div>
       </form>
