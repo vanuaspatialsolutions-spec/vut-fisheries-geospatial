@@ -333,12 +333,15 @@ export async function getSurveyStats() {
   const snap = await getDocs(collection(db, 'surveys'));
   const list = snap.docs.map(d => d.data());
   const byProvince = {};
+  const communities = new Set();
   list.forEach(s => {
     const p = s.province || 'Unknown';
     byProvince[p] = (byProvince[p] || 0) + 1;
+    if (s.community) communities.add(s.community);
   });
   return {
     total: list.length,
+    communityCount: communities.size,
     byProvince: Object.entries(byProvince).map(([province, count]) => ({ province, count })),
   };
 }
@@ -392,17 +395,73 @@ export async function getMarineArea(id) {
 export async function getMarineStats() {
   const snap = await getDocs(collection(db, 'marine_areas'));
   const list = snap.docs.map(d => d.data());
+
   const byType = {};
+  const byProvince = {};
+  const byStatus = {};
+  const communities = new Set();
   let totalAreaHa = 0;
+  let protectedCount = 0;
+  let protectedAreaHa = 0;
+  let activeCount = 0;
+  let restorationAreaHa = 0;
+
   list.forEach(a => {
+    const ha = parseFloat(a.areaSizeHa) || 0;
+    totalAreaHa += ha;
+
+    // Area type tally
     const t = a.areaType || 'other';
-    byType[t] = (byType[t] || 0) + 1;
-    if (a.areaSizeHa) totalAreaHa += parseFloat(a.areaSizeHa) || 0;
+    if (!byType[t]) byType[t] = { count: 0, totalHa: 0 };
+    byType[t].count += 1;
+    byType[t].totalHa += ha;
+
+    // Province tally
+    const p = a.province || 'Unknown';
+    if (!byProvince[p]) byProvince[p] = { count: 0, totalHa: 0, communities: new Set(), activeCount: 0 };
+    byProvince[p].count += 1;
+    byProvince[p].totalHa += ha;
+    if (a.community) byProvince[p].communities.add(a.community);
+    if (a.managementStatus === 'active') byProvince[p].activeCount += 1;
+
+    // Status tally
+    const s = a.managementStatus || 'unknown';
+    byStatus[s] = (byStatus[s] || 0) + 1;
+    if (s === 'active') activeCount += 1;
+
+    // Protected: has a protectionLevel set or is active LMMA
+    if (a.protectionLevel || a.managementStatus === 'active') {
+      protectedCount += 1;
+      protectedAreaHa += ha;
+    }
+
+    // Unique communities
+    if (a.community) communities.add(a.community);
+
+    // Restoration: areas with mangrove or seagrass habitat types
+    if (Array.isArray(a.habitatTypes) &&
+        (a.habitatTypes.includes('mangrove') || a.habitatTypes.includes('seagrass'))) {
+      restorationAreaHa += ha;
+    }
   });
+
   return {
     total: list.length,
     totalAreaHa,
-    byType: Object.entries(byType).map(([areaType, count]) => ({ areaType, count })),
+    protectedCount,
+    protectedAreaHa,
+    activeCount,
+    communityCount: communities.size,
+    restorationAreaHa,
+    byType: Object.entries(byType).map(([areaType, v]) => ({ areaType, count: v.count, totalHa: v.totalHa })),
+    byStatus: Object.entries(byStatus).map(([status, count]) => ({ status, count })),
+    byProvince: Object.entries(byProvince).map(([province, v]) => ({
+      province,
+      count: v.count,
+      totalHa: v.totalHa,
+      communityCount: v.communities.size,
+      activeCount: v.activeCount,
+    })),
   };
 }
 
