@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { getAllUsers, updateUserProfile, getDatasets, publishDataset, unpublishDataset } from '../utils/firestore';
+import { useEffect, useState, useRef } from 'react';
+import { getAllUsers, updateUserProfile, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield } from 'lucide-react';
+import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench } from 'lucide-react';
 
 function TabButton({ active, onClick, children }) {
   return (
@@ -88,23 +88,73 @@ function UsersTab() {
   );
 }
 
+function isGeoJSONDataset(d) {
+  return ['geojson', 'json'].includes(d.fileFormat?.toLowerCase());
+}
+
 function DatasetsAdminTab() {
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(null);
+
+  // Shared hidden file input for publish+cache flow
+  const fileInputRef = useRef(null);
+  const actionRef = useRef(null); // { dataset }
 
   const fetchDatasets = () => {
+    setLoading(true);
     getDatasets({ status: 'under_review', pageSize: 50 })
       .then(res => setDatasets(res.datasets))
+      .catch(() => toast.error('Failed to load datasets.'))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchDatasets(); }, []);
 
-  const handleAction = async (id, action) => {
+  // Called when user selects file during publish+cache flow
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    const { dataset } = actionRef.current || {};
+    if (!file || !dataset) return;
+
+    setWorking(dataset.id);
     try {
-      if (action === 'publish') await publishDataset(id);
-      else await unpublishDataset(id);
-      toast.success(`Dataset ${action === 'publish' ? 'published' : 'unpublished'}.`);
+      await recacheDatasetGeoJSON(dataset.id, file);
+      await publishDataset(dataset.id);
+      toast.success('GeoJSON cached and dataset published — it will now appear on the map.');
+      fetchDatasets();
+    } catch (err) {
+      toast.error(`Publish failed: ${err.message}`);
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const handlePublish = async (dataset) => {
+    // GeoJSON without inline data: prompt for file first
+    if (isGeoJSONDataset(dataset) && !dataset.hasGeojsonData) {
+      toast('Select the GeoJSON file to cache it — the dataset will then be published automatically.', {
+        icon: '📂',
+        duration: 5000,
+      });
+      actionRef.current = { dataset };
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+      return;
+    }
+    setWorking(dataset.id);
+    try {
+      await publishDataset(dataset.id);
+      toast.success('Dataset published.');
+      fetchDatasets();
+    } catch { toast.error('Publish failed.'); }
+    finally { setWorking(null); }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await unpublishDataset(id);
+      toast.success('Dataset rejected.');
       fetchDatasets();
     } catch { toast.error('Action failed.'); }
   };
@@ -113,6 +163,15 @@ function DatasetsAdminTab() {
 
   return (
     <div className="space-y-3">
+      {/* Hidden file input for publish+cache */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".geojson,.json"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
       <p className="text-sm text-gray-500">{datasets.length} datasets under review</p>
       {datasets.length === 0 ? (
         <div className="card text-center py-10 text-gray-400">
@@ -120,33 +179,63 @@ function DatasetsAdminTab() {
           <p>No datasets pending review</p>
         </div>
       ) : (
-        datasets.map(dataset => (
-          <div key={dataset.id} className="card">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-gray-800">{dataset.title}</h3>
-                <div className="flex gap-3 text-xs text-gray-400 mt-1 flex-wrap">
-                  <span>{dataset.dataType?.replace(/_/g, ' ')}</span>
-                  {dataset.province && <span>{dataset.province}</span>}
-                  {dataset.community && <span>{dataset.community}</span>}
-                  <span>{dataset.fileFormat?.toUpperCase()} · {dataset.fileName}</span>
-                  {dataset.uploaderName && <span>by {dataset.uploaderName}</span>}
+        datasets.map(dataset => {
+          const needsFile = isGeoJSONDataset(dataset) && !dataset.hasGeojsonData;
+          return (
+            <div key={dataset.id} className="card">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="font-semibold text-gray-800">{dataset.title}</h3>
+                    <span className="badge bg-blue-50 text-blue-700">{dataset.fileFormat?.toUpperCase()}</span>
+                    {needsFile && (
+                      <span className="badge bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 text-xs">
+                        <Wrench size={10} /> File required to cache map layer
+                      </span>
+                    )}
+                    {dataset.hasGeojsonData && (
+                      <span className="badge bg-purple-50 text-purple-700 flex items-center gap-1 text-xs">
+                        <MapPin size={10} /> Map ready
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-3 text-xs text-gray-400 mt-1 flex-wrap">
+                    <span>{dataset.dataType?.replace(/_/g, ' ')}</span>
+                    {dataset.province && <span>{dataset.province}</span>}
+                    {dataset.community && <span>{dataset.community}</span>}
+                    <span>{dataset.fileName}</span>
+                    {dataset.uploaderName && <span>by {dataset.uploaderName}</span>}
+                  </div>
+                  {dataset.description && <p className="text-sm text-gray-500 mt-1">{dataset.description}</p>}
+                  {needsFile && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      Publishing will prompt you to select the GeoJSON file so it can be displayed on the map.
+                    </p>
+                  )}
                 </div>
-                {dataset.description && <p className="text-sm text-gray-500 mt-1">{dataset.description}</p>}
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => handleAction(dataset.id, 'publish')}
-                  className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1">
-                  <CheckCircle size={12} /> Publish
-                </button>
-                <button onClick={() => handleAction(dataset.id, 'unpublish')}
-                  className="px-3 py-1.5 text-xs bg-gray-400 text-white rounded-lg hover:bg-gray-500 flex items-center gap-1">
-                  <XCircle size={12} /> Reject
-                </button>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handlePublish(dataset)}
+                    disabled={working === dataset.id}
+                    className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 text-white disabled:opacity-60
+                      ${needsFile ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}>
+                    {working === dataset.id
+                      ? 'Publishing...'
+                      : needsFile
+                        ? <><MapPin size={12} /> Publish + Cache</>
+                        : <><CheckCircle size={12} /> Publish</>}
+                  </button>
+                  <button
+                    onClick={() => handleReject(dataset.id)}
+                    disabled={working === dataset.id}
+                    className="px-3 py-1.5 text-xs bg-gray-400 text-white rounded-lg hover:bg-gray-500 flex items-center gap-1 disabled:opacity-60">
+                    <XCircle size={12} /> Reject
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );

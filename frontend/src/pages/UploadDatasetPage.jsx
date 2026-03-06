@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
 import { uploadDataset } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, File, X } from 'lucide-react';
+import { Upload, File, X, AlertTriangle, MapPin } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
 const ACCEPTED_EXTENSIONS = {
@@ -75,17 +75,36 @@ export default function UploadDatasetPage() {
               <p className="text-gray-400 text-xs mt-1">Maximum file size: 500 MB</p>
             </div>
           ) : (
-            <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <File size={20} className="text-green-600" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <File size={20} className="text-green-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 truncate">{file.name}</p>
+                  <p className="text-sm text-gray-500">{fileSizeDisplay(file.size)}</p>
+                </div>
+                <button type="button" onClick={() => setFile(null)} className="text-gray-400 hover:text-red-500">
+                  <X size={18} />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 truncate">{file.name}</p>
-                <p className="text-sm text-gray-500">{fileSizeDisplay(file.size)}</p>
-              </div>
-              <button type="button" onClick={() => setFile(null)} className="text-gray-400 hover:text-red-500">
-                <X size={18} />
-              </button>
+              {/* GeoJSON map-readiness indicator */}
+              {['geojson', 'json'].includes(file.name.split('.').pop().toLowerCase()) && (
+                file.size < 900000 ? (
+                  <div className="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+                    <MapPin size={13} className="flex-shrink-0" />
+                    This GeoJSON will be cached inline and appear automatically on the interactive map when published.
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      File is {fileSizeDisplay(file.size)} — over the 900 KB inline limit. It will still upload to storage,
+                      but when publishing you will be asked to select the file again so the map layer can be cached.
+                    </span>
+                  </div>
+                )
+              )}
             </div>
           )}
 
