@@ -1,17 +1,48 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useState, useEffect } from 'react';
-import { createMarineArea, updateMarineArea, getMarineArea } from '../utils/firestore';
+import { useState, useEffect, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { createMarineArea, updateMarineArea, getMarineArea, parseFileToGeoJSON } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Save, ArrowLeft, Info } from 'lucide-react';
+import { Save, ArrowLeft, Upload, File, X, MapPin, SkipForward } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
+
+const BOUNDARY_ACCEPT = {
+  'application/zip': ['.zip'],
+  'application/json': ['.geojson', '.json'],
+  'application/vnd.google-earth.kml+xml': ['.kml'],
+  'application/octet-stream': ['.shp', '.gpkg'],
+  'application/geopackage+sqlite3': ['.gpkg'],
+  'text/plain': ['.kml'],
+};
+
+/** Extract a single geometry from a parsed GeoJSON result. */
+function extractGeometry(geojson) {
+  const src = geojson.type === 'Feature' ? [geojson] : (geojson.features || []);
+  const geoms = src.map(f => f.geometry).filter(Boolean);
+  if (geoms.length === 0) throw new Error('No geometry found in file.');
+  if (geoms.length === 1) return geoms[0];
+  // Merge multiple Polygons / MultiPolygons into one MultiPolygon
+  const allPoly = geoms.every(g => ['Polygon', 'MultiPolygon'].includes(g.type));
+  if (allPoly) {
+    return {
+      type: 'MultiPolygon',
+      coordinates: geoms.flatMap(g => g.type === 'Polygon' ? [g.coordinates] : g.coordinates),
+    };
+  }
+  return { type: 'GeometryCollection', geometries: geoms };
+}
 
 export default function NewMarineAreaPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
-  const [geoJsonText, setGeoJsonText] = useState('');
-  const [geoJsonError, setGeoJsonError] = useState('');
+
+  const [geometry, setGeometry] = useState(null);       // parsed geometry object
+  const [boundaryFile, setBoundaryFile] = useState(null); // File that was dropped
+  const [boundaryMeta, setBoundaryMeta] = useState(null); // { featureCount }
+  const [parsing, setParsing] = useState(false);
+  const [skipped, setSkipped] = useState(false);
   const [selectedHabitats, setSelectedHabitats] = useState([]);
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
@@ -21,7 +52,10 @@ export default function NewMarineAreaPage() {
         .then(data => {
           if (data) {
             reset(data);
-            if (data.geometry) setGeoJsonText(JSON.stringify(data.geometry, null, 2));
+            if (data.geometry) {
+              setGeometry(data.geometry);
+              setBoundaryMeta({ featureCount: 1, fromSaved: true });
+            }
             if (data.habitatTypes) setSelectedHabitats(data.habitatTypes);
           }
         })
@@ -33,23 +67,53 @@ export default function NewMarineAreaPage() {
     prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h]
   );
 
-  const onSubmit = async (data) => {
-    if (!geoJsonText.trim()) return toast.error('Boundary geometry (GeoJSON) is required.');
-    let geometry;
+  const onDrop = useCallback(async (accepted) => {
+    const file = accepted[0];
+    if (!file) return;
+    setBoundaryFile(file);
+    setParsing(true);
+    setSkipped(false);
     try {
-      geometry = JSON.parse(geoJsonText);
-      if (!geometry.type || !geometry.coordinates) throw new Error();
-      setGeoJsonError('');
-    } catch {
-      setGeoJsonError('Invalid GeoJSON format. Must be a Polygon or MultiPolygon geometry object.');
-      return;
+      const geojson = await parseFileToGeoJSON(file);
+      const geom = extractGeometry(geojson);
+      setGeometry(geom);
+      const count = geojson.features?.length ?? 1;
+      setBoundaryMeta({ featureCount: count });
+      toast.success(`Boundary loaded — ${count.toLocaleString()} feature${count !== 1 ? 's' : ''}`);
+    } catch (err) {
+      toast.error(`Could not read boundary: ${err.message}`);
+      setBoundaryFile(null);
+      setGeometry(null);
+      setBoundaryMeta(null);
+    } finally {
+      setParsing(false);
     }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: BOUNDARY_ACCEPT,
+    maxFiles: 1,
+    maxSize: 200 * 1024 * 1024,
+    disabled: parsing,
+  });
+
+  const clearBoundary = () => {
+    setBoundaryFile(null);
+    setGeometry(null);
+    setBoundaryMeta(null);
+    setSkipped(false);
+  };
+
+  const onSubmit = async (data) => {
     try {
+      const payload = { ...data, habitatTypes: selectedHabitats };
+      if (geometry) payload.geometry = geometry;
       if (isEdit) {
-        await updateMarineArea(id, { ...data, geometry, habitatTypes: selectedHabitats });
+        await updateMarineArea(id, payload);
         toast.success('Marine area updated!');
       } else {
-        await createMarineArea({ ...data, geometry, habitatTypes: selectedHabitats });
+        await createMarineArea(payload);
         toast.success('Marine area recorded!');
       }
       navigate('/marine');
@@ -57,6 +121,8 @@ export default function NewMarineAreaPage() {
       toast.error(err.message || 'Failed to save.');
     }
   };
+
+  const hasBoundary = !!geometry;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -71,6 +137,7 @@ export default function NewMarineAreaPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* ── Area Identification ── */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Area Identification</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -89,6 +156,7 @@ export default function NewMarineAreaPage() {
           </div>
         </div>
 
+        {/* ── Location ── */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Location</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -106,20 +174,108 @@ export default function NewMarineAreaPage() {
           </div>
         </div>
 
+        {/* ── Boundary Map ── */}
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-ocean-800">Boundary Geometry *</h3>
-            <a href="https://geojson.io" target="_blank" rel="noopener noreferrer"
-              className="text-xs text-ocean-600 hover:underline flex items-center gap-1">
-              <Info size={12} /> Draw at geojson.io
-            </a>
+            <div>
+              <h3 className="font-semibold text-ocean-800">Boundary Map</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Upload a boundary file or skip — you can add it later</p>
+            </div>
+            {hasBoundary && (
+              <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
+                <MapPin size={11} /> Boundary loaded
+              </span>
+            )}
+            {skipped && !hasBoundary && (
+              <span className="text-xs text-gray-400 italic">Skipped — no boundary</span>
+            )}
           </div>
-          <p className="text-xs text-gray-500">Paste GeoJSON geometry (Polygon or MultiPolygon). Draw your boundary at geojson.io and copy the geometry object.</p>
-          <textarea className={`form-input font-mono text-xs ${geoJsonError ? 'border-red-400' : ''}`} rows={6}
-            placeholder={`{\n  "type": "Polygon",\n  "coordinates": [[[166.92, -15.37], ...]]\n}`}
-            value={geoJsonText} onChange={e => { setGeoJsonText(e.target.value); setGeoJsonError(''); }} />
-          {geoJsonError && <p className="text-red-500 text-xs">{geoJsonError}</p>}
-          <div className="grid grid-cols-2 gap-4">
+
+          {/* State: file loaded */}
+          {hasBoundary && boundaryFile && (
+            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <File size={16} className="text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{boundaryFile.name}</p>
+                <p className="text-xs text-gray-500">
+                  {boundaryMeta?.featureCount
+                    ? `${boundaryMeta.featureCount.toLocaleString()} feature${boundaryMeta.featureCount !== 1 ? 's' : ''} extracted`
+                    : 'Geometry loaded'}
+                </p>
+              </div>
+              <button type="button" onClick={clearBoundary} className="text-gray-400 hover:text-red-500 p-1">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* State: loaded from saved record (edit mode) */}
+          {hasBoundary && !boundaryFile && (
+            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <MapPin size={16} className="text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800">Saved boundary</p>
+                <p className="text-xs text-gray-500">Upload a new file below to replace it</p>
+              </div>
+              <button type="button" onClick={clearBoundary} className="text-gray-400 hover:text-red-500 p-1" title="Remove boundary">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Dropzone — shown when no boundary yet, or always to allow replacement */}
+          {(!hasBoundary || boundaryMeta?.fromSaved) && (
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors
+                ${parsing ? 'border-amber-300 bg-amber-50 cursor-wait'
+                  : isDragActive ? 'border-ocean-500 bg-ocean-50'
+                  : 'border-gray-200 hover:border-ocean-400 hover:bg-gray-50'}`}
+            >
+              <input {...getInputProps()} />
+              {parsing ? (
+                <p className="text-sm text-amber-600 animate-pulse">Reading boundary file…</p>
+              ) : (
+                <>
+                  <Upload size={28} className="mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm text-gray-600 font-medium">
+                    {isDragActive ? 'Drop file to load boundary' : 'Drop boundary file here, or click to browse'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Accepts: ZIP (shapefile), Shapefile (.shp), KML, GeoJSON, GeoPackage (.gpkg)
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Skip option */}
+          {!hasBoundary && !skipped && (
+            <button
+              type="button"
+              onClick={() => setSkipped(true)}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors mx-auto"
+            >
+              <SkipForward size={13} /> Skip for now — add boundary later
+            </button>
+          )}
+
+          {/* Undo skip */}
+          {skipped && !hasBoundary && (
+            <button
+              type="button"
+              onClick={() => setSkipped(false)}
+              className="text-xs text-ocean-600 hover:underline mx-auto block"
+            >
+              Upload a boundary file instead
+            </button>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 pt-1">
             <div><label className="form-label">Area Size (ha)</label>
               <input type="number" step="0.01" className="form-input" {...register('areaSizeHa', { valueAsNumber: true })} /></div>
             <div><label className="form-label">Perimeter (km)</label>
@@ -127,6 +283,7 @@ export default function NewMarineAreaPage() {
           </div>
         </div>
 
+        {/* ── Management Details ── */}
         <div className="card space-y-4">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Management Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -174,6 +331,7 @@ export default function NewMarineAreaPage() {
           </div>
         </div>
 
+        {/* ── Habitat Types ── */}
         <div className="card">
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2 mb-4">Habitat Types Present</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -187,6 +345,7 @@ export default function NewMarineAreaPage() {
           </div>
         </div>
 
+        {/* ── Notes ── */}
         <div className="card">
           <label className="form-label">Notes</label>
           <textarea className="form-input" rows={3} {...register('notes')} />
@@ -194,8 +353,9 @@ export default function NewMarineAreaPage() {
 
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
-            <Save size={16} />{isSubmitting ? 'Saving...' : isEdit ? 'Update Marine Area' : 'Save Marine Area'}
+          <button type="submit" disabled={isSubmitting || parsing} className="btn-primary flex items-center gap-2">
+            <Save size={16} />
+            {isSubmitting ? 'Saving...' : isEdit ? 'Update Marine Area' : 'Save Marine Area'}
           </button>
         </div>
       </form>
