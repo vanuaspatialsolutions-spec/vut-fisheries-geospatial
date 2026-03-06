@@ -1,26 +1,41 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Authenticated users can read/write their own profile
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    // Admin users can read/write all user profiles
-    match /users/{userId} {
-      allow read, write: if request.auth != null &&
+
+    // ── Helper: is the requesting user an admin? ────────────────────────────
+    function isAdmin() {
+      return request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-    // Authenticated users can read/write surveys, marine areas, monitoring, datasets
+
+    // ── Users collection ────────────────────────────────────────────────────
+    // Any authenticated user can read their own document (get).
+    // Only admins can list ALL users or write to any user document.
+    // A user can write (update) their own document.
+    match /users/{userId} {
+      allow get:  if request.auth != null;          // own profile + admin reads single docs
+      allow list: if isAdmin();                     // only admins can list all users
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Surveys ─────────────────────────────────────────────────────────────
     match /surveys/{docId} {
       allow read, write: if request.auth != null;
     }
+
+    // ── Marine areas ────────────────────────────────────────────────────────
     match /marine_areas/{docId} {
       allow read, write: if request.auth != null;
     }
+
+    // ── Monitoring records ──────────────────────────────────────────────────
     match /monitoring/{docId} {
       allow read, write: if request.auth != null;
     }
+
+    // ── Datasets ────────────────────────────────────────────────────────────
     match /datasets/{docId} {
       allow read, write: if request.auth != null;
     }

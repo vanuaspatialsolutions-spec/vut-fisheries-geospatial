@@ -70,9 +70,17 @@ export function AuthProvider({ children }) {
   };
 
   const register = async ({ firstName, lastName, email, password, organization, province }) => {
-    // First registered user becomes admin (auto-approved); everyone else waits for approval
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const isFirst = usersSnap.empty;
+    // First registered user becomes admin (auto-approved); everyone else waits for approval.
+    // getDocs requires auth in production rules, so we catch PERMISSION_DENIED and treat
+    // it as "not the first user" (the real first-user case is only relevant on an empty DB
+    // and should be done while Firestore is in test mode or before rules are locked down).
+    let isFirst = false;
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      isFirst = usersSnap.empty;
+    } catch {
+      isFirst = false; // rules blocked unauthenticated read — assume not first user
+    }
     const role = isFirst ? 'admin' : 'community_officer';
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);

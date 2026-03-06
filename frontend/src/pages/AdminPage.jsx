@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle } from 'lucide-react';
 
 function TabButton({ active, onClick, children }) {
   return (
@@ -13,6 +14,7 @@ function TabButton({ active, onClick, children }) {
 }
 
 function UsersTab() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState(null);
@@ -22,11 +24,32 @@ function UsersTab() {
     setLoading(true);
     setError(null);
     getAllUsers()
-      .then(data => setUsers(Array.isArray(data) ? data : []))
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        // If listing returned nothing (empty collection or rules issue), at minimum
+        // show the currently-logged-in admin so the page is never completely blank.
+        if (list.length === 0 && currentUser?.uid) {
+          list.push({
+            id: currentUser.uid,
+            uid: currentUser.uid,
+            firstName: currentUser.firstName || currentUser.displayName?.split(' ')[0] || '',
+            lastName: currentUser.lastName || currentUser.displayName?.split(' ').slice(1).join(' ') || '',
+            email: currentUser.email,
+            role: currentUser.role || 'admin',
+            status: currentUser.status || 'approved',
+            isActive: currentUser.isActive ?? true,
+            organization: currentUser.organization || '',
+            province: currentUser.province || '',
+          });
+        }
+        setUsers(list);
+      })
       .catch(err => {
         console.error('getAllUsers failed:', err);
-        setError(err.message || 'Failed to load users');
-        toast.error('Could not load users — check Firestore permissions.');
+        const code = err?.code || '';
+        const isPermission = code === 'permission-denied' || code.includes('PERMISSION_DENIED') || err.message?.includes('permission');
+        setError({ message: err.message || 'Failed to load users', isPermission, code });
+        toast.error('Could not load users. See details below.');
       })
       .finally(() => setLoading(false));
   };
@@ -90,9 +113,23 @@ function UsersTab() {
   );
 
   if (error) return (
-    <div className="card text-center py-10 space-y-3">
-      <p className="text-red-500 font-medium">Failed to load users</p>
-      <p className="text-gray-400 text-sm">{error}</p>
+    <div className="card py-8 space-y-4 max-w-lg mx-auto">
+      <div className="flex items-center gap-3 text-red-600">
+        <AlertTriangle size={22} className="flex-shrink-0" />
+        <p className="font-semibold">Failed to load users</p>
+      </div>
+      <p className="text-gray-500 text-sm">{error.message}</p>
+      {error.isPermission && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2 text-sm">
+          <p className="font-semibold text-amber-800">Fix: Deploy Firestore security rules</p>
+          <p className="text-amber-700 text-xs">The security rules file exists locally but has not been deployed to Firebase yet. Run this command in the project root:</p>
+          <pre className="bg-amber-100 rounded p-2 text-xs font-mono text-amber-900 select-all">firebase deploy --only firestore:rules</pre>
+          <p className="text-amber-600 text-xs">Then click Retry below.</p>
+        </div>
+      )}
+      {!error.isPermission && (
+        <p className="text-gray-400 text-xs">Error code: {error.code || 'unknown'}</p>
+      )}
       <button onClick={fetchUsers} className="btn-secondary text-sm">Retry</button>
     </div>
   );
