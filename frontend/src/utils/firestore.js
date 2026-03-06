@@ -48,6 +48,38 @@ export async function parseFileToGeoJSON(file) {
   throw new Error('Unsupported file type. Accepted: .geojson, .json, .zip (shapefile)');
 }
 
+/**
+ * Reduce coordinate decimal precision to shrink GeoJSON size for Firestore storage.
+ * Tries precision 6 → 5 → 4 → 3 until the JSON fits within maxBytes.
+ * Precision 5 = ~1 m accuracy, 4 = ~10 m, 3 = ~100 m — all fine for web maps.
+ * Returns the (possibly compressed) GeoJSON, or null if it can't fit.
+ */
+function fitGeoJSONToLimit(geojson, maxBytes = 880000) {
+  function roundCoord(c, p) {
+    return typeof c === 'number' ? parseFloat(c.toFixed(p)) : c.map(x => roundCoord(x, p));
+  }
+  function roundGeom(geom, p) {
+    if (!geom || !geom.coordinates) return geom;
+    return { ...geom, coordinates: roundCoord(geom.coordinates, p) };
+  }
+
+  const raw = JSON.stringify(geojson);
+  if (new TextEncoder().encode(raw).length <= maxBytes) return geojson;
+
+  for (const precision of [5, 4, 3]) {
+    const compressed = {
+      ...geojson,
+      features: (geojson.features || []).map(f => ({
+        ...f,
+        geometry: roundGeom(f.geometry, precision),
+      })),
+    };
+    const size = new TextEncoder().encode(JSON.stringify(compressed)).length;
+    if (size <= maxBytes) return compressed;
+  }
+  return null; // Still too large — cannot cache inline
+}
+
 function paginate(arr, page, pageSize) {
   const total = arr.length;
   return {
@@ -305,10 +337,16 @@ export async function uploadDataset(file, metadata, onProgress) {
 
   // For GeoJSON and shapefile ZIP files, parse and store inline in Firestore so
   // the map can load without needing Firebase Storage SDK access or CORS config.
+  // For ZIPs, the compressed size ≠ GeoJSON size, so we don't pre-check file.size.
+  // We parse, then fit to the 880 KB Firestore limit via coordinate precision reduction.
   let geojsonData = null;
-  if (['json', 'geojson', 'zip'].includes(ext) && file.size < 950000) {
+  if (['json', 'geojson', 'zip'].includes(ext)) {
     try {
-      geojsonData = await parseFileToGeoJSON(file);
+      const raw = await parseFileToGeoJSON(file);
+      geojsonData = fitGeoJSONToLimit(raw);
+      if (!geojsonData) {
+        console.warn('GeoJSON too large even after coordinate simplification — inline cache skipped. Use "Fix Map Layer" at publish time.');
+      }
     } catch (e) {
       console.warn('Could not parse file for inline map storage:', e.message);
     }
@@ -429,11 +467,16 @@ export async function getPublishedGeoJSONDatasets() {
 
 // Staff can re-select the original file (GeoJSON or shapefile ZIP) to cache
 // the GeoJSON data inline in Firestore, bypassing Storage SDK and CORS entirely.
+// Coordinate precision reduction is applied automatically if the GeoJSON is too large.
 export async function recacheDatasetGeoJSON(id, file) {
-  if (file.size > 900000) throw new Error(`File is ${(file.size / 1024).toFixed(0)} KB — must be under 900 KB to cache in Firestore.`);
-  const parsed = await parseFileToGeoJSON(file);
+  const raw = await parseFileToGeoJSON(file);
+  const fitted = fitGeoJSONToLimit(raw);
+  if (!fitted) {
+    const kb = (new TextEncoder().encode(JSON.stringify(raw)).length / 1024).toFixed(0);
+    throw new Error(`GeoJSON is ${kb} KB — too large to cache in Firestore even after simplification. Try reducing the number of features or use a more generalised shapefile.`);
+  }
   return updateDoc(doc(db, 'datasets', id), {
-    geojsonData: parsed,
+    geojsonData: fitted,
     hasGeojsonData: true,
     updatedAt: serverTimestamp(),
   });

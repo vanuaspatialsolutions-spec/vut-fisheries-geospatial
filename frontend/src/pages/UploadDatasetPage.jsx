@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
 import { uploadDataset } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, File, X, AlertTriangle, MapPin } from 'lucide-react';
+import { Upload, File, X, MapPin } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 
 const ACCEPTED_EXTENSIONS = {
@@ -90,22 +90,12 @@ export default function UploadDatasetPage() {
               </div>
               {/* Map-readiness indicator for GeoJSON and shapefile ZIPs */}
               {['geojson', 'json', 'zip'].includes(file.name.split('.').pop().toLowerCase()) && (
-                file.size < 900000 ? (
-                  <div className="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
-                    <MapPin size={13} className="flex-shrink-0" />
-                    {file.name.endsWith('.zip')
-                      ? 'Shapefile ZIP will be converted to GeoJSON and cached — it will appear on the map when published.'
-                      : 'This GeoJSON will be cached inline and appear automatically on the interactive map when published.'}
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
-                    <span>
-                      File is {fileSizeDisplay(file.size)} — over the 900 KB inline limit. It will still upload to storage,
-                      but when publishing you will be asked to select the file again so the map layer can be cached.
-                    </span>
-                  </div>
-                )
+                <div className="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+                  <MapPin size={13} className="flex-shrink-0" />
+                  {file.name.endsWith('.zip')
+                    ? 'Shapefile ZIP will be converted to GeoJSON and cached for the map. If needed, coordinate precision will be reduced automatically to fit the storage limit.'
+                    : 'This GeoJSON will be cached inline and appear automatically on the interactive map when published.'}
+                </div>
               )}
             </div>
           )}
