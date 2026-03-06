@@ -590,7 +590,9 @@ export async function uploadDataset(file, metadata, onProgress, onStage) {
             updatedAt: serverTimestamp(),
           };
           if (geojsonData) {
-            docData.geojsonData = geojsonData;
+            // Firestore doesn't support nested arrays (GeoJSON coordinates).
+            // Serialise as a JSON string; deserialise in getDatasetGeoJSON().
+            docData.geojsonData = JSON.stringify(geojsonData);
             docData.hasGeojsonData = true;
           }
           await addDoc(collection(db, 'datasets'), docData);
@@ -635,7 +637,7 @@ export async function publishDataset(id) {
         } catch (e) { console.warn('publish fetch failed:', e.message); }
       }
       if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
-        updateData.geojsonData = parsed;
+        updateData.geojsonData = JSON.stringify(parsed);
         updateData.hasGeojsonData = true;
       }
     }
@@ -686,7 +688,7 @@ export async function recacheDatasetGeoJSON(id, file) {
     throw new Error(`GeoJSON is ${kb} KB — too large to cache in Firestore even after simplification. The dataset will still be available for download; staff can publish it and the map will stream it from Storage.`);
   }
   return updateDoc(doc(db, 'datasets', id), {
-    geojsonData: fitted,
+    geojsonData: JSON.stringify(fitted),
     hasGeojsonData: true,
     updatedAt: serverTimestamp(),
   });
@@ -717,7 +719,11 @@ export async function getDatasetGeoJSON(dataset) {
   // 1. Best path: GeoJSON was stored inline in Firestore at upload/publish time.
   //    No storage SDK or CORS needed.
   if (dataset.geojsonData) {
-    return dataset.geojsonData;
+    // Stored as a JSON string to avoid Firestore's nested-array restriction.
+    // Handle both string (new) and object (legacy documents written before this fix).
+    return typeof dataset.geojsonData === 'string'
+      ? JSON.parse(dataset.geojsonData)
+      : dataset.geojsonData;
   }
 
   // 2. Try Storage SDK getBytes with a 12s timeout.
