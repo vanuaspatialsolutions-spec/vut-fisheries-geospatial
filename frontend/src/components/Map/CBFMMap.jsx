@@ -54,6 +54,12 @@ function FitDatasetBounds({ datasetLayers }) {
 
 const DATASET_COLORS = ['#7c3aed', '#0891b2', '#b45309', '#be123c', '#047857'];
 
+const DATASET_CATEGORY_COLORS = {
+  marine_spatial_plan: '#38bdf8',
+  protected_marine:    '#a78bfa',
+  habitat_restoration: '#34d399',
+};
+
 const esc = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // Maximum features rendered per dataset layer. Beyond this, features are sampled
@@ -137,7 +143,7 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
       {/* Published dataset GeoJSON layers */}
       {datasetLayers.map(({ meta, geojson }, idx) => {
         const capped = capFeatures(geojson);
-        const color = DATASET_COLORS[idx % DATASET_COLORS.length];
+        const color = DATASET_CATEGORY_COLORS[meta.dataType] || DATASET_COLORS[idx % DATASET_COLORS.length];
         return (
           <GeoJSON
             key={meta.id}

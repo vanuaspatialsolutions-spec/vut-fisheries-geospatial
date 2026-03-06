@@ -14,14 +14,11 @@ const LAYER_CONFIG = [
 ];
 
 const LEGEND = [
-  { color: 'bg-sky-400 ring-2 ring-sky-600', label: 'Community Survey', round: true },
-  { color: 'bg-ocean-700 opacity-60', label: 'LMMA', round: false },
-  { color: 'bg-red-600 opacity-60', label: 'Taboo Area', round: false },
-  { color: 'bg-amber-500 opacity-60', label: 'Patrol Zone', round: false },
-  { color: 'bg-violet-600 opacity-60', label: 'Buffer Zone', round: false },
-  { color: 'bg-emerald-500 opacity-60', label: 'Spawning', round: false },
-  { color: 'bg-orange-500 ring-2 ring-orange-700', label: 'Bio. Monitoring', round: true },
-  { color: 'bg-purple-500 opacity-60', label: 'Dataset Layer', round: false },
+  { color: 'bg-sky-400 ring-2 ring-sky-600',       label: 'Community Survey',                round: true  },
+  { color: 'bg-sky-300 opacity-80',                label: 'Marine areas under spatial plan', round: false },
+  { color: 'bg-violet-400 opacity-80',             label: 'Protected Marine areas',          round: false },
+  { color: 'bg-emerald-400 opacity-80',            label: 'Areas under habitat restoration', round: false },
+  { color: 'bg-orange-500 ring-2 ring-orange-700', label: 'Bio. Monitoring',                 round: true  },
 ];
 
 export default function MapPage() {

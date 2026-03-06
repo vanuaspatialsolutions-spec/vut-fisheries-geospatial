@@ -30,14 +30,11 @@ const LAYER_CFG = [
   { key:'datasets',   label:'Datasets',   icon:Database, on:'bg-purple-600 text-white border-purple-600',    dot:'bg-purple-500' },
 ];
 const LEGEND_ITEMS = [
-  { color:'bg-sky-400 ring-2 ring-sky-600',       label:'Community Survey', round:true },
-  { color:'bg-ocean-700 opacity-60',              label:'LMMA',             round:false },
-  { color:'bg-red-600 opacity-60',                label:'Taboo Area',       round:false },
-  { color:'bg-amber-500 opacity-60',              label:'Patrol Zone',      round:false },
-  { color:'bg-violet-600 opacity-60',             label:'Buffer Zone',      round:false },
-  { color:'bg-emerald-500 opacity-60',            label:'Spawning',         round:false },
-  { color:'bg-orange-500 ring-2 ring-orange-700', label:'Bio. Monitoring',  round:true },
-  { color:'bg-purple-500 opacity-60',             label:'Dataset Layer',    round:false },
+  { color:'bg-sky-400 ring-2 ring-sky-600',       label:'Community Survey',                    round:true  },
+  { color:'bg-sky-300 opacity-80',                label:'Marine areas under spatial plan',     round:false },
+  { color:'bg-violet-400 opacity-80',             label:'Protected Marine areas',              round:false },
+  { color:'bg-emerald-400 opacity-80',            label:'Areas under habitat restoration',     round:false },
+  { color:'bg-orange-500 ring-2 ring-orange-700', label:'Bio. Monitoring',                     round:true  },
 ];
 const AREA_TYPE_LABEL = { lmma:'LMMA',taboo_area:'Taboo Area',patrol_zone:'Patrol Zone',buffer_zone:'Buffer Zone',spawning_aggregation:'Spawning Site',other:'Other' };
 const STATUS_COLORS = { Active:'#34d399',Inactive:'#fb7185','Under Review':'#d4a92a',Proposed:'#38bdf8' };
