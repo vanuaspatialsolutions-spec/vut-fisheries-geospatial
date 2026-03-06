@@ -15,11 +15,20 @@ function TabButton({ active, onClick, children }) {
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState(null);
   const [working, setWorking] = useState(null);
 
   const fetchUsers = () => {
     setLoading(true);
-    getAllUsers().then(setUsers).finally(() => setLoading(false));
+    setError(null);
+    getAllUsers()
+      .then(data => setUsers(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('getAllUsers failed:', err);
+        setError(err.message || 'Failed to load users');
+        toast.error('Could not load users — check Firestore permissions.');
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchUsers(); }, []);
@@ -73,7 +82,20 @@ function UsersTab() {
   const pending = users.filter(u => u.status === 'pending');
   const others  = users.filter(u => u.status !== 'pending');
 
-  if (loading) return <div className="text-center py-8 text-ocean-600">Loading users...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-12 gap-3 text-navy-600">
+      <span className="w-5 h-5 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
+      Loading users…
+    </div>
+  );
+
+  if (error) return (
+    <div className="card text-center py-10 space-y-3">
+      <p className="text-red-500 font-medium">Failed to load users</p>
+      <p className="text-gray-400 text-sm">{error}</p>
+      <button onClick={fetchUsers} className="btn-secondary text-sm">Retry</button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -205,8 +227,8 @@ function DatasetsAdminTab() {
   const fetchDatasets = () => {
     setLoading(true);
     getDatasets({ status: 'under_review', pageSize: 50 })
-      .then(res => setDatasets(res.datasets))
-      .catch(() => toast.error('Failed to load datasets.'))
+      .then(res => setDatasets(Array.isArray(res?.datasets) ? res.datasets : []))
+      .catch(err => { console.error('getDatasets failed:', err); toast.error('Failed to load datasets.'); })
       .finally(() => setLoading(false));
   };
 
