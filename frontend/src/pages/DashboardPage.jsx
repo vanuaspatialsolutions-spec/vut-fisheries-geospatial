@@ -232,6 +232,27 @@ export default function DashboardPage(){
   const surveysByProv    =(surveys.byProvince||[]).map(d=>({province:(d.province||'Unknown').substring(0,7),count:parseInt(d.count)}));
   const monByType        =(monitoring.byType||[]).map(d=>({name:(d.monitoringType||'other').replace(/_/g,' '),count:parseInt(d.count)}));
 
+  const CATEGORY_LABELS = {
+    marine_spatial_plan: 'Marine areas under spatial plan',
+    protected_marine:    'Protected Marine areas',
+    habitat_restoration: 'Areas under habitat restoration',
+  };
+  const CATEGORY_COLORS = {
+    marine_spatial_plan: '#38bdf8',
+    protected_marine:    '#a78bfa',
+    habitat_restoration: '#34d399',
+  };
+  const datasetByCategory = (datasets.byType||[])
+    .filter(d=>CATEGORY_LABELS[d.dataType])
+    .map(d=>({
+      name: CATEGORY_LABELS[d.dataType]||d.dataType,
+      key: d.dataType,
+      count: d.count,
+      ha: d.publishedAreaHa||0,
+      totalHa: d.totalAreaHa||0,
+    }))
+    .sort((a,b)=>b.ha-a.ha);
+
   return(
     <div className="space-y-6 fade-in">
 
@@ -435,6 +456,55 @@ export default function DashboardPage(){
                 </div>
               ))}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Dataset Coverage by Category */}
+      <div className="card">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(12,32,64,0.06)',border:'1px solid rgba(12,32,64,0.08)'}}>
+            <Database size={15} className="text-navy-700"/>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-sm">Uploaded Dataset Coverage by Category</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Area (ha) automatically calculated from published spatial datasets</p>
+          </div>
+        </div>
+        {statsLoading ? (
+          <div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-14 rounded-xl animate-pulse" style={{background:'rgba(12,32,64,0.05)'}}/>)}</div>
+        ) : datasetByCategory.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <Database size={32} className="mx-auto mb-2 opacity-30"/>
+            <p className="text-sm">No published spatial datasets yet. Upload and publish data to see coverage.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {datasetByCategory.map(cat=>{
+              const maxHa = Math.max(...datasetByCategory.map(c=>c.ha), 1);
+              const pct = cat.ha > 0 ? (cat.ha/maxHa)*100 : 0;
+              const color = CATEGORY_COLORS[cat.key]||'#38bdf8';
+              return (
+                <div key={cat.key}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium text-gray-700">{cat.name}</span>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span>{cat.count} dataset{cat.count!==1?'s':''}</span>
+                      {cat.ha>0
+                        ? <span className="font-semibold" style={{color}}>{cat.ha.toLocaleString(undefined,{maximumFractionDigits:1})} ha published</span>
+                        : <span className="italic text-gray-400">no area data yet</span>}
+                    </div>
+                  </div>
+                  <div className="h-2.5 rounded-full" style={{background:'rgba(12,32,64,0.06)'}}>
+                    <div className="h-2.5 rounded-full transition-all duration-700"
+                      style={{width:`${pct}%`, background:color, opacity: cat.ha>0?1:0.25}}/>
+                  </div>
+                  {cat.totalHa > cat.ha && (
+                    <p className="text-xs text-gray-400 mt-0.5">{(cat.totalHa-cat.ha).toLocaleString(undefined,{maximumFractionDigits:1})} ha in draft / unpublished datasets</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

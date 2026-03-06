@@ -236,6 +236,48 @@ export async function parseFileToGeoJSON(file) {
  * Returns the compressed GeoJSON, or null if it still can't fit (data will be
  * served from Firebase Storage instead, which supports unlimited sizes).
  */
+/**
+ * Calculate the geodetic area of all Polygon / MultiPolygon features in a GeoJSON
+ * object and return the total in hectares (rounded to 2 decimal places).
+ * Uses the spherical excess formula (same algorithm as @turf/area).
+ */
+function calculateGeoJSONAreaHa(geojson) {
+  const R = 6378137; // WGS84 mean radius in metres
+  function rad(d) { return d * Math.PI / 180; }
+
+  function ringAreaM2(coords) {
+    const n = coords.length;
+    if (n < 3) return 0;
+    let area = 0;
+    for (let i = 0; i < n; i++) {
+      const p1 = coords[i === 0 ? n - 1 : i - 1];
+      const p2 = coords[i];
+      const p3 = coords[(i + 1) % n];
+      area += (rad(p3[0]) - rad(p1[0])) * Math.sin(rad(p2[1]));
+    }
+    return Math.abs(area * R * R / 2);
+  }
+
+  function polyHa(rings) {
+    if (!rings?.length) return 0;
+    let a = ringAreaM2(rings[0]);
+    for (let i = 1; i < rings.length; i++) a -= ringAreaM2(rings[i]); // subtract holes
+    return a / 10000; // m² → ha
+  }
+
+  const feats = geojson?.type === 'FeatureCollection' ? (geojson.features || [])
+    : geojson?.type === 'Feature' ? [geojson] : [];
+
+  let total = 0;
+  for (const f of feats) {
+    const g = f?.geometry;
+    if (!g) continue;
+    if (g.type === 'Polygon') total += polyHa(g.coordinates);
+    else if (g.type === 'MultiPolygon') g.coordinates.forEach(p => { total += polyHa(p); });
+  }
+  return Math.round(total * 100) / 100;
+}
+
 async function fitGeoJSONToLimit(geojson, maxBytes = 880000) {
   function roundCoord(c, p) {
     return typeof c === 'number' ? parseFloat(c.toFixed(p)) : c.map(x => roundCoord(x, p));
@@ -578,12 +620,21 @@ export async function getDatasetStats() {
   list.forEach(d => {
     if (d.status === 'published') published++;
     const t = d.dataType || 'other';
-    byType[t] = (byType[t] || 0) + 1;
+    if (!byType[t]) byType[t] = { count: 0, totalAreaHa: 0, publishedAreaHa: 0 };
+    byType[t].count += 1;
+    const ha = parseFloat(d.calculatedAreaHa) || 0;
+    byType[t].totalAreaHa += ha;
+    if (d.status === 'published') byType[t].publishedAreaHa += ha;
   });
   return {
     total: list.length,
     published,
-    byType: Object.entries(byType).map(([dataType, count]) => ({ dataType, count })),
+    byType: Object.entries(byType).map(([dataType, v]) => ({
+      dataType,
+      count: v.count,
+      totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
+      publishedAreaHa: Math.round(v.publishedAreaHa * 10) / 10,
+    })),
   };
 }
 
@@ -653,6 +704,8 @@ export async function uploadDataset(file, metadata, onProgress, onStage) {
             // Serialise as a JSON string; deserialise in getDatasetGeoJSON().
             docData.geojsonData = JSON.stringify(geojsonData);
             docData.hasGeojsonData = true;
+            const areaHa = calculateGeoJSONAreaHa(geojsonData);
+            if (areaHa > 0) docData.calculatedAreaHa = areaHa;
           }
           await addDoc(collection(db, 'datasets'), docData);
           resolve();
@@ -698,7 +751,16 @@ export async function publishDataset(id) {
       if (parsed && (parsed.type === 'FeatureCollection' || parsed.type === 'Feature')) {
         updateData.geojsonData = JSON.stringify(parsed);
         updateData.hasGeojsonData = true;
+        const areaHa = calculateGeoJSONAreaHa(parsed);
+        if (areaHa > 0) updateData.calculatedAreaHa = areaHa;
       }
+    } else if (d && d.hasGeojsonData && !d.calculatedAreaHa && d.geojsonData) {
+      // Backfill area for already-cached datasets that don't have it yet.
+      try {
+        const existing = JSON.parse(d.geojsonData);
+        const areaHa = calculateGeoJSONAreaHa(existing);
+        if (areaHa > 0) updateData.calculatedAreaHa = areaHa;
+      } catch { /* malformed cache — skip */ }
     }
   } catch (e) {
     console.warn('Could not cache GeoJSON inline on publish:', e.message);

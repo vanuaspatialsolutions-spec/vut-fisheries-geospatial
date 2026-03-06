@@ -235,6 +235,11 @@ export default function DatasetsPage() {
                     {dataset.province && <span>Province: {dataset.province}</span>}
                     {dataset.community && <span>Community: {dataset.community}</span>}
                     {dataset.collectionDate && <span>Collected: {dataset.collectionDate}</span>}
+                    {dataset.calculatedAreaHa > 0 && (
+                      <span className="font-medium text-ocean-700">
+                        Area: {Number(dataset.calculatedAreaHa).toLocaleString(undefined, { maximumFractionDigits: 1 })} ha
+                      </span>
+                    )}
                     <span>Size: {fileSizeDisplay(dataset.fileSize)}</span>
                     <span>Downloads: {dataset.downloadCount || 0}</span>
                     {dataset.uploaderName && <span>By: {dataset.uploaderName}</span>}
