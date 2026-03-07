@@ -39,7 +39,7 @@ function CompleteProfilePrompt() {
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
         {/* Top accent */}
         <div className="h-1"
-          style={{ background: 'linear-gradient(90deg, #001A38 0%, #003B7A 35%, #0062E6 65%, #22D3EE 100%)' }} />
+          style={{ background: 'linear-gradient(90deg, #000F24 0%, #002855 30%, #003B7A 55%, #0062E6 80%, #4AA8FF 100%)' }} />
 
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-3">

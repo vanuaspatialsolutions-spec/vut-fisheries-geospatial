@@ -7,11 +7,11 @@ import {
 
 const routeMeta = {
   '/dashboard':        { title: 'Dashboard',              desc: 'Real-time overview',          icon: LayoutDashboard, color: '#3388FF', bg: 'rgba(51,136,255,0.10)'   },
-  '/map':              { title: 'Interactive Map',         desc: 'Spatial data explorer',       icon: Map,             color: '#22D3EE', bg: 'rgba(34,211,238,0.10)'   },
+  '/map':              { title: 'Interactive Map',         desc: 'Spatial data explorer',       icon: Map,             color: '#4AA8FF', bg: 'rgba(74,168,255,0.10)'   },
   '/surveys':          { title: 'Community Surveys',       desc: 'CBFM survey records',         icon: Users,           color: '#fb7185', bg: 'rgba(251,113,133,0.10)'  },
   '/surveys/new':      { title: 'New Survey',              desc: 'Community Surveys',           icon: Users,           color: '#fb7185', bg: 'rgba(251,113,133,0.10)'  },
-  '/marine':           { title: 'Marine Areas',            desc: 'LMMAs & protected zones',     icon: Anchor,          color: '#22D3EE', bg: 'rgba(34,211,238,0.10)'   },
-  '/marine/new':       { title: 'New Marine Area',         desc: 'Marine Areas',                icon: Anchor,          color: '#22D3EE', bg: 'rgba(34,211,238,0.10)'   },
+  '/marine':           { title: 'Marine Areas',            desc: 'LMMAs & protected zones',     icon: Anchor,          color: '#4AA8FF', bg: 'rgba(74,168,255,0.10)'   },
+  '/marine/new':       { title: 'New Marine Area',         desc: 'Marine Areas',                icon: Anchor,          color: '#4AA8FF', bg: 'rgba(74,168,255,0.10)'   },
   '/monitoring':       { title: 'Biological Monitoring',   desc: 'Reef & ecosystem data',       icon: Activity,        color: '#fbbf24', bg: 'rgba(251,191,36,0.10)'   },
   '/monitoring/new':   { title: 'New Monitoring Record',   desc: 'Biological Monitoring',       icon: Activity,        color: '#fbbf24', bg: 'rgba(251,191,36,0.10)'   },
   '/datasets':         { title: 'Datasets',                desc: 'Files & geospatial data',     icon: Database,        color: '#a78bfa', bg: 'rgba(167,139,250,0.10)'  },

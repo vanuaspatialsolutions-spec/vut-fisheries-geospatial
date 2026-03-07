@@ -21,8 +21,8 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const VANUATU_MARINE_HA = 5_000_000;
-const CHART_COLORS = ['#38bdf8','#2dd4bf','#a78bfa','#d4a92a','#fb7185','#34d399','#f97316'];
-const PROVINCE_COLORS = { Malampa:'#38bdf8',Penama:'#2dd4bf',Sanma:'#a78bfa',Shefa:'#d4a92a',Tafea:'#fb7185',Torba:'#34d399' };
+const CHART_COLORS = ['#4AA8FF','#2389E8','#a78bfa','#d4a92a','#fb7185','#34d399','#f97316'];
+const PROVINCE_COLORS = { Malampa:'#4AA8FF',Penama:'#2389E8',Sanma:'#a78bfa',Shefa:'#d4a92a',Tafea:'#fb7185',Torba:'#34d399' };
 const LAYER_CFG = [
   { key:'surveys',    label:'Surveys',    icon:Users,    on:'bg-sky-500 text-white border-sky-500',          dot:'bg-sky-500' },
   { key:'marine',     label:'Marine',     icon:Anchor,   on:'bg-emerald-600 text-white border-emerald-600',  dot:'bg-emerald-500' },
@@ -40,9 +40,9 @@ const AREA_TYPE_LABEL = { lmma:'LMMA',taboo_area:'Taboo Area',patrol_zone:'Patro
 const STATUS_COLORS = { Active:'#34d399',Inactive:'#fb7185','Under Review':'#d4a92a',Proposed:'#38bdf8' };
 const QUICK = [
   { label:'New Survey',  to:'/surveys/new',     icon:Users,    accent:'#6AAFFF', grad:'linear-gradient(135deg,#000F24,#002855)' },
-  { label:'Marine Area', to:'/marine/new',      icon:Anchor,   accent:'#22D3EE', grad:'linear-gradient(135deg,#000F24,#003B7A)' },
+  { label:'Marine Area', to:'/marine/new',      icon:Anchor,   accent:'#4AA8FF', grad:'linear-gradient(135deg,#000F24,#003B7A)' },
   { label:'Bio. Record', to:'/monitoring/new',  icon:Activity, accent:'#a78bfa', grad:'linear-gradient(135deg,#000F24,#1e1547)' },
-  { label:'Upload Data', to:'/datasets/upload', icon:Database, accent:'#22D3EE', grad:'linear-gradient(135deg,#000F24,#002855)' },
+  { label:'Upload Data', to:'/datasets/upload', icon:Database, accent:'#4AA8FF', grad:'linear-gradient(135deg,#000F24,#002855)' },
 ];
 
 function useCountUp(target,duration=1000,decimals=0){
@@ -237,9 +237,9 @@ export default function DashboardPage(){
 
   const heroCards=[
     {icon:Anchor,  label:'Marine Areas — Spatial Plan',  value:totalSpatialCount,        sub:'total managed marine zones',    accent:'#6AAFFF',glow:'rgba(0,98,230,0.28)',  grad:'linear-gradient(135deg,#000F24,#003B7A)'},
-    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration', accent:'#22D3EE',glow:'rgba(34,211,238,0.25)', grad:'linear-gradient(135deg,#000F24,#004A5E)',decimals:1},
+    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration', accent:'#4AA8FF',glow:'rgba(74,168,255,0.22)', grad:'linear-gradient(135deg,#000F24,#004A5E)',decimals:1},
     {icon:Shield,  label:'Marine Areas Protected',       value:totalProtectedCount, sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, accent:'#a78bfa',glow:'rgba(167,139,250,0.25)',grad:'linear-gradient(135deg,#000F24,#1e1547)'},
-    {icon:Globe,   label:'% MPA of Vanuatu Waters',      value:mpaPct,unit:'%',          sub:'of ~50,000 km² territorial sea', accent:'#22D3EE',glow:'rgba(34,211,238,0.25)', grad:'linear-gradient(135deg,#000F24,#002855)',decimals:3},
+    {icon:Globe,   label:'% MPA of Vanuatu Waters',      value:mpaPct,unit:'%',          sub:'of ~50,000 km² territorial sea', accent:'#4AA8FF',glow:'rgba(74,168,255,0.22)', grad:'linear-gradient(135deg,#000F24,#002855)',decimals:3},
     {icon:Users,   label:'Communities in Conservation',  value:Math.max(marine.communityCount??0,surveys.communityCount??0), sub:'unique communities engaged', accent:'#fb7185',glow:'rgba(251,113,133,0.25)',grad:'linear-gradient(135deg,#000F24,#3a0c1a)'},
     {icon:TreePine,label:'Habitat Restoration Areas',    value:parseFloat(totalRestorationHa.toFixed(1)),unit:'ha',sub:'mangrove & seagrass habitats', accent:'#34d399',glow:'rgba(52,211,153,0.25)',grad:'linear-gradient(135deg,#000F24,#063b2a)',decimals:1},
   ];
@@ -380,7 +380,7 @@ export default function DashboardPage(){
       {/* Province Table */}
       <div className="card">
         <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(34,211,238,0.10)',border:'1px solid rgba(34,211,238,0.22)'}}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(74,168,255,0.10)',border:'1px solid rgba(74,168,255,0.22)'}}>
             <MapPin size={15} style={{color:'#22d3ee'}}/>
           </div>
           <div>
