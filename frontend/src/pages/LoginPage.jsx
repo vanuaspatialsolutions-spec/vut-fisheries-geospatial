@@ -44,7 +44,7 @@ export default function LoginPage() {
 
       {/* ── Left panel — branding (desktop) ── */}
       <div className="hidden lg:flex lg:w-[52%] bg-animate flex-col relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0a2d52 0%, #0d4a87 40%, #1060a8 70%, #1272b5 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 40%, #1d4ed8 70%, #2563eb 100%)' }}>
 
         {/* Dot-grid texture */}
         <div className="absolute inset-0 dot-grid" />
@@ -53,7 +53,7 @@ export default function LoginPage() {
           style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.14) 0%, transparent 70%)' }} />
         {/* Radial glow top-left */}
         <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.20) 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(96,165,250,0.22) 0%, transparent 70%)' }} />
 
         <div className="relative z-10 flex flex-col h-full p-10 xl:p-14">
 

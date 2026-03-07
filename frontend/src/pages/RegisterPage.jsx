@@ -29,14 +29,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-blue-50">
 
       {/* Left accent strip (desktop) */}
       <div className="hidden lg:flex lg:w-[38%] flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #071529 0%, #0c2040 50%, #112f53 100%)' }}>
+        style={{ background: 'linear-gradient(160deg, #172554 0%, #1e3a8a 50%, #1d4ed8 100%)' }}>
         <div className="absolute inset-0 dot-grid" />
         <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(212,169,42,0.10) 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 70%)' }} />
 
         <div className="relative z-10">
           {/* Logos */}

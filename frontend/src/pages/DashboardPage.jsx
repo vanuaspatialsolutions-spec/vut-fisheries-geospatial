@@ -39,10 +39,10 @@ const LEGEND_ITEMS = [
 const AREA_TYPE_LABEL = { lmma:'LMMA',taboo_area:'Taboo Area',patrol_zone:'Patrol Zone',buffer_zone:'Buffer Zone',spawning_aggregation:'Spawning Site',other:'Other' };
 const STATUS_COLORS = { Active:'#34d399',Inactive:'#fb7185','Under Review':'#d4a92a',Proposed:'#38bdf8' };
 const QUICK = [
-  { label:'New Survey',  to:'/surveys/new',     icon:Users,    accent:'#38bdf8', grad:'linear-gradient(135deg,#0a2d52,#0f3d80)' },
-  { label:'Marine Area', to:'/marine/new',      icon:Anchor,   accent:'#2dd4bf', grad:'linear-gradient(135deg,#0a2d52,#0d4a47)' },
-  { label:'Bio. Record', to:'/monitoring/new',  icon:Activity, accent:'#a78bfa', grad:'linear-gradient(135deg,#0a2d52,#1e1547)' },
-  { label:'Upload Data', to:'/datasets/upload', icon:Database, accent:'#22d3ee', grad:'linear-gradient(135deg,#0a2d52,#0d4a47)' },
+  { label:'New Survey',  to:'/surveys/new',     icon:Users,    accent:'#38bdf8', grad:'linear-gradient(135deg,#172554,#1e3a8a)' },
+  { label:'Marine Area', to:'/marine/new',      icon:Anchor,   accent:'#2dd4bf', grad:'linear-gradient(135deg,#172554,#0d4a47)' },
+  { label:'Bio. Record', to:'/monitoring/new',  icon:Activity, accent:'#a78bfa', grad:'linear-gradient(135deg,#172554,#1e1547)' },
+  { label:'Upload Data', to:'/datasets/upload', icon:Database, accent:'#22d3ee', grad:'linear-gradient(135deg,#172554,#0d4a47)' },
 ];
 
 function useCountUp(target,duration=1000,decimals=0){
@@ -90,9 +90,9 @@ function HeroCard({icon:Icon,label,value,unit,sub,accent,glow,grad,loading,index
 }
 
 function ChartCard({title,icon:Icon,accent,children,loading,empty,emptyMsg,className=''}){
-  const bg   = accent ? `${accent}12` : 'rgba(3,105,161,0.05)';
-  const bdr  = accent ? `${accent}28` : 'rgba(3,105,161,0.08)';
-  const icol = accent || '#0369a1';
+  const bg   = accent ? `${accent}12` : 'rgba(37,99,235,0.05)';
+  const bdr  = accent ? `${accent}28` : 'rgba(37,99,235,0.08)';
+  const icol = accent || '#2563eb';
   return(
     <div className={`card ${className}`}>
       <div className="flex items-center gap-2.5 mb-5">
@@ -117,7 +117,7 @@ const CustomTooltip=({active,payload,label})=>{
 };
 
 function ProvinceSummary({data,loading}){
-  if(loading)return(<div className="space-y-2">{[1,2,3].map(i=><div key={i} className="h-10 rounded-lg animate-pulse" style={{background:'rgba(3,105,161,0.04)'}}/>)}</div>);
+  if(loading)return(<div className="space-y-2">{[1,2,3].map(i=><div key={i} className="h-10 rounded-lg animate-pulse" style={{background:'rgba(37,99,235,0.04)'}}/>)}</div>);
   if(!data.length)return(<div className="flex flex-col items-center justify-center py-8 gap-2"><MapPin size={28} className="text-gray-200"/><p className="text-sm text-gray-400">No provincial data yet — add marine areas to populate this table</p></div>);
   const maxHa=Math.max(...data.map(d=>d.totalHa),1);
   return(
@@ -236,12 +236,12 @@ export default function DashboardPage(){
   const totalMarineHa = totalSpatialHa + totalRestorationHa;
 
   const heroCards=[
-    {icon:Anchor,  label:'Marine Areas — Spatial Plan',  value:totalSpatialCount,        sub:'total managed marine zones',    accent:'#38bdf8',glow:'rgba(56,189,248,0.22)', grad:'linear-gradient(135deg,#0a2d52,#0f3d80)'},
-    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration', accent:'#2dd4bf',glow:'rgba(45,212,191,0.22)', grad:'linear-gradient(135deg,#0a2d52,#0d4a47)',decimals:1},
-    {icon:Shield,  label:'Marine Areas Protected',       value:totalProtectedCount, sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, accent:'#a78bfa',glow:'rgba(167,139,250,0.22)',grad:'linear-gradient(135deg,#0a2d52,#1e1547)'},
-    {icon:Globe,   label:'% MPA of Vanuatu Waters',      value:mpaPct,unit:'%',          sub:'of ~50,000 km² territorial sea', accent:'#22d3ee',glow:'rgba(34,211,238,0.22)', grad:'linear-gradient(135deg,#0a2d52,#0d4a60)',decimals:3},
-    {icon:Users,   label:'Communities in Conservation',  value:Math.max(marine.communityCount??0,surveys.communityCount??0), sub:'unique communities engaged', accent:'#fb7185',glow:'rgba(251,113,133,0.22)',grad:'linear-gradient(135deg,#0a2d52,#3a0c1a)'},
-    {icon:TreePine,label:'Habitat Restoration Areas',    value:parseFloat(totalRestorationHa.toFixed(1)),unit:'ha',sub:'mangrove & seagrass habitats', accent:'#34d399',glow:'rgba(52,211,153,0.22)',grad:'linear-gradient(135deg,#0a2d52,#063b2a)',decimals:1},
+    {icon:Anchor,  label:'Marine Areas — Spatial Plan',  value:totalSpatialCount,        sub:'total managed marine zones',    accent:'#38bdf8',glow:'rgba(56,189,248,0.22)', grad:'linear-gradient(135deg,#172554,#1e3a8a)'},
+    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration', accent:'#2dd4bf',glow:'rgba(45,212,191,0.22)', grad:'linear-gradient(135deg,#172554,#0d4a47)',decimals:1},
+    {icon:Shield,  label:'Marine Areas Protected',       value:totalProtectedCount, sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, accent:'#a78bfa',glow:'rgba(167,139,250,0.22)',grad:'linear-gradient(135deg,#172554,#1e1547)'},
+    {icon:Globe,   label:'% MPA of Vanuatu Waters',      value:mpaPct,unit:'%',          sub:'of ~50,000 km² territorial sea', accent:'#22d3ee',glow:'rgba(34,211,238,0.22)', grad:'linear-gradient(135deg,#172554,#0d4a60)',decimals:3},
+    {icon:Users,   label:'Communities in Conservation',  value:Math.max(marine.communityCount??0,surveys.communityCount??0), sub:'unique communities engaged', accent:'#fb7185',glow:'rgba(251,113,133,0.22)',grad:'linear-gradient(135deg,#172554,#3a0c1a)'},
+    {icon:TreePine,label:'Habitat Restoration Areas',    value:parseFloat(totalRestorationHa.toFixed(1)),unit:'ha',sub:'mangrove & seagrass habitats', accent:'#34d399',glow:'rgba(52,211,153,0.22)',grad:'linear-gradient(135deg,#172554,#063b2a)',decimals:1},
   ];
 
   const marineByType     =(marine.byType||[]).map(d=>({name:AREA_TYPE_LABEL[d.areaType]||d.areaType,value:d.count,ha:parseFloat((d.totalHa||0).toFixed(1))}));
@@ -410,7 +410,7 @@ export default function DashboardPage(){
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
               <XAxis dataKey="province" tick={{fontSize:10,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fontSize:10,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
-              <Tooltip content={<CustomTooltip/>} cursor={{fill:'rgba(3,105,161,0.04)'}}/>
+              <Tooltip content={<CustomTooltip/>} cursor={{fill:'rgba(37,99,235,0.04)'}}/>
               <Bar dataKey="ha" name="Hectares" radius={[5,5,0,0]}>{marineByProvince.map((d,i)=><Cell key={i} fill={PROVINCE_COLORS[d.province]||CHART_COLORS[i]}/>)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -436,8 +436,8 @@ export default function DashboardPage(){
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
               <XAxis dataKey="province" tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fontSize:11,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
-              <Tooltip content={<CustomTooltip/>} cursor={{fill:'rgba(3,105,161,0.04)'}}/>
-              <Bar dataKey="count" name="Surveys" fill="#1a4470" radius={[6,6,0,0]}/>
+              <Tooltip content={<CustomTooltip/>} cursor={{fill:'rgba(37,99,235,0.04)'}}/>
+              <Bar dataKey="count" name="Surveys" fill="#2563eb" radius={[6,6,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -449,7 +449,7 @@ export default function DashboardPage(){
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false}/>
                 <XAxis type="number" tick={{fontSize:10,fill:'#94a3b8'}} axisLine={false} tickLine={false}/>
                 <YAxis type="category" dataKey="name" tick={{fontSize:10,fill:'#94a3b8'}} width={140} axisLine={false} tickLine={false}/>
-                <Tooltip content={<CustomTooltip/>} cursor={{fill:'rgba(3,105,161,0.04)'}}/>
+                <Tooltip content={<CustomTooltip/>} cursor={{fill:'rgba(37,99,235,0.04)'}}/>
                 <Bar dataKey="count" name="Records" fill="#2dd4bf" radius={[0,6,6,0]}/>
               </BarChart>
             </ResponsiveContainer>
@@ -467,9 +467,9 @@ export default function DashboardPage(){
                 {label:'Datasets',     value:datasets.total??0,  sub:`${datasets.published??0} published`, icon:Database, color:'#d4a92a'},
                 {label:'Active Areas', value:marine.activeCount??0,sub:'currently managed', icon:Fish,     color:'#34d399'},
               ].map(({label,value,sub,icon:Icon,color})=>(
-                <div key={label} className="rounded-xl p-4" style={{background:'rgba(3,105,161,0.03)',border:'1px solid rgba(3,105,161,0.07)'}}>
+                <div key={label} className="rounded-xl p-4" style={{background:'rgba(37,99,235,0.03)',border:'1px solid rgba(37,99,235,0.07)'}}>
                   <div className="flex items-center gap-2 mb-2"><Icon size={14} style={{color}}/><p className="text-xs font-semibold uppercase tracking-wide" style={{color}}>{label}</p></div>
-                  {statsLoading?<div className="h-7 w-12 rounded animate-pulse" style={{background:'rgba(3,105,161,0.09)'}}/>:<p className="text-2xl font-bold text-gray-800">{value}</p>}
+                  {statsLoading?<div className="h-7 w-12 rounded animate-pulse" style={{background:'rgba(37,99,235,0.09)'}}/>:<p className="text-2xl font-bold text-gray-800">{value}</p>}
                   <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
                 </div>
               ))}
@@ -490,7 +490,7 @@ export default function DashboardPage(){
           </div>
         </div>
         {statsLoading ? (
-          <div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-14 rounded-xl animate-pulse" style={{background:'rgba(3,105,161,0.05)'}}/>)}</div>
+          <div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-14 rounded-xl animate-pulse" style={{background:'rgba(37,99,235,0.05)'}}/>)}</div>
         ) : datasetByCategory.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <Database size={32} className="mx-auto mb-2 opacity-30"/>
@@ -513,7 +513,7 @@ export default function DashboardPage(){
                         : <span className="italic text-gray-400">no area data yet</span>}
                     </div>
                   </div>
-                  <div className="h-2.5 rounded-full" style={{background:'rgba(3,105,161,0.07)'}}>
+                  <div className="h-2.5 rounded-full" style={{background:'rgba(37,99,235,0.07)'}}>
                     <div className="h-2.5 rounded-full transition-all duration-700"
                       style={{width:`${pct}%`, background:color, opacity: cat.ha>0?1:0.25}}/>
                   </div>

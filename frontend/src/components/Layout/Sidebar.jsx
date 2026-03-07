@@ -70,7 +70,7 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 flex flex-col flex-shrink-0 shadow-xl"
-      style={{ background: 'linear-gradient(180deg, #0a2d52 0%, #0d4a87 100%)' }}>
+      style={{ background: 'linear-gradient(180deg, #172554 0%, #1e3a8a 100%)' }}>
 
       {/* ── Logo block ── */}
       <div className="px-5 py-5 border-b border-white/8">

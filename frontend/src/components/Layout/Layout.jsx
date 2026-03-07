@@ -46,7 +46,7 @@ function CompleteProfilePrompt() {
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#071529,#1a4470)' }}>
+            style={{ background: 'linear-gradient(135deg,#172554,#1d4ed8)' }}>
             <User size={20} className="text-white" />
           </div>
           <div>

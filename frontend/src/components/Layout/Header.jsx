@@ -36,8 +36,8 @@ function UserAvatar({ user }) {
     <div
       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
       style={{
-        background: 'linear-gradient(135deg, #0369a1, #075985)',
-        boxShadow: '0 0 0 2px #fff, 0 0 0 3.5px rgba(3,105,161,0.20)',
+        background: 'linear-gradient(135deg, #1d4ed8, #1e3a8a)',
+        boxShadow: '0 0 0 2px #fff, 0 0 0 3.5px rgba(37,99,235,0.22)',
       }}
     >
       {initials || '?'}

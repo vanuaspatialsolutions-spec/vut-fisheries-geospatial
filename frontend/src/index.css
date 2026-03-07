@@ -11,7 +11,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
   body {
-    background-color: #f0f9ff;
+    background-color: #eff6ff;
     color: #111827;
   }
   * {
@@ -32,15 +32,15 @@
            disabled:opacity-50 disabled:cursor-not-allowed
            focus:outline-none focus:ring-2 focus:ring-navy-500/40 focus:ring-offset-2
            shadow-sm active:scale-[0.98];
-    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-    box-shadow: 0 1px 3px rgba(3,105,161,0.30), 0 1px 1px rgba(0,0,0,0.05);
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    box-shadow: 0 1px 3px rgba(37,99,235,0.30), 0 1px 1px rgba(0,0,0,0.05);
   }
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-    box-shadow: 0 4px 12px rgba(3,105,161,0.40), 0 1px 2px rgba(0,0,0,0.08);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.40), 0 1px 2px rgba(0,0,0,0.08);
   }
   .btn-primary:active:not(:disabled) {
-    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
   }
 
   .btn-secondary {
@@ -94,8 +94,8 @@
   /* ── Icon badge (reusable colored icon container) ───── */
   .icon-badge {
     @apply w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0;
-    background: rgba(3,105,161,0.06);
-    border: 1px solid rgba(3,105,161,0.10);
+    background: rgba(37,99,235,0.06);
+    border: 1px solid rgba(37,99,235,0.10);
   }
 
   /* ── Badges ──────────────────────────────────────────── */

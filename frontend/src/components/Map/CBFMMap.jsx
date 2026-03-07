@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const AREA_COLORS = {
-  lmma: '#0369a1',
+  lmma: '#2563eb',
   taboo_area: '#dc2626',
   patrol_zone: '#ca8a04',
   buffer_zone: '#7c3aed',
@@ -21,7 +21,7 @@ const AREA_COLORS = {
 };
 
 const MONITORING_COLORS = {
-  reef_fish_survey: '#0369a1',
+  reef_fish_survey: '#2563eb',
   invertebrate_survey: '#059669',
   coral_cover: '#ea580c',
   seagrass_survey: '#7c3aed',
@@ -127,8 +127,8 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
     const areaStr  = fmtHa(storedHa ?? calcHa);
     layer.bindPopup(`
       <div style="min-width:180px;font-family:inherit">
-        <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:#0c2040">${esc(p.areaName || 'Unnamed area')}</div>
-        ${areaStr ? `<div style="font-size:13px;font-weight:600;color:#0369a1;margin-bottom:4px">&#x1F4CF; ${areaStr}</div>` : ''}
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:#1e3a8a">${esc(p.areaName || 'Unnamed area')}</div>
+        ${areaStr ? `<div style="font-size:13px;font-weight:600;color:#2563eb;margin-bottom:4px">&#x1F4CF; ${areaStr}</div>` : ''}
         ${p.areaType ? `<div style="font-size:12px;color:#6b7280">Type: ${esc(p.areaType.replace(/_/g,' '))}</div>` : ''}
         ${p.community ? `<div style="font-size:12px;color:#6b7280">Community: ${esc(p.community)}</div>` : ''}
         ${p.province ? `<div style="font-size:12px;color:#6b7280">Province: ${esc(p.province)}</div>` : ''}
@@ -171,7 +171,7 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
             key={s.id}
             center={[s.latitude, s.longitude]}
             radius={7}
-            pathOptions={{ color: '#0369a1', fillColor: '#38bdf8', fillOpacity: 0.8, weight: 2 }}
+            pathOptions={{ color: '#2563eb', fillColor: '#38bdf8', fillOpacity: 0.8, weight: 2 }}
           >
             <Popup>
               <div className="text-sm">
@@ -207,8 +207,8 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
                 : '';
               layer.bindPopup(`
                 <div style="min-width:180px;font-family:inherit">
-                  <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:#0c2040">${esc(name)}</div>
-                  ${areaStr ? `<div style="font-size:13px;font-weight:600;color:#0369a1;margin-bottom:4px">&#x1F4CF; ${areaStr}</div>` : ''}
+                  <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:#1e3a8a">${esc(name)}</div>
+                  ${areaStr ? `<div style="font-size:13px;font-weight:600;color:#2563eb;margin-bottom:4px">&#x1F4CF; ${areaStr}</div>` : ''}
                   <div style="font-size:12px;color:#6b7280;margin-bottom:2px">Category: ${esc(categoryLabel)}</div>
                   ${meta.province ? `<div style="font-size:12px;color:#6b7280">Province: ${esc(meta.province)}</div>` : ''}
                   ${meta.community ? `<div style="font-size:12px;color:#6b7280">Community: ${esc(meta.community)}</div>` : ''}

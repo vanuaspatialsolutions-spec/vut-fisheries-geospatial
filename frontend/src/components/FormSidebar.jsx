@@ -21,9 +21,9 @@ function fmtNum(n, decimals = 0) {
 function StatCard({ label, value, unit, color }) {
   return (
     <div className="rounded-xl px-4 py-3 flex items-center justify-between"
-      style={{ background: 'rgba(12,32,64,0.04)', border: '1px solid rgba(12,32,64,0.07)' }}>
+      style={{ background: 'rgba(37,99,235,0.04)', border: '1px solid rgba(37,99,235,0.08)' }}>
       <p className="text-xs text-gray-500 font-medium">{label}</p>
-      <p className="text-sm font-bold" style={{ color: color || '#0c2040' }}>
+      <p className="text-sm font-bold" style={{ color: color || '#1d4ed8' }}>
         {value}{unit && <span className="text-xs font-normal text-gray-400 ml-0.5">{unit}</span>}
       </p>
     </div>
