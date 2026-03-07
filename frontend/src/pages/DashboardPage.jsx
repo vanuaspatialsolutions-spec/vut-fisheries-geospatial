@@ -231,9 +231,11 @@ export default function DashboardPage(){
   const totalRestorationHa  = (marine.restorationAreaHa||0) + dsRestorationHa;
   const mpaPct=totalProtectedHa?parseFloat(((totalProtectedHa/VANUATU_MARINE_HA)*100).toFixed(3)):0;
 
+  const totalMarineHa = totalSpatialHa + totalRestorationHa;
+
   const heroCards=[
     {icon:Anchor,  label:'Marine Areas — Spatial Plan',  value:totalSpatialCount,        sub:'total managed marine zones',    accent:'#38bdf8',glow:'rgba(56,189,248,0.20)', grad:'linear-gradient(135deg,#0c2040,#0f3260)'},
-    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalSpatialHa.toFixed(1)), unit:'ha', sub:'hectares under spatial plan', accent:'#2dd4bf',glow:'rgba(45,212,191,0.20)', grad:'linear-gradient(135deg,#0c2040,#0d3d3a)',decimals:1},
+    {icon:Waves,   label:'Total Spatial Coverage',       value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration', accent:'#2dd4bf',glow:'rgba(45,212,191,0.20)', grad:'linear-gradient(135deg,#0c2040,#0d3d3a)',decimals:1},
     {icon:Shield,  label:'Marine Areas Protected',       value:totalProtectedCount, sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, accent:'#a78bfa',glow:'rgba(167,139,250,0.20)',grad:'linear-gradient(135deg,#0c2040,#1e1547)'},
     {icon:Globe,   label:'% MPA of Vanuatu Waters',      value:mpaPct,unit:'%',          sub:'of ~50,000 km² territorial sea', accent:'#d4a92a',glow:'rgba(212,169,42,0.20)', grad:'linear-gradient(135deg,#0c2040,#2a1f00)',decimals:3},
     {icon:Users,   label:'Communities in Conservation',  value:Math.max(marine.communityCount??0,surveys.communityCount??0), sub:'unique communities engaged', accent:'#fb7185',glow:'rgba(251,113,133,0.20)',grad:'linear-gradient(135deg,#0c2040,#3a0c1a)'},
