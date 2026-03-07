@@ -96,17 +96,20 @@ function HeroCard({icon:Icon,label,value,unit,sub,accent,glow,grad,loading,index
   );
 }
 
-function ChartCard({title,icon:Icon,children,loading,empty,emptyMsg,className=''}){
+function ChartCard({title,icon:Icon,accent,children,loading,empty,emptyMsg,className=''}){
+  const bg   = accent ? `${accent}12` : 'rgba(12,32,64,0.05)';
+  const bdr  = accent ? `${accent}28` : 'rgba(12,32,64,0.08)';
+  const icol = accent || '#1e4876';
   return(
     <div className={`card ${className}`}>
       <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(12,32,64,0.06)',border:'1px solid rgba(12,32,64,0.08)'}}>
-          <Icon size={15} className="text-navy-700"/>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:bg,border:`1px solid ${bdr}`}}>
+          <Icon size={15} style={{color:icol}}/>
         </div>
-        <h3 className="font-semibold text-gray-800 text-sm">{title}</h3>
+        <h3 className="font-semibold text-gray-800 text-sm tracking-tight">{title}</h3>
       </div>
-      {loading?(<div className="h-52 flex items-center justify-center"><div className="w-6 h-6 border-2 border-navy-100 border-t-navy-600 rounded-full animate-spin"/></div>)
-       :empty?(<div className="h-52 flex flex-col items-center justify-center gap-2"><BarChart2 size={30} className="text-gray-200"/><p className="text-sm text-gray-400">{emptyMsg||'No data yet'}</p></div>)
+      {loading?(<div className="h-52 flex items-center justify-center"><div className="w-5 h-5 border-2 border-navy-100 border-t-navy-500 rounded-full animate-spin"/></div>)
+       :empty?(<div className="h-52 flex flex-col items-center justify-center gap-2"><BarChart2 size={28} className="text-gray-200"/><p className="text-sm text-gray-400">{emptyMsg||'No data yet'}</p></div>)
        :children}
     </div>
   );
@@ -157,14 +160,19 @@ function QuickAction({label,to,icon:Icon,accent,grad}){
   const{onMove,onLeave,style}=use3DTilt();
   return(
     <Link to={to} onMouseMove={onMove} onMouseLeave={onLeave}
-      style={{...style,background:grad,boxShadow:'0 6px 24px rgba(0,0,0,0.30)'}}
-      className="group relative rounded-xl p-4 flex items-center justify-between overflow-hidden text-white">
-      <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full blur-2xl pointer-events-none opacity-30" style={{background:accent}}/>
+      style={{...style,background:grad,boxShadow:'0 4px 20px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.05)'}}
+      className="group relative rounded-xl p-4 flex items-center justify-between overflow-hidden text-white transition-all duration-200">
+      {/* Top shimmer */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{background:`linear-gradient(90deg,transparent,${accent}65,transparent)`}}/>
+      {/* Glow */}
+      <div className="absolute -bottom-8 -right-8 w-28 h-28 rounded-full blur-2xl pointer-events-none opacity-20" style={{background:accent}}/>
       <div className="relative z-10 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{background:`${accent}20`,border:`1px solid ${accent}40`}}><Icon size={17} style={{color:accent}}/></div>
-        <p className="text-sm font-semibold">{label}</p>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:`${accent}18`,border:`1px solid ${accent}32`}}>
+          <Icon size={17} style={{color:accent}}/>
+        </div>
+        <p className="text-sm font-semibold tracking-tight">{label}</p>
       </div>
-      <ArrowUpRight size={15} className="relative z-10 opacity-0 group-hover:opacity-60 transition-opacity flex-shrink-0"/>
+      <ArrowUpRight size={14} className="relative z-10 opacity-15 group-hover:opacity-65 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200 flex-shrink-0"/>
     </Link>
   );
 }
@@ -299,8 +307,8 @@ export default function DashboardPage(){
         {/* Controls bar */}
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2.5 mr-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(12,32,64,0.06)',border:'1px solid rgba(12,32,64,0.08)'}}>
-              <Layers size={15} className="text-navy-700"/>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(45,212,191,0.10)',border:'1px solid rgba(45,212,191,0.22)'}}>
+              <Layers size={15} style={{color:'#2dd4bf'}}/>
             </div>
             <div>
               <h3 className="font-semibold text-gray-800 text-sm leading-tight">Interactive Map</h3>
@@ -380,8 +388,8 @@ export default function DashboardPage(){
       {/* Province Table */}
       <div className="card">
         <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(12,32,64,0.06)',border:'1px solid rgba(12,32,64,0.08)'}}>
-            <MapPin size={15} className="text-navy-700"/>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(34,211,238,0.10)',border:'1px solid rgba(34,211,238,0.22)'}}>
+            <MapPin size={15} style={{color:'#22d3ee'}}/>
           </div>
           <div>
             <h3 className="font-semibold text-gray-800 text-sm">Marine Conservation by Province</h3>
@@ -393,7 +401,7 @@ export default function DashboardPage(){
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <ChartCard title="Marine Areas by Type" icon={Anchor} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet">
+        <ChartCard title="Marine Areas by Type" icon={Anchor} accent="#22d3ee" loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -404,7 +412,7 @@ export default function DashboardPage(){
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Coverage by Province (ha)" icon={Waves} loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
+        <ChartCard title="Coverage by Province (ha)" icon={Waves} accent="#2dd4bf" loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineByProvince} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
@@ -416,7 +424,7 @@ export default function DashboardPage(){
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Management Status" icon={Shield} loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet">
+        <ChartCard title="Management Status" icon={Shield} accent="#a78bfa" loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -430,7 +438,7 @@ export default function DashboardPage(){
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
+        <ChartCard title="Community Surveys by Province" icon={Users} accent="#fb7185" loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProv} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
@@ -443,7 +451,7 @@ export default function DashboardPage(){
         </ChartCard>
 
         {monByType.length>0||statsLoading?(
-          <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet">
+          <ChartCard title="Biological Monitoring by Type" icon={Activity} accent="#fbbf24" loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monByType} layout="vertical" barSize={18}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false}/>
@@ -457,8 +465,8 @@ export default function DashboardPage(){
         ):(
           <div className="card">
             <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(12,32,64,0.06)',border:'1px solid rgba(12,32,64,0.08)'}}><Database size={15} className="text-navy-700"/></div>
-              <h3 className="font-semibold text-gray-800 text-sm">Platform Summary</h3>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(167,139,250,0.10)',border:'1px solid rgba(167,139,250,0.22)'}}><Database size={15} style={{color:'#a78bfa'}}/></div>
+              <h3 className="font-semibold text-gray-800 text-sm tracking-tight">Platform Summary</h3>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -481,11 +489,11 @@ export default function DashboardPage(){
       {/* Dataset Coverage by Category */}
       <div className="card">
         <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(12,32,64,0.06)',border:'1px solid rgba(12,32,64,0.08)'}}>
-            <Database size={15} className="text-navy-700"/>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'rgba(167,139,250,0.10)',border:'1px solid rgba(167,139,250,0.22)'}}>
+            <Database size={15} style={{color:'#a78bfa'}}/>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-800 text-sm">Uploaded Dataset Coverage by Category</h3>
+            <h3 className="font-semibold text-gray-800 text-sm tracking-tight">Uploaded Dataset Coverage by Category</h3>
             <p className="text-xs text-gray-400 mt-0.5">Area (ha) automatically calculated from published spatial datasets</p>
           </div>
         </div>

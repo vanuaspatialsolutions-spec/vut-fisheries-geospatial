@@ -11,42 +11,52 @@
     -moz-osx-font-smoothing: grayscale;
   }
   body {
-    @apply bg-slate-50 text-gray-900;
+    background-color: #f1f5f9;
+    color: #111827;
   }
   * {
     @apply scroll-smooth;
   }
-  ::-webkit-scrollbar        { width: 5px; height: 5px; }
+  ::-webkit-scrollbar        { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track  { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb  { @apply bg-navy-200 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-navy-300; }
+  ::-webkit-scrollbar-thumb  { background: rgba(148,163,184,0.45); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.65); }
 }
 
 @layer components {
   /* ── Buttons ─────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
-           bg-navy-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm
-           hover:bg-navy-800 active:bg-navy-900
+           text-white px-4 py-2.5 rounded-lg font-medium text-sm
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus:ring-2 focus:ring-navy-500 focus:ring-offset-2
-           shadow-sm hover:shadow-md active:scale-[0.98];
+           focus:outline-none focus:ring-2 focus:ring-navy-500/40 focus:ring-offset-2
+           shadow-sm active:scale-[0.98];
+    background: linear-gradient(135deg, #1e4876 0%, #0c2040 100%);
+    box-shadow: 0 1px 3px rgba(12,32,64,0.25), 0 1px 1px rgba(0,0,0,0.05);
   }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #234f80 0%, #0f2650 100%);
+    box-shadow: 0 4px 12px rgba(12,32,64,0.35), 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .btn-primary:active:not(:disabled) {
+    background: linear-gradient(135deg, #0c2040 0%, #071529 100%);
+  }
+
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2
            bg-white text-navy-700 px-4 py-2.5 rounded-lg font-medium text-sm
-           border border-navy-200 hover:bg-navy-50 hover:border-navy-300
+           border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-navy-800
            transition-all duration-150
-           focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-1
-           shadow-sm;
+           focus:outline-none focus:ring-2 focus:ring-navy-400/30 focus:ring-offset-1
+           shadow-sm active:scale-[0.98] active:bg-gray-100;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2
            bg-red-600 text-white px-4 py-2.5 rounded-lg font-medium text-sm
-           hover:bg-red-700 active:bg-red-800
+           hover:bg-red-700 active:bg-red-800 active:scale-[0.98]
            transition-all duration-150
-           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+           focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
            shadow-sm;
   }
   .btn-ghost {
@@ -54,7 +64,7 @@
            text-gray-600 px-4 py-2.5 rounded-lg font-medium text-sm
            hover:bg-gray-100 hover:text-gray-900
            transition-all duration-150
-           focus:outline-none focus:ring-2 focus:ring-gray-300;
+           focus:outline-none focus:ring-2 focus:ring-gray-300/60;
   }
 
   /* ── Form Controls ───────────────────────────────────── */
@@ -63,13 +73,13 @@
            border border-gray-200 rounded-lg
            bg-white text-sm text-gray-900
            placeholder:text-gray-400
-           focus:outline-none focus:ring-2 focus:ring-navy-500/30 focus:border-navy-500
+           focus:outline-none focus:ring-2 focus:ring-navy-500/25 focus:border-navy-400
            hover:border-gray-300
            transition-all duration-150
            shadow-sm;
   }
   .form-label {
-    @apply block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5;
+    @apply block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5;
   }
 
   /* ── Cards ───────────────────────────────────────────── */
@@ -79,6 +89,13 @@
   }
   .card-hover {
     @apply card hover:shadow-card-md cursor-pointer;
+  }
+
+  /* ── Icon badge (reusable colored icon container) ───── */
+  .icon-badge {
+    @apply w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0;
+    background: rgba(12,32,64,0.06);
+    border: 1px solid rgba(12,32,64,0.08);
   }
 
   /* ── Badges ──────────────────────────────────────────── */
@@ -103,12 +120,12 @@
 
   /* ── Page structure ──────────────────────────────────── */
   .page-header   { @apply flex items-center justify-between mb-6; }
-  .page-title    { @apply text-2xl font-bold text-gray-900; }
-  .page-subtitle { @apply text-sm text-gray-500 mt-0.5; }
+  .page-title    { @apply text-2xl font-bold text-gray-900 tracking-tight; }
+  .page-subtitle { @apply text-sm text-gray-400 mt-0.5; }
 
   /* ── Table ───────────────────────────────────────────── */
-  .table-row    { @apply border-b border-gray-50 hover:bg-gray-50/80 transition-colors duration-100; }
-  .table-header { @apply bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider; }
+  .table-row    { @apply border-b border-gray-50 hover:bg-slate-50/70 transition-colors duration-100; }
+  .table-header { @apply bg-gray-50/80 text-[11px] font-semibold text-gray-500 uppercase tracking-wider; }
 }
 
 /* ── Leaflet ─────────────────────────────────────────────── */
@@ -174,3 +191,6 @@
 .wave-pattern {
   background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='wave' x='0' y='0' width='100' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 10 C25 0 75 20 100 10 L100 20 L0 20 Z' fill='rgba(255,255,255,0.03)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23wave)'/%3E%3C/svg%3E");
 }
+
+/* ── Custom shadow utilities ─────────────────────────────── */
+/* (defined here so they're available outside Tailwind config) */
