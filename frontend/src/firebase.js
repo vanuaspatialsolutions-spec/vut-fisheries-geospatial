@@ -16,4 +16,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Secondary app used exclusively for admin-creates-user flow.
+// Using a separate app instance prevents Firebase from signing out the
+// currently logged-in admin when createUserWithEmailAndPassword is called.
+const secondaryApp = initializeApp(firebaseConfig, 'secondary');
+export const secondaryAuth = getAuth(secondaryApp);
+
 export default app;

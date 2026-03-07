@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
+import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, createUserByAdmin, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
 import { useAuth } from '../context/AuthContext';
+import { VANUATU_PROVINCES } from '../utils/constants';
 import toast from 'react-hot-toast';
-import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle } from 'lucide-react';
+import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, X, Eye, EyeOff } from 'lucide-react';
 
 function TabButton({ active, onClick, children }) {
   return (
@@ -13,12 +14,112 @@ function TabButton({ active, onClick, children }) {
   );
 }
 
+function CreateUserModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', password:'', role:'staff', organization:'', province:'' });
+  const [showPw, setShowPw] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.firstName.trim() || !form.lastName.trim()) return toast.error('First and last name are required.');
+    if (!form.email.trim()) return toast.error('Email is required.');
+    if (form.password.length < 6) return toast.error('Password must be at least 6 characters.');
+    setSaving(true);
+    try {
+      await createUserByAdmin(form);
+      toast.success(`Account created for ${form.firstName} ${form.lastName}.`);
+      onCreated();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Failed to create user.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <UserPlus size={18} className="text-ocean-700" />
+            <h3 className="font-semibold text-gray-900">Create New User</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">First Name *</label>
+              <input className="form-input" value={form.firstName} onChange={e=>set('firstName',e.target.value)} placeholder="First name" required/>
+            </div>
+            <div>
+              <label className="form-label">Last Name *</label>
+              <input className="form-input" value={form.lastName} onChange={e=>set('lastName',e.target.value)} placeholder="Last name" required/>
+            </div>
+          </div>
+
+          <div>
+            <label className="form-label">Email Address *</label>
+            <input className="form-input" type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="user@example.com" required/>
+          </div>
+
+          <div>
+            <label className="form-label">Password *</label>
+            <div className="relative">
+              <input className="form-input pr-10" type={showPw?'text':'password'} value={form.password}
+                onChange={e=>set('password',e.target.value)} placeholder="Min. 6 characters" required minLength={6}/>
+              <button type="button" onClick={()=>setShowPw(p=>!p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff size={15}/> : <Eye size={15}/>}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="form-label">Role *</label>
+            <select className="form-input" value={form.role} onChange={e=>set('role',e.target.value)}>
+              <option value="community_officer">Community Officer</option>
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="form-label">Organization</label>
+            <input className="form-input" value={form.organization} onChange={e=>set('organization',e.target.value)} placeholder="e.g. Vanuatu Dept. of Fisheries"/>
+          </div>
+
+          <div>
+            <label className="form-label">Province</label>
+            <select className="form-input" value={form.province} onChange={e=>set('province',e.target.value)}>
+              <option value="">Select province…</option>
+              {VANUATU_PROVINCES.map(p=><option key={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60">
+              {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Creating…</> : <><UserPlus size={15}/>Create User</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function UsersTab() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState(null);
   const [working, setWorking] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const fetchUsers = () => {
     setLoading(true);
@@ -136,6 +237,13 @@ function UsersTab() {
 
   return (
     <div className="space-y-6">
+      {showCreate && (
+        <CreateUserModal
+          onClose={() => setShowCreate(false)}
+          onCreated={fetchUsers}
+        />
+      )}
+
       {/* ── Pending approvals ── */}
       {pending.length > 0 && (
         <div className="space-y-3">
@@ -180,7 +288,13 @@ function UsersTab() {
 
       {/* ── All other users ── */}
       <div className="space-y-3">
-        <p className="text-sm text-gray-500">{others.length} registered user{others.length !== 1 ? 's' : ''}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">{others.length} registered user{others.length !== 1 ? 's' : ''}</p>
+          <button onClick={() => setShowCreate(true)}
+            className="btn-primary text-sm py-2 flex items-center gap-2">
+            <UserPlus size={15} /> Create User
+          </button>
+        </div>
         <div className="card overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">

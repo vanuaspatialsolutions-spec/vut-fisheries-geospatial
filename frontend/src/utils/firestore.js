@@ -2,9 +2,10 @@
  * Firestore service layer — replaces all Express API calls.
  * All reads/writes go directly to Firebase from the browser.
  */
-import { db, storage, auth } from '../firebase';
+import { db, storage, auth, secondaryAuth } from '../firebase';
+import { createUserWithEmailAndPassword, signOut as secondarySignOut } from 'firebase/auth';
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, getBytes, deleteObject } from 'firebase/storage';
@@ -918,4 +919,49 @@ export async function rejectUser(uid) {
 
 export async function deleteUserProfile(uid) {
   return deleteDoc(doc(db, 'users', uid));
+}
+
+/**
+ * Admin-only: create a new Firebase Auth account + Firestore profile without
+ * signing out the currently logged-in admin. Uses the secondary app instance
+ * so the primary auth session is untouched.
+ *
+ * @param {{ email, password, firstName, lastName, role, organization, province }} data
+ */
+export async function createUserByAdmin({ email, password, firstName, lastName, role, organization, province }) {
+  if (!auth.currentUser) throw new Error('Must be signed in as admin.');
+
+  // Create Auth account using secondary app — does NOT affect the primary session.
+  let newCred;
+  try {
+    newCred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+  } catch (err) {
+    if (err.code === 'auth/email-already-in-use') throw new Error('An account with this email already exists.');
+    if (err.code === 'auth/weak-password') throw new Error('Password must be at least 6 characters.');
+    if (err.code === 'auth/invalid-email') throw new Error('Invalid email address.');
+    throw err;
+  }
+
+  const uid = newCred.user.uid;
+
+  // Sign the secondary app out immediately — we only needed it for account creation.
+  await secondarySignOut(secondaryAuth).catch(() => {});
+
+  // Write the Firestore user profile (authenticated as the admin via primary app).
+  await setDoc(doc(db, 'users', uid), {
+    uid,
+    email,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    role: role || 'staff',
+    organization: organization?.trim() || '',
+    province: province || '',
+    status: 'approved',
+    isActive: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdByAdmin: auth.currentUser.uid,
+  });
+
+  return uid;
 }

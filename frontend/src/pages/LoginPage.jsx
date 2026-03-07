@@ -204,11 +204,8 @@ export default function LoginPage() {
               </form>
 
               <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-                <p className="text-sm text-gray-500">
-                  Don&apos;t have an account?{' '}
-                  <Link to="/register" className="text-navy-700 font-semibold hover:text-navy-800 hover:underline underline-offset-2">
-                    Register
-                  </Link>
+                <p className="text-sm text-gray-400">
+                  Account access is managed by the platform administrator.
                 </p>
               </div>
             </div>
