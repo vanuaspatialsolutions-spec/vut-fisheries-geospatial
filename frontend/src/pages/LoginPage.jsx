@@ -44,16 +44,16 @@ export default function LoginPage() {
 
       {/* ── Left panel — branding (desktop) ── */}
       <div className="hidden lg:flex lg:w-[52%] bg-animate flex-col relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #071529 0%, #0c2040 40%, #112f53 70%, #1a4470 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #0a2d52 0%, #0d4a87 40%, #1060a8 70%, #1272b5 100%)' }}>
 
         {/* Dot-grid texture */}
         <div className="absolute inset-0 dot-grid" />
         {/* Radial glow bottom-right */}
         <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(212,169,42,0.12) 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.14) 0%, transparent 70%)' }} />
         {/* Radial glow top-left */}
         <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(90,141,192,0.15) 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.20) 0%, transparent 70%)' }} />
 
         <div className="relative z-10 flex flex-col h-full p-10 xl:p-14">
 

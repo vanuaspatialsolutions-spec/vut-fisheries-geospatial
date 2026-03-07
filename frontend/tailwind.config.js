@@ -4,39 +4,39 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary — deep navy (government/maritime authority)
+        // Primary — Pacific Ocean blue
         navy: {
-          50:  '#f0f4fa',
-          100: '#dce6f5',
-          200: '#b9cce8',
-          300: '#8aaed6',
-          400: '#5a8dc0',
-          500: '#3570a8',
-          600: '#255a8e',
-          700: '#1a4470',
-          800: '#112f53',
-          900: '#0c2040',
-          950: '#071529',
+          50:  '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+          950: '#082f49',
         },
-        // Accent — Vanuatu gold
+        // Accent — Pacific Cyan
         gold: {
-          300: '#f0d580',
-          400: '#e6c255',
-          500: '#d4a92a',
-          600: '#b88f1a',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4',
+          600: '#0891b2',
         },
         // Keep ocean for backwards compat (mapped to navy)
         ocean: {
-          50:  '#f0f4fa',
-          100: '#dce6f5',
-          200: '#b9cce8',
-          300: '#8aaed6',
-          400: '#5a8dc0',
-          500: '#3570a8',
-          600: '#255a8e',
-          700: '#1a4470',
-          800: '#112f53',
-          900: '#0c2040',
+          50:  '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
         },
         coral: {
           50:  '#fff7ed',

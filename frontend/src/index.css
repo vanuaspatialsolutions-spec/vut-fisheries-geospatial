@@ -11,7 +11,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
   body {
-    background-color: #f1f5f9;
+    background-color: #f0f9ff;
     color: #111827;
   }
   * {
@@ -32,15 +32,15 @@
            disabled:opacity-50 disabled:cursor-not-allowed
            focus:outline-none focus:ring-2 focus:ring-navy-500/40 focus:ring-offset-2
            shadow-sm active:scale-[0.98];
-    background: linear-gradient(135deg, #1e4876 0%, #0c2040 100%);
-    box-shadow: 0 1px 3px rgba(12,32,64,0.25), 0 1px 1px rgba(0,0,0,0.05);
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    box-shadow: 0 1px 3px rgba(3,105,161,0.30), 0 1px 1px rgba(0,0,0,0.05);
   }
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #234f80 0%, #0f2650 100%);
-    box-shadow: 0 4px 12px rgba(12,32,64,0.35), 0 1px 2px rgba(0,0,0,0.08);
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+    box-shadow: 0 4px 12px rgba(3,105,161,0.40), 0 1px 2px rgba(0,0,0,0.08);
   }
   .btn-primary:active:not(:disabled) {
-    background: linear-gradient(135deg, #0c2040 0%, #071529 100%);
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   }
 
   .btn-secondary {
@@ -94,8 +94,8 @@
   /* ── Icon badge (reusable colored icon container) ───── */
   .icon-badge {
     @apply w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0;
-    background: rgba(12,32,64,0.06);
-    border: 1px solid rgba(12,32,64,0.08);
+    background: rgba(3,105,161,0.06);
+    border: 1px solid rgba(3,105,161,0.10);
   }
 
   /* ── Badges ──────────────────────────────────────────── */
@@ -157,9 +157,9 @@
   background-size: 28px 28px;
 }
 
-/* Gold shimmer line */
+/* Pacific cyan shimmer line */
 .gold-line {
-  background: linear-gradient(90deg, transparent, #d4a92a, transparent);
+  background: linear-gradient(90deg, transparent, #22d3ee, transparent);
   height: 1px;
 }
 
@@ -179,12 +179,12 @@
 
 /* ── Stat card staggered entrance ───────────────────────── */
 @keyframes statCardIn {
-  from { opacity: 0; transform: perspective(900px) translateY(20px) rotateX(8deg); }
-  to   { opacity: 1; transform: perspective(900px) translateY(0)   rotateX(0deg); }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .stat-card-entrance {
   opacity: 0;
-  animation: statCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: statCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ── Wave pattern (kept for compat) ─────────────────────── */
