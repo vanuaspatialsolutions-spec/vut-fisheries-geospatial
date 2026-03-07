@@ -29,25 +29,6 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null);
       }
-    const token = localStorage.getItem('cbfm_token');
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      api.get('/auth/me')
-        .then(res => setUser(res.data.user))
-        .catch(err => {
-          // Only clear token on explicit 401 — not on network errors or cold-start timeouts
-          if (err.response?.status === 401) {
-            localStorage.removeItem('cbfm_token');
-          } else {
-            // Network/timeout: keep the token; try to read basic info from JWT payload
-            try {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              if (payload?.id) setUser({ id: payload.id, role: payload.role || 'community_officer' });
-            } catch { /* ignore malformed token */ }
-          }
-        })
-        .finally(() => setLoading(false));
-    } else {
       setLoading(false);
     });
     return unsub;
@@ -58,7 +39,14 @@ export function AuthProvider({ children }) {
     let profileData = {};
     try {
       const snap = await getDoc(doc(db, 'users', cred.user.uid));
-      if (snap.exists()) profileData = snap.data();
+      if (snap.exists()) {
+        profileData = snap.data();
+        // Surface approval toast if admin just approved this account
+        if (profileData.status === 'approved' && !profileData.approvalNotified) {
+          profileData._showApprovalToast = true;
+          await setDoc(doc(db, 'users', cred.user.uid), { approvalNotified: true }, { merge: true });
+        }
+      }
     } catch {
       // Firestore read failed — user is still authenticated
     }
@@ -83,11 +71,20 @@ export function AuthProvider({ children }) {
       organization: organization || '',
       province: province || '',
       isActive: true,
+      status: 'approved',
+      approvalNotified: true,
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
     setUser({ uid: cred.user.uid, ...profile });
     return { uid: cred.user.uid, ...profile };
+  };
+
+  const saveProfile = async (profileData) => {
+    if (!auth.currentUser) throw new Error('Not authenticated');
+    const uid = auth.currentUser.uid;
+    await setDoc(doc(db, 'users', uid), { ...profileData, updatedAt: serverTimestamp() }, { merge: true });
+    setUser(prev => ({ ...prev, ...profileData }));
   };
 
   const logout = () => signOut(auth).then(() => setUser(null));
@@ -96,7 +93,7 @@ export function AuthProvider({ children }) {
   const isStaff = ['admin', 'staff'].includes(user?.role);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin, isStaff }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, saveProfile, isAdmin, isStaff }}>
       {children}
     </AuthContext.Provider>
   );
