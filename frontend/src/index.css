@@ -11,45 +11,47 @@
     -moz-osx-font-smoothing: grayscale;
   }
   body {
-    background-color: #eff6ff;
+    background-color: #EEF6FF;
+    background-image: radial-gradient(circle, rgba(0,59,122,0.035) 1px, transparent 1px);
+    background-size: 26px 26px;
     color: #111827;
   }
-  * {
-    @apply scroll-smooth;
-  }
+  * { @apply scroll-smooth; }
   ::-webkit-scrollbar        { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track  { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb  { background: rgba(148,163,184,0.45); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.65); }
+  ::-webkit-scrollbar-thumb  { background: rgba(0,59,122,0.18); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,59,122,0.32); }
 }
 
 @layer components {
-  /* ── Buttons ─────────────────────────────────────────── */
+  /* ── Buttons ──────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
            text-white px-4 py-2.5 rounded-lg font-medium text-sm
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus:ring-2 focus:ring-navy-500/40 focus:ring-offset-2
+           focus:outline-none focus:ring-2 focus:ring-navy-600/40 focus:ring-offset-2
            shadow-sm active:scale-[0.98];
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-    box-shadow: 0 1px 3px rgba(37,99,235,0.30), 0 1px 1px rgba(0,0,0,0.05);
+    background: linear-gradient(135deg, #003B7A 0%, #0062E6 100%);
+    box-shadow: 0 2px 8px rgba(0,59,122,0.35), 0 1px 2px rgba(0,0,0,0.08);
   }
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-    box-shadow: 0 4px 12px rgba(37,99,235,0.40), 0 1px 2px rgba(0,0,0,0.08);
+    background: linear-gradient(135deg, #0051A8 0%, #3388FF 100%);
+    box-shadow: 0 4px 16px rgba(0,59,122,0.40), 0 1px 3px rgba(0,0,0,0.10);
+    transform: translateY(-1px);
   }
   .btn-primary:active:not(:disabled) {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #002855 0%, #003B7A 100%);
+    transform: translateY(0);
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2
            bg-white text-navy-700 px-4 py-2.5 rounded-lg font-medium text-sm
-           border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-navy-800
+           border border-navy-100 hover:bg-navy-50 hover:border-navy-200 hover:text-navy-800
            transition-all duration-150
            focus:outline-none focus:ring-2 focus:ring-navy-400/30 focus:ring-offset-1
-           shadow-sm active:scale-[0.98] active:bg-gray-100;
+           shadow-sm active:scale-[0.98] active:bg-navy-50;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2
@@ -62,9 +64,9 @@
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2
            text-gray-600 px-4 py-2.5 rounded-lg font-medium text-sm
-           hover:bg-gray-100 hover:text-gray-900
+           hover:bg-navy-50 hover:text-navy-700
            transition-all duration-150
-           focus:outline-none focus:ring-2 focus:ring-gray-300/60;
+           focus:outline-none focus:ring-2 focus:ring-navy-200/60;
   }
 
   /* ── Form Controls ───────────────────────────────────── */
@@ -73,8 +75,8 @@
            border border-gray-200 rounded-lg
            bg-white text-sm text-gray-900
            placeholder:text-gray-400
-           focus:outline-none focus:ring-2 focus:ring-navy-500/25 focus:border-navy-400
-           hover:border-gray-300
+           focus:outline-none focus:ring-2 focus:ring-navy-600/20 focus:border-navy-500
+           hover:border-navy-200
            transition-all duration-150
            shadow-sm;
   }
@@ -84,18 +86,18 @@
 
   /* ── Cards ───────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-xl border border-gray-100 p-6
-           shadow-card transition-shadow duration-200;
+    @apply bg-white rounded-xl border p-6 shadow-card transition-shadow duration-200;
+    border-color: rgba(0,59,122,0.08);
   }
   .card-hover {
     @apply card hover:shadow-card-md cursor-pointer;
   }
 
-  /* ── Icon badge (reusable colored icon container) ───── */
+  /* ── Icon badge ──────────────────────────────────────── */
   .icon-badge {
     @apply w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0;
-    background: rgba(37,99,235,0.06);
-    border: 1px solid rgba(37,99,235,0.10);
+    background: rgba(0,59,122,0.06);
+    border: 1px solid rgba(0,59,122,0.11);
   }
 
   /* ── Badges ──────────────────────────────────────────── */
@@ -108,12 +110,12 @@
   .badge-archived  { @apply badge bg-red-50 text-red-700; }
 
   /* ── Skeleton ────────────────────────────────────────── */
-  .skeleton      { @apply animate-pulse bg-gray-100 rounded; }
+  .skeleton      { @apply animate-pulse bg-navy-50 rounded; }
   .skeleton-text { @apply skeleton h-4 rounded; }
   .skeleton-title{ @apply skeleton h-6 rounded w-1/3; }
 
   /* ── Stat card gradients ─────────────────────────────── */
-  .stat-card-ocean  { @apply bg-gradient-to-br from-navy-600  to-navy-800  text-white; }
+  .stat-card-ocean  { @apply bg-gradient-to-br from-navy-700 to-navy-900 text-white; }
   .stat-card-reef   { @apply bg-gradient-to-br from-emerald-500 to-emerald-700 text-white; }
   .stat-card-coral  { @apply bg-gradient-to-br from-orange-500 to-orange-700 text-white; }
   .stat-card-purple { @apply bg-gradient-to-br from-violet-600 to-violet-800 text-white; }
@@ -124,8 +126,8 @@
   .page-subtitle { @apply text-sm text-gray-400 mt-0.5; }
 
   /* ── Table ───────────────────────────────────────────── */
-  .table-row    { @apply border-b border-gray-50 hover:bg-slate-50/70 transition-colors duration-100; }
-  .table-header { @apply bg-gray-50/80 text-[11px] font-semibold text-gray-500 uppercase tracking-wider; }
+  .table-row    { @apply border-b border-navy-50 hover:bg-navy-50/50 transition-colors duration-100; }
+  .table-header { @apply bg-navy-50/60 text-[11px] font-semibold text-navy-600 uppercase tracking-wider; }
 }
 
 /* ── Leaflet ─────────────────────────────────────────────── */
@@ -136,39 +138,74 @@
 }
 .leaflet-popup-content-wrapper {
   border-radius: 12px !important;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 10px 40px rgba(0,27,70,0.18) !important;
 }
 .leaflet-popup-tip { box-shadow: none !important; }
 
-/* ── Login panel animations ──────────────────────────────── */
+/* ── Fish-scale / hex pattern (dark panels) ──────────────── */
+.fish-scale {
+  background-image:
+    radial-gradient(ellipse at 50% 0%,   rgba(255,255,255,0) 50%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.055) 55%, transparent 55%),
+    radial-gradient(ellipse at 0%   50%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.055) 55%, transparent 55%),
+    radial-gradient(ellipse at 100% 50%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.055) 55%, transparent 55%);
+  background-size: 44px 44px;
+  background-position: 0 0;
+}
+
+/* ── Dot-grid (subtle dots for dark panels) ──────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.09) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Hex-grid (very subtle, for light bg areas) ─────────── */
+.hex-grid-light {
+  background-image:
+    linear-gradient(rgba(0,59,122,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,59,122,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Cyan accent divider line ───────────────────────────── */
+.gold-line {
+  background: linear-gradient(90deg, transparent, #22D3EE 40%, #0062E6 80%, transparent);
+  height: 2px;
+  border-radius: 2px;
+}
+
+/* ── Login panel gradient animation ─────────────────────── */
 @keyframes gradientShift {
   0%   { background-position: 0%   50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0%   50%; }
 }
 .bg-animate {
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  background-size: 300% 300%;
+  animation: gradientShift 18s ease infinite;
 }
 
-/* Subtle dot-grid background for login panel */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 28px 28px;
+/* ── Floating orb pulse ──────────────────────────────────── */
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0px) scale(1); opacity: 0.6; }
+  50%       { transform: translateY(-20px) scale(1.08); opacity: 0.85; }
 }
+.orb-float { animation: orbFloat 8s ease-in-out infinite; }
+.orb-float-slow { animation: orbFloat 12s ease-in-out infinite; animation-delay: -4s; }
 
-/* Pacific cyan shimmer line */
-.gold-line {
-  background: linear-gradient(90deg, transparent, #22d3ee, transparent);
-  height: 1px;
+/* ── Wave SVG animation ──────────────────────────────────── */
+@keyframes waveMove {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
+.wave-animate { animation: waveMove 14s linear infinite; }
+.wave-animate-slow { animation: waveMove 22s linear infinite; }
 
 /* ── Fade in ─────────────────────────────────────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-in { animation: fadeUp 0.35s ease-out forwards; }
+.fade-in { animation: fadeUp 0.38s ease-out forwards; }
 
 /* ── Count up ────────────────────────────────────────────── */
 @keyframes countUp {
@@ -179,18 +216,12 @@
 
 /* ── Stat card staggered entrance ───────────────────────── */
 @keyframes statCardIn {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .stat-card-entrance {
   opacity: 0;
-  animation: statCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* ── Wave pattern (kept for compat) ─────────────────────── */
-.wave-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='wave' x='0' y='0' width='100' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 10 C25 0 75 20 100 10 L100 20 L0 20 Z' fill='rgba(255,255,255,0.03)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23wave)'/%3E%3C/svg%3E");
+  animation: statCardIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ── Custom shadow utilities ─────────────────────────────── */
-/* (defined here so they're available outside Tailwind config) */

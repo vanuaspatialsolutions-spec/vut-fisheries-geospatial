@@ -8,7 +8,8 @@ import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin
 function TabButton({ active, onClick, children }) {
   return (
     <button onClick={onClick}
-      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? 'bg-ocean-700 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+      className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${active ? 'text-white shadow-sm' : 'text-gray-500 hover:bg-navy-50 hover:text-navy-700'}`}
+      style={active ? { background: 'linear-gradient(135deg, #001A38, #003B7A)', boxShadow: '0 2px 8px rgba(0,27,70,0.25)' } : {}}>
       {children}
     </button>
   );
@@ -44,7 +45,7 @@ function CreateUserModal({ onClose, onCreated }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <UserPlus size={18} className="text-ocean-700" />
+            <UserPlus size={18} style={{ color: '#003B7A' }} />
             <h3 className="font-semibold text-gray-900">Create New User</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
@@ -207,8 +208,8 @@ function UsersTab() {
   const others  = users.filter(u => u.status !== 'pending');
 
   if (loading) return (
-    <div className="flex items-center justify-center py-12 gap-3 text-navy-600">
-      <span className="w-5 h-5 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" />
+    <div className="flex items-center justify-center py-12 gap-3" style={{ color: '#003B7A' }}>
+      <span className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(0,59,122,0.20)', borderTopColor: '#003B7A' }} />
       Loading users…
     </div>
   );
@@ -433,7 +434,7 @@ function DatasetsAdminTab() {
     } catch { toast.error('Action failed.'); }
   };
 
-  if (loading) return <div className="text-center py-8 text-ocean-600">Loading...</div>;
+  if (loading) return <div className="text-center py-8 font-medium" style={{ color: '#003B7A' }}>Loading...</div>;
 
   return (
     <div className="space-y-3">
@@ -521,7 +522,7 @@ export default function AdminPage() {
     <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Shield size={24} className="text-ocean-700" /> Admin Panel
+          <Shield size={24} style={{ color: '#003B7A' }} /> Admin Panel
         </h2>
         <p className="text-gray-500 text-sm">Manage users, datasets, and platform settings</p>
       </div>
