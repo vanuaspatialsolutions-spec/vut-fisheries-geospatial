@@ -40,7 +40,6 @@ function UserAvatar({ user }) {
         boxShadow: '0 0 0 2px #fff, 0 0 0 3.5px rgba(0,59,122,0.28)',
       }}
     >
-    <div className="w-7 h-7 bg-ocean-700 rounded flex items-center justify-center text-white text-xs font-semibold">
       {initials || '?'}
     </div>
   );
@@ -103,9 +102,6 @@ export default function Header() {
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${roleBadge[user?.role] || 'bg-gray-100 text-gray-500'}`}>
               {roleLabel[user?.role] || user?.role}
             </span>
-          <div className="text-sm leading-tight hidden sm:block">
-            <p className="font-medium text-gray-800 text-[13px]">{user?.firstName} {user?.lastName}</p>
-            <p className="text-[10px] text-gray-400">{roleLabel[user?.role] || user?.role}</p>
           </div>
         </div>
 

@@ -167,12 +167,9 @@ export function AuthProvider({ children }) {
       role,
       organization: organization || '',
       province: province || '',
-      isActive: isFirst,
+      isActive: true,
       status: isFirst ? 'approved' : 'pending',
       approvalNotified: isFirst,
-      isActive: true,
-      status: 'approved',
-      approvalNotified: true,
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
@@ -216,15 +213,6 @@ export function AuthProvider({ children }) {
     if (auth.currentUser) clearCachedProfile(auth.currentUser.uid);
     return signOut(auth).then(() => setUser(null));
   };
-  const saveProfile = async (profileData) => {
-    if (!auth.currentUser) throw new Error('Not authenticated');
-    const uid = auth.currentUser.uid;
-    await setDoc(doc(db, 'users', uid), { ...profileData, updatedAt: serverTimestamp() }, { merge: true });
-    setUser(prev => ({ ...prev, ...profileData }));
-  };
-
-  const logout = () => signOut(auth).then(() => setUser(null));
-
   const isAdmin = user?.role === 'admin';
   const isStaff = ['admin', 'staff'].includes(user?.role);
 
