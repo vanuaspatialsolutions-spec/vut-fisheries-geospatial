@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
+import { auth } from '../firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Map, BarChart3, Shield, Users } from 'lucide-react';
+import { Eye, EyeOff, Map, BarChart3, Shield, Users, KeyRound, ArrowLeft } from 'lucide-react';
 
 const features = [
   { icon: Map,       label: 'Spatial Data Management',  desc: 'Visualise LMMAs and marine zones across Vanuatu' },
@@ -12,11 +14,39 @@ const features = [
   { icon: Shield,    label: 'Secure & Role-based',      desc: 'Admin, staff, and community officer access levels' },
 ];
 
+function loginErrorMessage(code) {
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'Incorrect email or password. Use "Forgot password?" to reset.';
+    case 'auth/invalid-email':
+      return 'Invalid email address format.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Contact the administrator.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts — account temporarily locked. Reset your password or try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Check your internet connection and try again.';
+    case 'auth/operation-not-allowed':
+      return 'Email/password sign-in is not enabled. Contact the administrator.';
+    case 'auth/account-pending':
+    case 'auth/account-rejected':
+      return null; // handled separately with the full message
+    default:
+      return `Sign-in failed (${code || 'unknown error'}). Try again or reset your password.`;
+  }
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const [resetMode, setResetMode] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+
+  const { register, handleSubmit, getValues, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = async (data) => {
     try {
@@ -30,12 +60,44 @@ export default function LoginPage() {
     } catch (err) {
       const code = err.code;
       if (code === 'auth/account-pending' || code === 'auth/account-rejected') {
-        toast.error(err.message, { duration: 6000 });
-      } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        toast.error('Invalid email or password.');
+        toast.error(err.message, { duration: 7000 });
       } else {
-        toast.error('Login failed. Please try again.');
+        const msg = loginErrorMessage(code);
+        toast.error(msg, { duration: 6000 });
       }
+    }
+  };
+
+  const openResetMode = () => {
+    const emailVal = getValues('email');
+    setResetEmail(emailVal || '');
+    setResetMode(true);
+  };
+
+  const sendReset = async (e) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      toast.error('Enter your email address first.');
+      return;
+    }
+    setResetSending(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail.trim());
+      toast.success(`Password reset email sent to ${resetEmail.trim()}. Check your inbox.`, { duration: 8000 });
+      setResetMode(false);
+    } catch (err) {
+      const code = err.code;
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-email' || code === 'auth/invalid-credential') {
+        // Don't reveal whether the address exists — still show success for security
+        toast.success(`If that email is registered, a reset link has been sent.`, { duration: 8000 });
+        setResetMode(false);
+      } else if (code === 'auth/too-many-requests') {
+        toast.error('Too many requests. Please wait a few minutes before trying again.');
+      } else {
+        toast.error(`Could not send reset email (${code || 'unknown'}). Try again.`);
+      }
+    } finally {
+      setResetSending(false);
     }
   };
 
@@ -59,7 +121,6 @@ export default function LoginPage() {
 
           {/* ── Logos row ── */}
           <div className="flex items-center gap-0 mb-12">
-            {/* Coat of Arms */}
             <div className="flex items-center gap-4 pr-6 border-r border-white/15">
               <img
                 src={`${import.meta.env.BASE_URL}vanuatu-coat-of-arms.png`}
@@ -71,7 +132,6 @@ export default function LoginPage() {
                 <p className="text-navy-300 text-xs mt-0.5">Government of Vanuatu</p>
               </div>
             </div>
-            {/* Fisheries Logo */}
             <div className="flex items-center gap-4 pl-6">
               <img
                 src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
@@ -85,7 +145,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* ── Gold divider ── */}
+          {/* ── Divider ── */}
           <div className="gold-line w-16 mb-10" />
 
           {/* ── Hero text ── */}
@@ -146,69 +206,126 @@ export default function LoginPage() {
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
+        <div className="flex-1 flex items-center justify-center p-8 bg-blue-50">
           <div className="w-full max-w-[400px] fade-in">
 
-            {/* Form card */}
-            <div className="bg-white rounded-2xl shadow-card-lg border border-gray-100 p-8">
-
-              {/* Heading */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Sign in</h2>
-                <p className="text-gray-400 text-sm mt-1">Enter your credentials to access the platform</p>
-              </div>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                <div>
-                  <label className="form-label">Email address</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    placeholder="you@fisheries.gov.vu"
-                    autoComplete="email"
-                    {...register('email', { required: 'Email is required' })}
-                  />
-                  {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
+            {/* ── Sign-in card ── */}
+            {!resetMode ? (
+              <div className="bg-white rounded-2xl shadow-card-lg border border-gray-100 p-8">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Sign in</h2>
+                  <p className="text-gray-400 text-sm mt-1">Enter your credentials to access the platform</p>
                 </div>
 
-                <div>
-                  <label className="form-label">Password</label>
-                  <div className="relative">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                  <div>
+                    <label className="form-label">Email address</label>
                     <input
-                      type={showPass ? 'text' : 'password'}
-                      className="form-input pr-11"
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      {...register('password', { required: 'Password is required' })}
+                      type="email"
+                      className="form-input"
+                      placeholder="you@fisheries.gov.vu"
+                      autoComplete="email"
+                      {...register('email', { required: 'Email is required' })}
                     />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      onClick={() => setShowPass(!showPass)}
-                      tabIndex={-1}
-                    >
-                      {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
+                    {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
                   </div>
-                  {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="form-label !mb-0">Password</label>
+                      <button
+                        type="button"
+                        onClick={openResetMode}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPass ? 'text' : 'password'}
+                        className="form-input pr-11"
+                        placeholder="Enter your password"
+                        autoComplete="current-password"
+                        {...register('password', { required: 'Password is required' })}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        onClick={() => setShowPass(!showPass)}
+                        tabIndex={-1}
+                      >
+                        {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                    {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 mt-2">
+                    {isSubmitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Signing in…
+                      </span>
+                    ) : 'Sign in'}
+                  </button>
+                </form>
+
+                <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+                  <p className="text-sm text-gray-400">
+                    Account access is managed by the platform administrator.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* ── Forgot Password card ── */
+              <div className="bg-white rounded-2xl shadow-card-lg border border-gray-100 p-8">
+                <button
+                  onClick={() => setResetMode(false)}
+                  className="flex items-center gap-1.5 text-gray-400 hover:text-gray-600 text-sm mb-6 transition-colors"
+                >
+                  <ArrowLeft size={14} /> Back to sign in
+                </button>
+
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.15)' }}>
+                    <KeyRound size={18} style={{ color: '#2563eb' }} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Reset password</h2>
+                    <p className="text-gray-400 text-sm">We&apos;ll send a reset link to your email</p>
+                  </div>
                 </div>
 
-                <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 mt-2">
-                  {isSubmitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Signing in…
-                    </span>
-                  ) : 'Sign in'}
-                </button>
-              </form>
+                <form onSubmit={sendReset} className="space-y-4">
+                  <div>
+                    <label className="form-label">Email address</label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="you@fisheries.gov.vu"
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      autoFocus
+                      required
+                    />
+                  </div>
+                  <button type="submit" disabled={resetSending} className="btn-primary w-full py-3">
+                    {resetSending ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Sending…
+                      </span>
+                    ) : 'Send reset link'}
+                  </button>
+                </form>
 
-              <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-                <p className="text-sm text-gray-400">
-                  Account access is managed by the platform administrator.
+                <p className="text-xs text-gray-400 mt-4 text-center">
+                  Check your spam folder if the email doesn&apos;t arrive within a few minutes.
                 </p>
               </div>
-            </div>
+            )}
 
             <p className="text-center text-gray-400 text-[11px] mt-5">
               Secure platform access &mdash; Community-Based Fisheries Management System
