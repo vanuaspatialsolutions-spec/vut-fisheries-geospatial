@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getMonitoringRecords } from '../utils/firestore';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getMonitoringRecords, deleteMonitoring } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Plus, Search, Filter, Waves } from 'lucide-react';
+import { Plus, Search, Filter, Waves, Edit, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
 
 const TYPE_BADGE = {
@@ -71,6 +72,8 @@ function Pagination({ pagination, filters, setFilters }) {
 }
 
 export default function MonitoringPage() {
+  const { isStaff } = useAuth();
+  const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({ province: '', monitoringType: '', search: '', page: 1 });
@@ -87,6 +90,15 @@ export default function MonitoringPage() {
   };
 
   useEffect(() => { fetchRecords(); }, [filters]);
+
+  const handleDelete = async (r) => {
+    if (!window.confirm(`Delete "${r.siteName}"? This cannot be undone.`)) return;
+    try {
+      await deleteMonitoring(r.id);
+      toast.success('Record deleted.');
+      fetchRecords();
+    } catch { toast.error('Failed to delete record.'); }
+  };
 
   const hasFilters = filters.province || filters.monitoringType || filters.search;
 
@@ -152,6 +164,7 @@ export default function MonitoringPage() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Coral Cover</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Fish (kg)</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Health</th>
+                {isStaff && <th className="w-16 px-4 py-3" />}
               </tr>
             </thead>
             <tbody>
@@ -178,6 +191,20 @@ export default function MonitoringPage() {
                       {r.totalFishBiomassKg != null ? r.totalFishBiomassKg : '—'}
                     </td>
                     <td className="px-4 py-3.5 text-center"><HealthScore score={r.reefHealthScore} /></td>
+                    {isStaff && (
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => navigate(`/monitoring/${r.id}/edit`)}
+                            className="p-1.5 text-gray-300 hover:text-ocean-700 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                            <Edit size={13} />
+                          </button>
+                          <button onClick={() => handleDelete(r)}
+                            className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
             </tbody>

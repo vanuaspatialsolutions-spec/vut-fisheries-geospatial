@@ -5,6 +5,7 @@ import { getSurvey, createSurvey, updateSurvey } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES, COMMON_CHALLENGES, TRAINING_TYPES } from '../utils/constants';
+import FormSidebar from '../components/FormSidebar';
 
 function CheckboxGroup({ label, options, value = [], onChange }) {
   const toggle = (opt) => {
@@ -57,7 +58,9 @@ export default function NewSurveyPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+      <div className="xl:col-span-2 space-y-6">
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg">
           <ArrowLeft size={20} className="text-gray-500" />
@@ -207,6 +210,11 @@ export default function NewSurveyPage() {
           </button>
         </div>
       </form>
+      </div>{/* xl:col-span-2 */}
+      <div className="xl:col-span-1">
+        <FormSidebar type="survey" />
+      </div>
+      </div>{/* grid */}
     </div>
   );
 }

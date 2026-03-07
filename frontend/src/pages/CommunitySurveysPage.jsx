@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getSurveys } from '../utils/firestore';
+import { useAuth } from '../context/AuthContext';
+import { getSurveys, deleteSurvey } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Plus, Search, Users, CheckCircle, XCircle, Edit, Filter } from 'lucide-react';
+import { Plus, Search, Users, CheckCircle, XCircle, Edit, Trash2, Filter } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES } from '../utils/constants';
 
 function SkeletonRow() {
@@ -39,6 +40,7 @@ function Pagination({ pagination, filters, setFilters }) {
 }
 
 export default function CommunitySurveysPage() {
+  const { isStaff } = useAuth();
   const navigate = useNavigate();
   const [surveys, setSurveys] = useState([]);
   const [pagination, setPagination] = useState({});
@@ -56,6 +58,15 @@ export default function CommunitySurveysPage() {
   };
 
   useEffect(() => { fetchSurveys(); }, [filters]);
+
+  const handleDelete = async (s) => {
+    if (!window.confirm(`Delete survey for "${s.community}"? This cannot be undone.`)) return;
+    try {
+      await deleteSurvey(s.id);
+      toast.success('Survey deleted.');
+      fetchSurveys();
+    } catch { toast.error('Failed to delete survey.'); }
+  };
 
   const hasFilters = filters.province || filters.surveyType || filters.search;
 
@@ -125,7 +136,7 @@ export default function CommunitySurveysPage() {
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Fishers</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Committee</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Taboo</th>
-                <th className="w-10 px-4 py-3" />
+                <th className="w-20 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -159,10 +170,18 @@ export default function CommunitySurveysPage() {
                         : <XCircle size={16} className="text-gray-200 mx-auto" />}
                     </td>
                     <td className="px-4 py-3.5">
-                      <button onClick={() => navigate(`/surveys/${s.id}/edit`)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-ocean-700 transition-colors" title="Edit">
-                        <Edit size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => navigate(`/surveys/${s.id}/edit`)}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-ocean-700 transition-colors" title="Edit">
+                          <Edit size={14} />
+                        </button>
+                        {isStaff && (
+                          <button onClick={() => handleDelete(s)}
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-300 hover:text-red-500 transition-colors" title="Delete">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

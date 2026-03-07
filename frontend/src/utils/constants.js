@@ -3,11 +3,9 @@ export const VANUATU_PROVINCES = [
 ];
 
 export const DATA_TYPES = [
-  { value: 'community_survey', label: 'Community Survey' },
-  { value: 'marine_area', label: 'Marine Area' },
-  { value: 'biological_monitoring', label: 'Biological Monitoring' },
-  { value: 'catch_data', label: 'Catch Data' },
-  { value: 'other', label: 'Other' },
+  { value: 'marine_spatial_plan', label: 'Marine areas under spatial plan' },
+  { value: 'protected_marine',    label: 'Protected Marine areas' },
+  { value: 'habitat_restoration', label: 'Areas under habitat restoration' },
 ];
 
 export const SURVEY_TYPES = [

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getMarineAreas, getMarineStats } from '../utils/firestore';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getMarineAreas, getMarineStats, deleteMarineArea } from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves } from 'lucide-react';
+import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves, Edit, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 
 const STATUS_BADGE = {
@@ -30,7 +31,8 @@ const BORDER_COLOR = {
   other: '#6b7280',
 };
 
-function AreaCard({ area }) {
+function AreaCard({ area, canEdit, onDelete }) {
+  const navigate = useNavigate();
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 p-5 hover:shadow-md transition-shadow"
       style={{ borderLeftColor: BORDER_COLOR[area.areaType] || '#6b7280' }}>
@@ -41,9 +43,23 @@ function AreaCard({ area }) {
             <MapPin size={11} />{area.province} &middot; {area.island}
           </div>
         </div>
-        <span className={`badge ${STATUS_BADGE[area.managementStatus] || 'bg-gray-100 text-gray-600'} flex-shrink-0 capitalize`}>
-          {area.managementStatus?.replace(/_/g, ' ')}
-        </span>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className={`badge ${STATUS_BADGE[area.managementStatus] || 'bg-gray-100 text-gray-600'} capitalize`}>
+            {area.managementStatus?.replace(/_/g, ' ')}
+          </span>
+          {canEdit && (
+            <>
+              <button onClick={() => navigate(`/marine/${area.id}/edit`)}
+                className="p-1.5 text-gray-300 hover:text-ocean-700 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                <Edit size={13} />
+              </button>
+              <button onClick={() => onDelete(area)}
+                className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                <Trash2 size={13} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <p className="text-xs text-gray-500 mb-3">Community: {area.community}</p>
       <div className="flex flex-wrap gap-1.5">
@@ -99,6 +115,7 @@ function Pagination({ pagination, filters, setFilters }) {
 }
 
 export default function MarineAreasPage() {
+  const { isStaff } = useAuth();
   const [areas, setAreas] = useState([]);
   const [stats, setStats] = useState({});
   const [pagination, setPagination] = useState({});
@@ -117,6 +134,15 @@ export default function MarineAreasPage() {
   };
 
   useEffect(() => { fetchAreas(); }, [filters]);
+
+  const handleDelete = async (area) => {
+    if (!window.confirm(`Delete "${area.areaName}"? This cannot be undone.`)) return;
+    try {
+      await deleteMarineArea(area.id);
+      toast.success('Marine area deleted.');
+      fetchAreas();
+    } catch { toast.error('Failed to delete marine area.'); }
+  };
 
   const hasFilters = filters.province || filters.areaType || filters.managementStatus || filters.search;
 
@@ -199,7 +225,7 @@ export default function MarineAreasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : areas.map(area => <AreaCard key={area.id} area={area} />)
+            : areas.map(area => <AreaCard key={area.id} area={area} canEdit={isStaff} onDelete={handleDelete} />)
           }
         </div>
       )}

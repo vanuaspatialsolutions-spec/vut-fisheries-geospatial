@@ -40,8 +40,10 @@ function AppRoutes() {
         <Route path="/surveys/:id/edit" element={<NewSurveyPage />} />
         <Route path="/marine" element={<MarineAreasPage />} />
         <Route path="/marine/new" element={<NewMarineAreaPage />} />
+        <Route path="/marine/:id/edit" element={<NewMarineAreaPage />} />
         <Route path="/monitoring" element={<MonitoringPage />} />
         <Route path="/monitoring/new" element={<NewMonitoringPage />} />
+        <Route path="/monitoring/:id/edit" element={<NewMonitoringPage />} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
       </Route>
     </Routes>

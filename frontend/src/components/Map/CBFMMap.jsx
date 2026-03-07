@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const AREA_COLORS = {
-  lmma: '#0369a1',
+  lmma: '#2563eb',
   taboo_area: '#dc2626',
   patrol_zone: '#ca8a04',
   buffer_zone: '#7c3aed',
@@ -21,7 +21,7 @@ const AREA_COLORS = {
 };
 
 const MONITORING_COLORS = {
-  reef_fish_survey: '#0369a1',
+  reef_fish_survey: '#2563eb',
   invertebrate_survey: '#059669',
   coral_cover: '#ea580c',
   seagrass_survey: '#7c3aed',
@@ -37,22 +37,102 @@ function FlyTo({ center, zoom }) {
   return null;
 }
 
+function FitDatasetBounds({ datasetLayers }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!datasetLayers || datasetLayers.length === 0) return;
+    try {
+      const allLayers = L.geoJSON(datasetLayers.map(d => d.geojson));
+      const bounds = allLayers.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    } catch (e) {
+      console.warn('Could not fit dataset bounds:', e);
+    }
+  }, [datasetLayers, map]);
+  return null;
+}
+
 const DATASET_COLORS = ['#7c3aed', '#0891b2', '#b45309', '#be123c', '#047857'];
 
+const DATASET_CATEGORY_COLORS = {
+  marine_spatial_plan: '#38bdf8',
+  protected_marine:    '#a78bfa',
+  habitat_restoration: '#34d399',
+};
+
 const esc = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// Maximum features rendered per dataset layer. Beyond this, features are sampled
+// evenly to keep the map responsive with 30 MB+ datasets.
+const MAX_RENDER_FEATURES = 5000;
+
+const DATASET_CATEGORY_LABELS = {
+  marine_spatial_plan: 'Marine areas under spatial plan',
+  protected_marine:    'Protected Marine areas',
+  habitat_restoration: 'Areas under habitat restoration',
+};
+
+/** Spherical excess formula (WGS84) — returns ha for a single GeoJSON Feature or geometry. */
+function featureAreaHa(feature) {
+  const R = 6378137;
+  function rad(d) { return d * Math.PI / 180; }
+  function ringM2(coords) {
+    const n = coords.length;
+    if (n < 3) return 0;
+    let a = 0;
+    for (let i = 0; i < n; i++) {
+      const p1 = coords[i === 0 ? n - 1 : i - 1];
+      const p2 = coords[i];
+      const p3 = coords[(i + 1) % n];
+      a += (rad(p3[0]) - rad(p1[0])) * Math.sin(rad(p2[1]));
+    }
+    return Math.abs(a * R * R / 2);
+  }
+  function polyHa(rings) {
+    if (!rings?.length) return 0;
+    let a = ringM2(rings[0]);
+    for (let i = 1; i < rings.length; i++) a -= ringM2(rings[i]);
+    return a / 10000;
+  }
+  const g = feature?.geometry ?? feature;
+  if (!g) return null;
+  let ha = 0;
+  if (g.type === 'Polygon') ha = polyHa(g.coordinates);
+  else if (g.type === 'MultiPolygon') g.coordinates.forEach(p => { ha += polyHa(p); });
+  else return null; // points / lines — no area
+  return ha > 0 ? ha : null;
+}
+
+function fmtHa(ha) {
+  if (ha === null || ha === undefined) return null;
+  return ha >= 1000
+    ? ha.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' ha'
+    : ha.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' ha';
+}
+
+function capFeatures(geojson) {
+  const features = geojson?.features;
+  if (!features || features.length <= MAX_RENDER_FEATURES) return geojson;
+  // Sample evenly across the dataset so spatial distribution is preserved
+  const step = features.length / MAX_RENDER_FEATURES;
+  const sampled = Array.from({ length: MAX_RENDER_FEATURES }, (_, i) => features[Math.floor(i * step)]);
+  return { ...geojson, features: sampled, _truncated: true, _original: features.length };
+}
 
 export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], datasetLayers = [], flyTo }) {
   const onEachFeature = (feature, layer) => {
     const p = feature.properties;
+    const storedHa = parseFloat(p.areaSizeHa) || null;
+    const calcHa   = featureAreaHa(feature);
+    const areaStr  = fmtHa(storedHa ?? calcHa);
     layer.bindPopup(`
-      <div class="text-sm">
-        <strong class="text-ocean-900">${esc(p.areaName)}</strong><br/>
-        <span class="text-gray-500">Type: ${esc(p.areaType?.replace(/_/g, ' '))}</span><br/>
-        <span class="text-gray-500">Community: ${esc(p.community)}</span><br/>
-        ${p.areaSizeHa ? `<span class="text-gray-500">Area: ${esc(p.areaSizeHa)} ha</span><br/>` : ''}
-        <span class="${p.managementStatus === 'active' ? 'text-green-600' : 'text-red-500'}">
-          ${esc(p.managementStatus)}
-        </span>
+      <div style="min-width:180px;font-family:inherit">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:#1e3a8a">${esc(p.areaName || 'Unnamed area')}</div>
+        ${areaStr ? `<div style="font-size:13px;font-weight:600;color:#2563eb;margin-bottom:4px">&#x1F4CF; ${areaStr}</div>` : ''}
+        ${p.areaType ? `<div style="font-size:12px;color:#6b7280">Type: ${esc(p.areaType.replace(/_/g,' '))}</div>` : ''}
+        ${p.community ? `<div style="font-size:12px;color:#6b7280">Community: ${esc(p.community)}</div>` : ''}
+        ${p.province ? `<div style="font-size:12px;color:#6b7280">Province: ${esc(p.province)}</div>` : ''}
+        ${p.managementStatus ? `<div style="font-size:12px;font-weight:500;color:${p.managementStatus==='active'?'#059669':'#dc2626'};margin-top:2px">${esc(p.managementStatus)}</div>` : ''}
       </div>
     `);
   };
@@ -73,6 +153,7 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
       />
 
       {flyTo && <FlyTo center={flyTo.center} zoom={flyTo.zoom} />}
+      <FitDatasetBounds datasetLayers={datasetLayers} />
 
       {/* Marine Areas (polygons) */}
       {marineAreas && (
@@ -90,7 +171,7 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
             key={s.id}
             center={[s.latitude, s.longitude]}
             radius={7}
-            pathOptions={{ color: '#0369a1', fillColor: '#38bdf8', fillOpacity: 0.8, weight: 2 }}
+            pathOptions={{ color: '#2563eb', fillColor: '#38bdf8', fillOpacity: 0.8, weight: 2 }}
           >
             <Popup>
               <div className="text-sm">
@@ -106,31 +187,38 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
       ))}
 
       {/* Published dataset GeoJSON layers */}
-      {datasetLayers.map(({ meta, geojson }, idx) => (
-        <GeoJSON
-          key={meta.id}
-          data={geojson}
-          style={() => ({
-            color: DATASET_COLORS[idx % DATASET_COLORS.length],
-            weight: 2,
-            opacity: 0.9,
-            fillOpacity: 0.2,
-            fillColor: DATASET_COLORS[idx % DATASET_COLORS.length],
-          })}
-          onEachFeature={(feature, layer) => {
-            const p = feature.properties || {};
-            const name = p.name || p.NAME || p.Name || p.title || meta.title;
-            layer.bindPopup(`
-              <div class="text-sm">
-                <strong>${esc(name)}</strong><br/>
-                <span class="text-gray-500">Dataset: ${esc(meta.title)}</span><br/>
-                ${meta.province ? `<span class="text-gray-500">Province: ${esc(meta.province)}</span><br/>` : ''}
-                ${meta.community ? `<span class="text-gray-500">Community: ${esc(meta.community)}</span>` : ''}
-              </div>
-            `);
-          }}
-        />
-      ))}
+      {datasetLayers.map(({ meta, geojson }, idx) => {
+        const capped = capFeatures(geojson);
+        const color = DATASET_CATEGORY_COLORS[meta.dataType] || DATASET_COLORS[idx % DATASET_COLORS.length];
+        return (
+          <GeoJSON
+            key={meta.id}
+            data={capped}
+            style={() => ({ color, weight: 2, opacity: 0.9, fillOpacity: 0.2, fillColor: color })}
+            pointToLayer={(_, latlng) => L.circleMarker(latlng, { radius: 5, color, fillColor: color, fillOpacity: 0.7, weight: 1.5 })}
+            onEachFeature={(feature, layer) => {
+              const p = feature.properties || {};
+              const name = p.name || p.NAME || p.Name || p.NAMES || p.label || p.AREANAME || p.area_name || meta.title;
+              const areaHa = featureAreaHa(feature);
+              const areaStr = fmtHa(areaHa);
+              const categoryLabel = DATASET_CATEGORY_LABELS[meta.dataType] || meta.dataType?.replace(/_/g,' ') || 'Dataset';
+              const truncNote = capped._truncated
+                ? `<div style="font-size:11px;color:#d97706;margin-top:4px">Showing ${MAX_RENDER_FEATURES.toLocaleString()} of ${capped._original.toLocaleString()} features</div>`
+                : '';
+              layer.bindPopup(`
+                <div style="min-width:180px;font-family:inherit">
+                  <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:#1e3a8a">${esc(name)}</div>
+                  ${areaStr ? `<div style="font-size:13px;font-weight:600;color:#2563eb;margin-bottom:4px">&#x1F4CF; ${areaStr}</div>` : ''}
+                  <div style="font-size:12px;color:#6b7280;margin-bottom:2px">Category: ${esc(categoryLabel)}</div>
+                  ${meta.province ? `<div style="font-size:12px;color:#6b7280">Province: ${esc(meta.province)}</div>` : ''}
+                  ${meta.community ? `<div style="font-size:12px;color:#6b7280">Community: ${esc(meta.community)}</div>` : ''}
+                  ${truncNote}
+                </div>
+              `);
+            }}
+          />
+        );
+      })}
 
       {/* Biological monitoring points */}
       {monitoringPoints.map((m) => (
