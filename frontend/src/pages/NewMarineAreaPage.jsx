@@ -18,15 +18,6 @@ export default function NewMarineAreaPage() {
   );
 
   const onSubmit = async (data) => {
-    if (!geoJsonText.trim()) return toast.error('Boundary geometry (GeoJSON) is required.');
-    let geometry;
-    try {
-      geometry = JSON.parse(geoJsonText);
-      if (!geometry.type || !geometry.coordinates) throw new Error();
-      setGeoJsonError('');
-    } catch {
-      setGeoJsonError('Invalid GeoJSON format. Must be a Polygon or MultiPolygon geometry object.');
-      return;
     let geometry = null;
     if (geoJsonText.trim()) {
       try {
