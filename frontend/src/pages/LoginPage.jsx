@@ -44,7 +44,7 @@ export default function LoginPage() {
 
       {/* ── Left panel — branding (desktop) ── */}
       <div className="hidden lg:flex lg:w-[52%] bg-animate flex-col relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #172554 0%, #1e3a8a 40%, #1d4ed8 70%, #2563eb 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%)' }}>
 
         {/* Dot-grid texture */}
         <div className="absolute inset-0 dot-grid" />

@@ -33,7 +33,7 @@ export default function RegisterPage() {
 
       {/* Left accent strip (desktop) */}
       <div className="hidden lg:flex lg:w-[38%] flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #172554 0%, #1e3a8a 50%, #1d4ed8 100%)' }}>
+        style={{ background: 'linear-gradient(160deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)' }}>
         <div className="absolute inset-0 dot-grid" />
         <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 70%)' }} />
