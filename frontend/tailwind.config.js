@@ -4,39 +4,39 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ── Primary — Vanuatu Dept. of Fisheries deep Pacific blue ──
+        // ── Primary — Vanuatu Dept. of Fisheries deep Pacific ocean blue ──
         navy: {
           50:  '#EEF6FF',
           100: '#D4E8FF',
           200: '#A9CFFF',
           300: '#6AAFFF',
-          400: '#3388FF',
-          500: '#0062E6',
-          600: '#0051A8',
-          700: '#003B7A',  // ← primary fisheries blue
-          800: '#002855',
-          900: '#001A38',
-          950: '#000F24',
+          400: '#4AA8FF',  // ← Pacific ocean surface (replaces cyan accent)
+          500: '#2389E8',
+          600: '#0062E6',
+          700: '#0051A8',
+          800: '#003B7A',  // ← primary fisheries blue
+          900: '#002855',
+          950: '#001A38',
         },
-        // ── Accent — Pacific Cyan / Ocean sparkle ──
-        gold: {
-          300: '#67E8F9',
-          400: '#22D3EE',
-          500: '#06B6D4',
-          600: '#0891B2',
-        },
-        // ── Backwards-compat alias ──
+        // ── Backwards-compat aliases (mapped to navy) ──
         ocean: {
           50:  '#EEF6FF',
           100: '#D4E8FF',
           200: '#A9CFFF',
           300: '#6AAFFF',
-          400: '#3388FF',
-          500: '#0062E6',
-          600: '#0051A8',
-          700: '#003B7A',
-          800: '#002855',
-          900: '#001A38',
+          400: '#4AA8FF',
+          500: '#2389E8',
+          600: '#0062E6',
+          700: '#0051A8',
+          800: '#003B7A',
+          900: '#002855',
+        },
+        // ── Removed cyan 'gold' scale — now pure ocean light blue ──
+        gold: {
+          300: '#A9CFFF',  // light ocean blue
+          400: '#6AAFFF',  // ocean blue
+          500: '#4AA8FF',  // Pacific surface blue
+          600: '#2389E8',  // deeper surface blue
         },
         coral: {
           50:  '#fff7ed',

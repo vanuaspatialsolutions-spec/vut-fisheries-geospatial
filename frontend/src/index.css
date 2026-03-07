@@ -12,8 +12,12 @@
   }
   body {
     background-color: #EEF6FF;
-    background-image: radial-gradient(circle, rgba(0,59,122,0.035) 1px, transparent 1px);
-    background-size: 26px 26px;
+    background-image:
+      linear-gradient(rgba(0,59,122,0.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,59,122,0.028) 1px, transparent 1px),
+      radial-gradient(circle at 20% 20%, rgba(0,59,122,0.04) 0%, transparent 55%),
+      radial-gradient(circle at 80% 80%, rgba(0,81,168,0.035) 0%, transparent 55%);
+    background-size: 36px 36px, 36px 36px, 100% 100%, 100% 100%;
     color: #111827;
   }
   * { @apply scroll-smooth; }
@@ -36,7 +40,7 @@
     box-shadow: 0 2px 8px rgba(0,59,122,0.35), 0 1px 2px rgba(0,0,0,0.08);
   }
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0051A8 0%, #3388FF 100%);
+    background: linear-gradient(135deg, #0051A8 0%, #2389E8 100%);
     box-shadow: 0 4px 16px rgba(0,59,122,0.40), 0 1px 3px rgba(0,0,0,0.10);
     transform: translateY(-1px);
   }
@@ -142,38 +146,61 @@
 }
 .leaflet-popup-tip { box-shadow: none !important; }
 
-/* ── Fish-scale / hex pattern (dark panels) ──────────────── */
-.fish-scale {
+/* ─────────────────────────────────────────────────────────────
+   PATTERNS
+   ───────────────────────────────────────────────────────────── */
+
+/* Pacific tapa-inspired diamond geometric (dark panels) */
+.pacific-tapa {
   background-image:
-    radial-gradient(ellipse at 50% 0%,   rgba(255,255,255,0) 50%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.055) 55%, transparent 55%),
-    radial-gradient(ellipse at 0%   50%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.055) 55%, transparent 55%),
-    radial-gradient(ellipse at 100% 50%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.055) 50%, rgba(255,255,255,0.055) 55%, transparent 55%);
-  background-size: 44px 44px;
-  background-position: 0 0;
+    linear-gradient(45deg,  rgba(255,255,255,0.038) 25%, transparent 25%),
+    linear-gradient(135deg, rgba(255,255,255,0.038) 25%, transparent 25%),
+    linear-gradient(225deg, rgba(255,255,255,0.038) 25%, transparent 25%),
+    linear-gradient(315deg, rgba(255,255,255,0.038) 25%, transparent 25%);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 0, 9px -9px, 0px 9px;
 }
 
-/* ── Dot-grid (subtle dots for dark panels) ──────────────── */
+/* Dot-grid (subtle white dots — dark panels) */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(255,255,255,0.09) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-/* ── Hex-grid (very subtle, for light bg areas) ─────────── */
+/* Ocean wave-stripe (horizontal ripple) */
+.ocean-ripple {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 10px,
+      rgba(255,255,255,0.022) 10px,
+      rgba(255,255,255,0.022) 11px
+    );
+}
+
+/* Light crosshatch for form-area backgrounds */
 .hex-grid-light {
   background-image:
-    linear-gradient(rgba(0,59,122,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,59,122,0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(rgba(0,59,122,0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,59,122,0.032) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
-/* ── Cyan accent divider line ───────────────────────────── */
-.gold-line {
-  background: linear-gradient(90deg, transparent, #22D3EE 40%, #0062E6 80%, transparent);
+/* ─────────────────────────────────────────────────────────────
+   ACCENT LINE — pure ocean blue (no cyan)
+   ───────────────────────────────────────────────────────────── */
+.ocean-line {
+  background: linear-gradient(90deg, transparent, #4AA8FF 35%, #0062E6 65%, transparent);
   height: 2px;
   border-radius: 2px;
 }
+/* backward-compat alias */
+.gold-line { background: linear-gradient(90deg, transparent, #4AA8FF 35%, #0062E6 65%, transparent); height: 2px; border-radius: 2px; }
 
-/* ── Login panel gradient animation ─────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   ANIMATIONS
+   ───────────────────────────────────────────────────────────── */
 @keyframes gradientShift {
   0%   { background-position: 0%   50%; }
   50%  { background-position: 100% 50%; }
@@ -184,37 +211,42 @@
   animation: gradientShift 18s ease infinite;
 }
 
-/* ── Floating orb pulse ──────────────────────────────────── */
 @keyframes orbFloat {
-  0%, 100% { transform: translateY(0px) scale(1); opacity: 0.6; }
-  50%       { transform: translateY(-20px) scale(1.08); opacity: 0.85; }
+  0%, 100% { transform: translateY(0px) scale(1);    opacity: 0.6; }
+  50%       { transform: translateY(-18px) scale(1.06); opacity: 0.80; }
 }
-.orb-float { animation: orbFloat 8s ease-in-out infinite; }
-.orb-float-slow { animation: orbFloat 12s ease-in-out infinite; animation-delay: -4s; }
+.orb-float      { animation: orbFloat 9s ease-in-out infinite; }
+.orb-float-slow { animation: orbFloat 13s ease-in-out infinite; animation-delay: -5s; }
 
-/* ── Wave SVG animation ──────────────────────────────────── */
+/* Marine icon gentle drift */
+@keyframes marineDrift {
+  0%, 100% { transform: translateY(0px) rotate(0deg);   opacity: 0.75; }
+  33%       { transform: translateY(-8px) rotate(2deg);  opacity: 1;    }
+  66%       { transform: translateY(-4px) rotate(-1deg); opacity: 0.85; }
+}
+.marine-drift      { animation: marineDrift 10s ease-in-out infinite; }
+.marine-drift-slow { animation: marineDrift 15s ease-in-out infinite; animation-delay: -6s; }
+.marine-drift-fast { animation: marineDrift 7s  ease-in-out infinite; animation-delay: -2s; }
+
 @keyframes waveMove {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
-.wave-animate { animation: waveMove 14s linear infinite; }
+.wave-animate      { animation: waveMove 14s linear infinite; }
 .wave-animate-slow { animation: waveMove 22s linear infinite; }
 
-/* ── Fade in ─────────────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeUp 0.38s ease-out forwards; }
 
-/* ── Count up ────────────────────────────────────────────── */
 @keyframes countUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .count-up { animation: countUp 0.4s ease-out forwards; }
 
-/* ── Stat card staggered entrance ───────────────────────── */
 @keyframes statCardIn {
   from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -224,4 +256,11 @@
   animation: statCardIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ── Custom shadow utilities ─────────────────────────────── */
+@keyframes bubbleRise {
+  0%   { transform: translateY(0)    scale(1);    opacity: 0.55; }
+  50%  { transform: translateY(-14px) scale(1.05); opacity: 0.80; }
+  100% { transform: translateY(0)    scale(1);    opacity: 0.55; }
+}
+.bubble-rise      { animation: bubbleRise 6s  ease-in-out infinite; }
+.bubble-rise-slow { animation: bubbleRise 9s  ease-in-out infinite; animation-delay: -3s; }
+.bubble-rise-fast { animation: bubbleRise 4.5s ease-in-out infinite; animation-delay: -1.5s; }
