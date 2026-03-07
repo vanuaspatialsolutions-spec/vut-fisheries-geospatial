@@ -5,6 +5,7 @@ import { createMonitoring, updateMonitoring, getMonitoringRecord } from '../util
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
+import FormSidebar from '../components/FormSidebar';
 
 const THREATS = ['blast_fishing', 'poison_fishing', 'overfishing', 'runoff', 'sedimentation', 'tourism_pressure', 'anchor_damage', 'coral_bleaching'];
 
@@ -60,7 +61,9 @@ export default function NewMonitoringPage() {
   const monType = watch('monitoringType');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+      <div className="xl:col-span-2 space-y-6">
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg">
           <ArrowLeft size={20} className="text-gray-500" />
@@ -244,6 +247,11 @@ export default function NewMonitoringPage() {
           </button>
         </div>
       </form>
+      </div>{/* xl:col-span-2 */}
+      <div className="xl:col-span-1">
+        <FormSidebar type="monitoring" />
+      </div>
+      </div>{/* grid */}
     </div>
   );
 }

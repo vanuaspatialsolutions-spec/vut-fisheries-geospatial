@@ -6,6 +6,7 @@ import { createMarineArea, updateMarineArea, getMarineArea, parseFileToGeoJSON }
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Upload, File, X, MapPin, SkipForward } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
+import FormSidebar from '../components/FormSidebar';
 
 const BOUNDARY_ACCEPT = {
   'application/zip': ['.zip'],
@@ -125,7 +126,9 @@ export default function NewMarineAreaPage() {
   const hasBoundary = !!geometry;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+      <div className="xl:col-span-2 space-y-6">
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg">
           <ArrowLeft size={20} className="text-gray-500" />
@@ -359,6 +362,11 @@ export default function NewMarineAreaPage() {
           </button>
         </div>
       </form>
+      </div>{/* xl:col-span-2 */}
+      <div className="xl:col-span-1">
+        <FormSidebar type="marine" />
+      </div>
+      </div>{/* grid */}
     </div>
   );
 }

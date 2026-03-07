@@ -83,7 +83,9 @@ function HeroCard({icon:Icon,label,value,unit,sub,accent,glow,grad,loading,index
         {loading
           ?<div className="h-9 w-20 rounded-lg animate-pulse" style={{background:'rgba(255,255,255,0.10)'}}/>
           :<p className="text-3xl font-bold leading-none tracking-tight text-white">
-            {decimals>0?counted.toFixed(decimals):counted}
+            {decimals>0
+              ? counted.toLocaleString(undefined,{minimumFractionDigits:decimals,maximumFractionDigits:decimals})
+              : Math.round(counted).toLocaleString()}
             {unit&&<span className="text-lg font-semibold ml-1 opacity-70">{unit}</span>}
           </p>}
         {sub&&<p className="text-[11px] mt-1.5" style={{color:'rgba(255,255,255,0.50)'}}>
