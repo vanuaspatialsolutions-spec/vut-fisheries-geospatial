@@ -95,6 +95,11 @@ export function AuthProvider({ children }) {
         // Document doesn't exist in Firestore — try the local cache
         const cached = getCachedProfile(cred.user.uid);
         if (cached) profileData = cached;
+        // Surface approval toast if admin just approved this account
+        if (profileData.status === 'approved' && !profileData.approvalNotified) {
+          profileData._showApprovalToast = true;
+          await setDoc(doc(db, 'users', cred.user.uid), { approvalNotified: true }, { merge: true });
+        }
       }
     } catch {
       // Firestore unavailable — try cache
@@ -165,6 +170,9 @@ export function AuthProvider({ children }) {
       isActive: isFirst,
       status: isFirst ? 'approved' : 'pending',
       approvalNotified: isFirst,
+      isActive: true,
+      status: 'approved',
+      approvalNotified: true,
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'users', cred.user.uid), profile);
@@ -208,6 +216,14 @@ export function AuthProvider({ children }) {
     if (auth.currentUser) clearCachedProfile(auth.currentUser.uid);
     return signOut(auth).then(() => setUser(null));
   };
+  const saveProfile = async (profileData) => {
+    if (!auth.currentUser) throw new Error('Not authenticated');
+    const uid = auth.currentUser.uid;
+    await setDoc(doc(db, 'users', uid), { ...profileData, updatedAt: serverTimestamp() }, { merge: true });
+    setUser(prev => ({ ...prev, ...profileData }));
+  };
+
+  const logout = () => signOut(auth).then(() => setUser(null));
 
   const isAdmin = user?.role === 'admin';
   const isStaff = ['admin', 'staff'].includes(user?.role);

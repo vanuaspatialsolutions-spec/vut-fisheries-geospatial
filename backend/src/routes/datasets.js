@@ -231,15 +231,15 @@ router.get('/:id/download', protect, async (req, res) => {
 
     await dataset.increment('downloadCount');
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' && getPresignedUrl) {
       // Return presigned S3 URL
       const url = await getPresignedUrl(dataset.filePath, 300);
       res.json({ downloadUrl: url, fileName: dataset.fileName });
     } else {
       // Serve local file
       const filePath = dataset.filePath;
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: 'File not found on server.' });
+      if (!filePath || !fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'File not available. The server may have restarted since upload.' });
       }
       res.download(filePath, dataset.fileName);
     }

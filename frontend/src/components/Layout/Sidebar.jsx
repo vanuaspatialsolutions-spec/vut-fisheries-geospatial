@@ -3,7 +3,12 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Map, Database, Users, Activity,
   Anchor, Settings, ChevronRight,
+import {
+  LayoutDashboard, Map, Database, Activity,
+  Anchor, ClipboardList, Shield,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import logo from '../../assets/fisheries-logo.png';
 
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard',       color: '#6AAFFF' },
@@ -15,6 +20,15 @@ const dataNav = [
   { to: '/marine',     icon: Anchor,   label: 'Marine Areas',      color: '#4AA8FF' },
   { to: '/monitoring', icon: Activity, label: 'Bio. Monitoring',   color: '#fbbf24' },
   { to: '/datasets',   icon: Database, label: 'Datasets',          color: '#a78bfa' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/map',       icon: Map,             label: 'Interactive Map' },
+];
+
+const dataNav = [
+  { to: '/surveys',    icon: ClipboardList, label: 'Community Surveys' },
+  { to: '/marine',     icon: Anchor,        label: 'Marine Areas' },
+  { to: '/monitoring', icon: Activity,      label: 'Bio. Monitoring' },
+  { to: '/datasets',   icon: Database,      label: 'Datasets' },
 ];
 
 function NavItem({ to, icon: Icon, label, color = '#6AAFFF' }) {
@@ -24,6 +38,12 @@ function NavItem({ to, icon: Icon, label, color = '#6AAFFF' }) {
       className={({ isActive }) =>
         `group relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
         ${isActive ? 'bg-white/10 text-white' : 'hover:bg-white/6 hover:text-white'}`
+        `flex items-center gap-3 py-2 pr-3 text-sm font-medium transition-colors duration-100 rounded-r relative
+        border-l-2 pl-[14px]
+        ${isActive
+          ? 'border-white bg-white/10 text-white'
+          : 'border-transparent text-ocean-300 hover:bg-white/6 hover:text-ocean-100'
+        }`
       }
       style={({ isActive }) => ({ color: isActive ? '#fff' : 'rgba(164,204,255,0.70)' })}
     >
@@ -43,6 +63,8 @@ function NavItem({ to, icon: Icon, label, color = '#6AAFFF' }) {
           </div>
           <span className="flex-1 truncate tracking-tight">{label}</span>
           {isActive && <ChevronRight size={11} className="opacity-30 flex-shrink-0" />}
+          <Icon size={15} className={isActive ? 'text-white' : 'text-ocean-400'} />
+          <span className="leading-none">{label}</span>
         </>
       )}
     </NavLink>
@@ -53,6 +75,7 @@ function SectionLabel({ label }) {
   return (
     <p className="px-3 pt-5 pb-1 text-[9px] font-bold uppercase tracking-[0.20em] select-none"
       style={{ color: 'rgba(106,175,255,0.42)' }}>
+    <p className="text-[9px] font-bold text-ocean-600 uppercase tracking-[0.18em] px-4 pt-5 pb-1.5">
       {label}
     </p>
   );
@@ -90,7 +113,6 @@ function SidebarMarineStrip() {
 
 export default function Sidebar() {
   const { isAdmin } = useAuth();
-
   return (
     <aside className="w-64 flex flex-col flex-shrink-0 relative overflow-hidden"
       style={{
@@ -131,6 +153,15 @@ export default function Sidebar() {
             <p className="text-[10px] mt-0.5 leading-tight truncate" style={{ color:'#A9CFFF' }}>
               Dept. of Fisheries · VUT
             </p>
+    <aside className="w-56 bg-ocean-900 flex flex-col flex-shrink-0">
+      <div className="px-4 py-4 border-b border-white/8">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-white rounded flex items-center justify-center flex-shrink-0 p-0.5">
+            <img src={logo} alt="Vanuatu Dept. of Fisheries" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <p className="font-bold text-[13px] text-white leading-tight">CBFM Platform</p>
+            <p className="text-ocean-400 text-[10px] leading-tight mt-0.5">Dept. of Fisheries · Vanuatu</p>
           </div>
         </div>
         {/* Ocean accent line — no cyan */}
@@ -139,6 +170,7 @@ export default function Sidebar() {
 
       {/* ── Navigation ── */}
       <nav className="relative z-10 flex-1 overflow-y-auto py-2 px-3 space-y-0.5">
+      <nav className="flex-1 py-1 pl-2 pr-2 overflow-y-auto space-y-0.5">
         <SectionLabel label="Overview" />
         {mainNav.map(item => <NavItem key={item.to} {...item} />)}
 
@@ -149,6 +181,7 @@ export default function Sidebar() {
           <>
             <SectionLabel label="Administration" />
             <NavItem to="/admin" icon={Settings} label="Admin Panel" color="#a78bfa" />
+            <NavItem to="/admin" icon={Shield} label="Admin Panel" />
           </>
         )}
       </nav>
@@ -162,6 +195,13 @@ export default function Sidebar() {
         </div>
         <p className="text-[10px]" style={{ color:'rgba(100,143,200,0.40)' }}>
           &copy; {new Date().getFullYear()} Vanuatu Dept. of Fisheries
+      <div className="px-4 py-3 border-t border-white/8">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+          <span className="text-ocean-400 text-[10px]">System Online</span>
+        </div>
+        <p className="text-ocean-600 text-[10px]">
+          © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
         </p>
       </div>
     </aside>

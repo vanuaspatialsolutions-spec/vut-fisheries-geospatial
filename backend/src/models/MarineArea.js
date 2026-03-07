@@ -32,7 +32,7 @@ const MarineArea = sequelize.define('MarineArea', {
   // Geometry stored as GeoJSON
   geometry: {
     type: DataTypes.JSONB,
-    allowNull: false,
+    allowNull: true,
     comment: 'GeoJSON geometry (Polygon or MultiPolygon)',
   },
   // Area metrics
