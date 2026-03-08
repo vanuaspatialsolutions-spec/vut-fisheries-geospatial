@@ -14,7 +14,7 @@
     "@turf/simplify": "^7.3.4",
     "axios": "^1.6.2",
     "date-fns": "^3.0.6",
-    "firebase": "^12.10.0",
+    "firebase": "^10.14.1",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",

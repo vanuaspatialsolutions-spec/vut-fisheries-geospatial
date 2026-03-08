@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { VANUATU_CENTER, VANUATU_ZOOM } from '../../utils/constants';
@@ -60,7 +60,14 @@ const DATASET_CATEGORY_COLORS = {
   habitat_restoration: '#34d399',
 };
 
-const esc = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/** HTML-escape a value for safe insertion into popup innerHTML. */
+const esc = (str) =>
+  String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 // Maximum features rendered per dataset layer. Beyond this, features are sampled
 // evenly to keep the map responsive with 30 MB+ datasets.
@@ -70,6 +77,21 @@ const DATASET_CATEGORY_LABELS = {
   marine_spatial_plan: 'Marine areas under spatial plan',
   protected_marine:    'Protected Marine areas',
   habitat_restoration: 'Areas under habitat restoration',
+};
+
+const BASEMAPS = {
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    label: '🛰 Satellite',
+  },
+  satellite: {
+    // ESRI World Imagery — note tile order is z/y/x (not z/x/y)
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution:
+      'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    label: '🗺 Streets',
+  },
 };
 
 /** Spherical excess formula (WGS84) — returns ha for a single GeoJSON Feature or geometry. */
@@ -120,6 +142,7 @@ function capFeatures(geojson) {
 }
 
 export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPoints = [], datasetLayers = [], flyTo }) {
+  const [basemap, setBasemap] = useState('osm');
   const onEachFeature = (feature, layer) => {
     const p = feature.properties;
     const storedHa = parseFloat(p.areaSizeHa) || null;
@@ -145,12 +168,35 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
     fillColor: AREA_COLORS[feature.properties?.areaType] || '#6b7280',
   });
 
+  const bm = BASEMAPS[basemap];
+
   return (
+    <div className="relative w-full h-full">
+      {/* Basemap toggle — positioned over the map (above Leaflet zoom controls) */}
+      <button
+        onClick={() => setBasemap(b => b === 'osm' ? 'satellite' : 'osm')}
+        title="Toggle basemap"
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 1000,
+          background: 'white',
+          border: '2px solid rgba(0,0,0,0.2)',
+          borderRadius: 6,
+          padding: '5px 10px',
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.25)',
+          lineHeight: 1.4,
+        }}
+      >
+        {bm.label}
+      </button>
+
     <MapContainer center={VANUATU_CENTER} zoom={VANUATU_ZOOM} className="w-full h-full rounded-xl">
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
+      <TileLayer key={basemap} url={bm.url} attribution={bm.attribution} />
 
       {flyTo && <FlyTo center={flyTo.center} zoom={flyTo.zoom} />}
       <FitDatasetBounds datasetLayers={datasetLayers} />
@@ -247,5 +293,6 @@ export default function CBFMMap({ surveys = [], marineAreas = null, monitoringPo
         )
       ))}
     </MapContainer>
+    </div>
   );
 }

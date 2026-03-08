@@ -592,6 +592,52 @@ export async function getMonitoringForMap() {
   return snap.docs.map(docToObj).filter(r => r.latitude && r.longitude);
 }
 
+/**
+ * Returns monthly activity counts for the last 12 months.
+ * Each entry: { month: 'YYYY-MM', label: 'Jan 25', surveys: N, monitoring: N }
+ *
+ * Uses createdAt timestamp when available, falling back to the surveyDate string.
+ */
+export async function getMonthlyActivityStats() {
+  const [surveySnap, monSnap] = await Promise.all([
+    getDocs(collection(db, 'surveys')),
+    getDocs(collection(db, 'monitoring')),
+  ]);
+
+  // Build a map keyed by 'YYYY-MM' for the trailing 12 months (including current).
+  const monthly = {};
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthly[key] = {
+      month: key,
+      label: d.toLocaleDateString('en', { month: 'short', year: '2-digit' }),
+      surveys: 0,
+      monitoring: 0,
+    };
+  }
+
+  const toKey = (data) => {
+    const date = data.createdAt?.toDate
+      ? data.createdAt.toDate()
+      : new Date(data.surveyDate || 0);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  surveySnap.docs.forEach(d => {
+    const key = toKey(d.data());
+    if (monthly[key]) monthly[key].surveys += 1;
+  });
+
+  monSnap.docs.forEach(d => {
+    const key = toKey(d.data());
+    if (monthly[key]) monthly[key].monitoring += 1;
+  });
+
+  return Object.values(monthly);
+}
+
 // ── DATASETS ───────────────────────────────────────────────────────────────
 
 export async function getDatasets({ status, dataType, province, search, page = 1, pageSize = 15 } = {}) {

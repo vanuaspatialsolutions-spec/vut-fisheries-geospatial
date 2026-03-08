@@ -3,19 +3,21 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
+  LineChart, Line,
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import {
   getSurveyStats, getMarineStats, getMonitoringStats, getDatasetStats,
   getSurveysForMap, getMarineGeoJSON, getMonitoringForMap,
   getPublishedGeoJSONDatasets, getDatasetGeoJSON,
+  getMonthlyActivityStats,
 } from '../utils/firestore';
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES } from '../utils/constants';
 import {
   Users, Anchor, Activity, Database, Plus, MapPin,
   ArrowUpRight, RefreshCw, BarChart2, Shield,
-  Waves, Layers, Filter, AlertTriangle,
+  Waves, Layers, Filter, AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -205,6 +207,7 @@ export default function DashboardPage() {
   const [datasetsFailed, setDatasetsFailed] = useState(0);
   const [mapLoading, setMapLoading] = useState(true);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
+  const [monthlyActivity, setMonthlyActivity] = useState([]);
   const [layers, setLayers] = useState({ surveys: true, marine: true, monitoring: true, datasets: true });
   const [filters, setFilters] = useState({ province: '', areaType: '' });
 
@@ -215,12 +218,14 @@ export default function DashboardPage() {
     setDatasetLayers([]); setDatasetsFailed(0);
     let datasetMeta = [];
     try {
-      const [mr, sv, mo, ds, surveyMap, marineMap, monMap, dsMeta] = await Promise.all([
+      const [mr, sv, mo, ds, surveyMap, marineMap, monMap, dsMeta, monthly] = await Promise.all([
         getMarineStats(), getSurveyStats(), getMonitoringStats(), getDatasetStats(),
         getSurveysForMap(), getMarineGeoJSON(filters), getMonitoringForMap(), getPublishedGeoJSONDatasets(),
+        getMonthlyActivityStats(),
       ]);
       setMarine(mr); setSurveys(sv); setMonitor(mo); setDatasets(ds);
       setMapSurveys(surveyMap); setMarineAreas(marineMap); setMapMonitor(monMap);
+      setMonthlyActivity(monthly);
       datasetMeta = dsMeta;
     } catch (err) {
       console.error(err);
@@ -483,6 +488,58 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Activity Trend — last 12 months */}
+      <ChartCard
+        title="Activity Trend — Last 12 Months"
+        icon={TrendingUp}
+        accent="#6366f1"
+        loading={statsLoading}
+        empty={monthlyActivity.every(m => m.surveys === 0 && m.monitoring === 0)}
+        emptyMsg="No activity data yet"
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={monthlyActivity} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#e2e8f0', strokeWidth: 1 }} />
+            <Legend
+              iconType="circle"
+              iconSize={8}
+              formatter={v => <span style={{ fontSize: 11, color: '#6b7280' }}>{v}</span>}
+            />
+            <Line
+              type="monotone"
+              dataKey="surveys"
+              name="Surveys"
+              stroke="#2563eb"
+              strokeWidth={2}
+              dot={{ r: 3, fill: '#2563eb' }}
+              activeDot={{ r: 5 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="monitoring"
+              name="Bio. Monitoring"
+              stroke="#f97316"
+              strokeWidth={2}
+              dot={{ r: 3, fill: '#f97316' }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartCard>
 
       {/* Dataset Coverage by Category */}
       <div className="card">
