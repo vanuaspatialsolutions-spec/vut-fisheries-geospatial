@@ -23,28 +23,28 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const VANUATU_MARINE_HA = 5_000_000;
-const CHART_COLORS = ['#4AA8FF','#2389E8','#a78bfa','#d4a92a','#fb7185','#34d399','#f97316'];
-const PROVINCE_COLORS = { Malampa:'#4AA8FF',Penama:'#2389E8',Sanma:'#a78bfa',Shefa:'#d4a92a',Tafea:'#fb7185',Torba:'#34d399' };
+const CHART_COLORS = ['#334155','#475569','#64748b','#94a3b8','#1d4ed8','#2563eb','#3b82f6'];
+const PROVINCE_COLORS = { Malampa:'#334155',Penama:'#1d4ed8',Sanma:'#475569',Shefa:'#64748b',Tafea:'#2563eb',Torba:'#94a3b8' };
 const LAYER_CFG = [
-  { key:'surveys',    label:'Surveys',    icon:Users,    on:'bg-sky-500 text-white border-sky-500',         dot:'bg-sky-500' },
-  { key:'marine',     label:'Marine',     icon:Anchor,   on:'bg-emerald-600 text-white border-emerald-600', dot:'bg-emerald-500' },
-  { key:'monitoring', label:'Monitoring', icon:Activity, on:'bg-orange-500 text-white border-orange-500',   dot:'bg-orange-500' },
-  { key:'datasets',   label:'Datasets',   icon:Database, on:'bg-purple-600 text-white border-purple-600',   dot:'bg-purple-500' },
+  { key:'surveys',    label:'Surveys',    icon:Users,    on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
+  { key:'marine',     label:'Marine',     icon:Anchor,   on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
+  { key:'monitoring', label:'Monitoring', icon:Activity, on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
+  { key:'datasets',   label:'Datasets',   icon:Database, on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
 ];
 const LEGEND_ITEMS = [
-  { color:'bg-sky-400 ring-2 ring-sky-600',       label:'Community Survey',                round:true  },
-  { color:'bg-sky-300 opacity-80',                label:'Marine areas under spatial plan', round:false },
-  { color:'bg-violet-400 opacity-80',             label:'Protected Marine areas',          round:false },
-  { color:'bg-emerald-400 opacity-80',            label:'Areas under habitat restoration', round:false },
-  { color:'bg-orange-500 ring-2 ring-orange-700', label:'Bio. Monitoring',                 round:true  },
+  { color:'bg-gray-700',   label:'Community Survey',                round:true  },
+  { color:'bg-blue-400',   label:'Marine areas under spatial plan', round:false },
+  { color:'bg-blue-600',   label:'Protected Marine areas',          round:false },
+  { color:'bg-slate-500',  label:'Areas under habitat restoration', round:false },
+  { color:'bg-gray-500',   label:'Bio. Monitoring',                 round:true  },
 ];
 const AREA_TYPE_LABEL = { lmma:'LMMA',taboo_area:'Taboo Area',patrol_zone:'Patrol Zone',buffer_zone:'Buffer Zone',spawning_aggregation:'Spawning Site',other:'Other' };
-const STATUS_COLORS = { Active:'#34d399',Inactive:'#fb7185','Under Review':'#d4a92a',Proposed:'#38bdf8' };
+const STATUS_COLORS = { Active:'#16a34a',Inactive:'#dc2626','Under Review':'#d97706',Proposed:'#2563eb' };
 const QUICK = [
-  { label:'New Survey',  to:'/surveys/new',     emoji:'📋', color:'bg-blue-600 hover:bg-blue-700' },
-  { label:'Marine Area', to:'/marine/new',      emoji:'⚓', color:'bg-emerald-600 hover:bg-emerald-700' },
-  { label:'Bio. Record', to:'/monitoring/new',  emoji:'🔬', color:'bg-amber-500 hover:bg-amber-600' },
-  { label:'Upload Data', to:'/datasets/upload', emoji:'📂', color:'bg-violet-600 hover:bg-violet-700' },
+  { label:'New Survey',   to:'/surveys/new',     icon:Users    },
+  { label:'Marine Area',  to:'/marine/new',       icon:Anchor   },
+  { label:'Bio. Record',  to:'/monitoring/new',   icon:Activity },
+  { label:'Upload Data',  to:'/datasets/upload',  icon:Database },
 ];
 const CATEGORY_LABELS = {
   marine_spatial_plan: 'Marine areas under spatial plan',
@@ -73,53 +73,47 @@ function useCountUp(target, duration=1000, decimals=0) {
   return val;
 }
 
-function HeroCard({ emoji, label, value, unit, sub, accent, loading, index, decimals=0 }) {
-  const counted = useCountUp(loading ? 0 : (typeof value === 'number' ? value : 0), 1000, decimals);
+function HeroCard({ label, value, unit, sub, loading, index, decimals=0 }) {
+  const counted = useCountUp(loading ? 0 : (typeof value === 'number' ? value : 0), 800, decimals);
   return (
     <div
-      style={{ animationDelay: `${index * 70}ms`, borderTop: `3px solid ${accent}` }}
-      className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 stat-card-entrance select-none"
+      style={{ animationDelay: `${index * 50}ms` }}
+      className="bg-white rounded-md border border-gray-200 p-4 stat-card-entrance select-none"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-          style={{ background: `${accent}18` }}>{emoji}</div>
-        <ArrowUpRight size={13} className="text-gray-300 mt-1" />
-      </div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] mb-1.5" style={{ color: accent }}>{label}</p>
-      <div>
-        {loading
-          ? <div className="h-9 w-20 rounded-lg bg-gray-100 animate-pulse" />
-          : <p className="text-3xl font-bold leading-none tracking-tight text-gray-900">
-              {decimals > 0
-                ? counted.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-                : Math.round(counted).toLocaleString()}
-              {unit && <span className="text-lg font-semibold ml-1 text-gray-400">{unit}</span>}
-            </p>}
-        {sub && <p className="text-[11px] mt-1.5 text-gray-400">
-          {loading ? <span className="inline-block h-3 w-28 rounded bg-gray-100 animate-pulse" /> : sub}
-        </p>}
-      </div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 mb-2">{label}</p>
+      {loading
+        ? <div className="h-7 w-20 rounded bg-gray-100 animate-pulse mb-1" />
+        : <p className="text-2xl font-bold leading-none tracking-tight text-gray-900">
+            {decimals > 0
+              ? counted.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+              : Math.round(counted).toLocaleString()}
+            {unit && <span className="text-sm font-medium ml-1 text-gray-400">{unit}</span>}
+          </p>}
+      {sub && (
+        <p className="text-[11px] mt-1.5 text-gray-400 leading-tight">
+          {loading ? <span className="inline-block h-3 w-24 rounded bg-gray-100 animate-pulse" /> : sub}
+        </p>
+      )}
     </div>
   );
 }
 
-function ChartCard({ title, icon: Icon, accent, children, loading, empty, emptyMsg, className='' }) {
-  const bg   = accent ? `${accent}12` : 'rgba(37,99,235,0.05)';
-  const bdr  = accent ? `${accent}28` : 'rgba(37,99,235,0.08)';
-  const icol = accent || '#2563eb';
+function ChartCard({ title, icon: Icon, children, loading, empty, emptyMsg, className='' }) {
   return (
     <div className={`card ${className}`}>
-      <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: bg, border: `1px solid ${bdr}` }}>
-          <Icon size={15} style={{ color: icol }} />
-        </div>
-        <h3 className="font-semibold text-gray-800 text-sm tracking-tight">{title}</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <Icon size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
+        <h3 className="font-medium text-gray-700 text-sm tracking-tight">{title}</h3>
       </div>
       {loading
-        ? <div className="h-52 flex items-center justify-center"><div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" /></div>
+        ? <div className="h-52 flex items-center justify-center">
+            <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
+          </div>
         : empty
-          ? <div className="h-52 flex flex-col items-center justify-center gap-2"><BarChart2 size={28} className="text-gray-200" /><p className="text-sm text-gray-400">{emptyMsg || 'No data yet'}</p></div>
+          ? <div className="h-52 flex flex-col items-center justify-center gap-2">
+              <BarChart2 size={24} className="text-gray-200" />
+              <p className="text-xs text-gray-400">{emptyMsg || 'No data yet'}</p>
+            </div>
           : children}
     </div>
   );
@@ -179,15 +173,13 @@ function ProvinceSummary({ data, loading }) {
   );
 }
 
-function QuickAction({ label, to, emoji, color }) {
+function QuickAction({ label, to, icon: Icon }) {
   return (
     <Link to={to}
-      className={`group ${color} rounded-xl p-4 flex items-center justify-between text-white transition-all duration-200`}>
-      <div className="flex items-center gap-3">
-        <span className="text-xl">{emoji}</span>
-        <p className="text-sm font-semibold tracking-tight">{label}</p>
-      </div>
-      <ArrowUpRight size={14} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200 flex-shrink-0" />
+      className="group bg-white border border-gray-200 hover:border-gray-300 rounded-md p-3.5 flex items-center gap-3 transition-colors duration-150">
+      <Icon size={14} className="text-gray-400 group-hover:text-gray-600 flex-shrink-0 transition-colors" strokeWidth={1.75} />
+      <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 tracking-tight transition-colors">{label}</p>
+      <ArrowUpRight size={12} className="text-gray-300 group-hover:text-gray-500 ml-auto flex-shrink-0 transition-colors" />
     </Link>
   );
 }
@@ -262,12 +254,12 @@ export default function DashboardPage() {
   const totalMarineHa = totalSpatialHa + totalRestorationHa;
 
   const heroCards = [
-    { emoji:'⚓', label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones',           accent:'#2563eb' },
-    { emoji:'🌊', label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   accent:'#0891b2', decimals:1 },
-    { emoji:'🛡️', label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, accent:'#7c3aed' },
-    { emoji:'🌍', label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        accent:'#0369a1', decimals:3 },
-    { emoji:'👥', label:'Communities in Conservation', value:Math.max(marine.communityCount ?? 0, surveys.communityCount ?? 0), sub:'unique communities engaged', accent:'#e11d48' },
-    { emoji:'🌿', label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats', accent:'#059669', decimals:1 },
+    { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones'                                              },
+    { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1                       },
+    { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`           },
+    { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3                       },
+    { label:'Communities in Conservation', value:Math.max(marine.communityCount ?? 0, surveys.communityCount ?? 0), sub:'unique communities engaged'                           },
+    { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1                       },
   ];
 
   const marineByType     = (marine.byType || []).map(d => ({ name: AREA_TYPE_LABEL[d.areaType] || d.areaType, value: d.count, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
@@ -291,17 +283,19 @@ export default function DashboardPage() {
     <div className="space-y-6 fade-in">
 
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{greeting()}, {user?.firstName || 'there'} 👋</h2>
-          <p className="text-gray-400 text-sm mt-0.5">{format(new Date(), 'EEEE, d MMMM yyyy')} &mdash; Real-time CBFM overview</p>
+          <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
+            {greeting()}, {user?.firstName || 'there'}
+          </h2>
+          <p className="text-gray-400 text-xs mt-0.5">{format(new Date(), 'EEEE, d MMMM yyyy')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => fetchAll(true)} disabled={statsLoading || mapLoading} className="btn-secondary text-sm py-2">
-            <RefreshCw size={13} className={(statsLoading || mapLoading) ? 'animate-spin' : ''} />
+          <button onClick={() => fetchAll(true)} disabled={statsLoading || mapLoading} className="btn-secondary text-xs py-1.5 px-3">
+            <RefreshCw size={12} className={(statsLoading || mapLoading) ? 'animate-spin' : ''} />
             {mapLoading ? 'Loading…' : datasetsLoading ? 'Loading datasets…' : 'Refresh'}
           </button>
-          <Link to="/marine/new" className="btn-primary text-sm py-2"><Plus size={13} />New Entry</Link>
+          <Link to="/marine/new" className="btn-primary text-xs py-1.5 px-3"><Plus size={12} />New Entry</Link>
         </div>
       </div>
 
@@ -313,14 +307,9 @@ export default function DashboardPage() {
       {/* Interactive Map */}
       <div className="card !p-0 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2.5 mr-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-teal-50 border border-teal-100">
-              <Layers size={15} className="text-teal-500" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm leading-tight">Interactive Map</h3>
-              <p className="text-xs text-gray-400">Vanuatu CBFM spatial data</p>
-            </div>
+          <div className="flex items-center gap-2 mr-3">
+            <Layers size={13} className="text-gray-400" strokeWidth={1.75} />
+            <h3 className="font-medium text-gray-700 text-sm tracking-tight">Spatial Overview</h3>
           </div>
           <div className="flex items-center gap-2 flex-wrap flex-1">
             {LAYER_CFG.map(({ key, label, icon: Icon, on, dot }) => (
@@ -390,21 +379,16 @@ export default function DashboardPage() {
 
       {/* Province Table */}
       <div className="card">
-        <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyan-50 border border-cyan-100">
-            <MapPin size={15} className="text-cyan-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-800 text-sm">Marine Conservation by Province</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Coverage, communities and active areas per province</p>
-          </div>
+        <div className="flex items-center gap-2 mb-4">
+          <MapPin size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
+          <h3 className="font-medium text-gray-700 text-sm tracking-tight">Marine Conservation by Province</h3>
         </div>
         <ProvinceSummary data={marine.byProvince || []} loading={statsLoading} />
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <ChartCard title="Marine Areas by Type" icon={Anchor} accent="#22d3ee" loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard title="Marine Areas by Type" icon={Anchor} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -415,19 +399,19 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Coverage by Province (ha)" icon={Waves} accent="#2dd4bf" loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
+        <ChartCard title="Coverage by Province (ha)" icon={Waves} loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineByProvince} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="province" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-              <Bar dataKey="ha" name="Hectares" radius={[5, 5, 0, 0]}>{marineByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
+              <Bar dataKey="ha" name="Hectares" radius={[3, 3, 0, 0]}>{marineByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Management Status" icon={Shield} accent="#a78bfa" loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet">
+        <ChartCard title="Management Status" icon={Shield} loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -440,48 +424,50 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <ChartCard title="Community Surveys by Province" icon={Users} accent="#fb7185" loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProv} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="province" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-              <Bar dataKey="count" name="Surveys" fill="#2563eb" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" name="Surveys" fill="#334155" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {monByType.length > 0 || statsLoading ? (
-          <ChartCard title="Biological Monitoring by Type" icon={Activity} accent="#fbbf24" loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet">
+          <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monByType} layout="vertical" barSize={18}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} width={140} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-                <Bar dataKey="count" name="Records" fill="#2dd4bf" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="count" name="Records" fill="#475569" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         ) : (
           <div className="card">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-50 border border-violet-100"><Database size={15} className="text-violet-500" /></div>
-              <h3 className="font-semibold text-gray-800 text-sm tracking-tight">Platform Summary</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Database size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
+              <h3 className="font-medium text-gray-700 text-sm tracking-tight">Platform Summary</h3>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { label:'Surveys',      value:surveys.total ?? 0,      sub:'community records',                      color:'#38bdf8' },
-                { label:'Bio. Records', value:monitoring.total ?? 0,   sub:'monitoring entries',                     color:'#a78bfa' },
-                { label:'Datasets',     value:datasets.total ?? 0,     sub:`${datasets.published ?? 0} published`,   color:'#d4a92a' },
-                { label:'Active Areas', value:marine.activeCount ?? 0, sub:'currently managed',                      color:'#34d399' },
-              ].map(({ label, value, sub, color }) => (
-                <div key={label} className="rounded-xl p-4 bg-gray-50 border border-gray-100">
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color }}>{label}</p>
-                  {statsLoading ? <div className="h-7 w-12 rounded bg-gray-100 animate-pulse" /> : <p className="text-2xl font-bold text-gray-800">{value}</p>}
-                  <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+                { label:'Surveys',      value:surveys.total ?? 0,      sub:'community records'                     },
+                { label:'Bio. Records', value:monitoring.total ?? 0,   sub:'monitoring entries'                    },
+                { label:'Datasets',     value:datasets.total ?? 0,     sub:`${datasets.published ?? 0} published`  },
+                { label:'Active Areas', value:marine.activeCount ?? 0, sub:'currently managed'                     },
+              ].map(({ label, value, sub }) => (
+                <div key={label} className="rounded p-3 bg-gray-50 border border-gray-100">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400 mb-1.5">{label}</p>
+                  {statsLoading
+                    ? <div className="h-6 w-10 rounded bg-gray-200 animate-pulse" />
+                    : <p className="text-xl font-bold text-gray-800">{value}</p>}
+                  <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
                 </div>
               ))}
             </div>
@@ -523,19 +509,19 @@ export default function DashboardPage() {
               type="monotone"
               dataKey="surveys"
               name="Surveys"
-              stroke="#2563eb"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#2563eb' }}
-              activeDot={{ r: 5 }}
+              stroke="#334155"
+              strokeWidth={1.5}
+              dot={{ r: 2.5, fill: '#334155', strokeWidth: 0 }}
+              activeDot={{ r: 4 }}
             />
             <Line
               type="monotone"
               dataKey="monitoring"
               name="Bio. Monitoring"
-              stroke="#f97316"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#f97316' }}
-              activeDot={{ r: 5 }}
+              stroke="#2563eb"
+              strokeWidth={1.5}
+              dot={{ r: 2.5, fill: '#2563eb', strokeWidth: 0 }}
+              activeDot={{ r: 4 }}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -543,14 +529,9 @@ export default function DashboardPage() {
 
       {/* Dataset Coverage by Category */}
       <div className="card">
-        <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-50 border border-violet-100">
-            <Database size={15} className="text-violet-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-800 text-sm tracking-tight">Uploaded Dataset Coverage by Category</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Area (ha) automatically calculated from published spatial datasets</p>
-          </div>
+        <div className="flex items-center gap-2 mb-4">
+          <Database size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
+          <h3 className="font-medium text-gray-700 text-sm tracking-tight">Dataset Coverage by Category</h3>
         </div>
         {statsLoading ? (
           <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-14 rounded-xl bg-gray-50 animate-pulse" />)}</div>
@@ -592,8 +573,8 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-[0.14em] mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-2">Quick Actions</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {QUICK.map(q => <QuickAction key={q.to} {...q} />)}
         </div>
       </div>
