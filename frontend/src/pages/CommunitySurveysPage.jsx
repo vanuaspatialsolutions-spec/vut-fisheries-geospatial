@@ -5,6 +5,7 @@ import { getSurveys, deleteSurvey } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Plus, Search, Users, CheckCircle, XCircle, Edit, Trash2, Filter } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES } from '../utils/constants';
+import Pagination from '../components/Pagination';
 
 function SkeletonRow() {
   return (
@@ -18,26 +19,6 @@ function SkeletonRow() {
   );
 }
 
-function Pagination({ pagination, filters, setFilters }) {
-  if (pagination.pages <= 1) return null;
-  return (
-    <div className="flex items-center justify-between text-sm text-gray-500 pt-2">
-      <span>Page {filters.page} of {pagination.pages} &mdash; {pagination.total} records</span>
-      <div className="flex gap-1">
-        <button disabled={filters.page <= 1} onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
-          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40">Prev</button>
-        {Array.from({ length: Math.min(pagination.pages, 5) }, (_, i) => i + 1).map(p => (
-          <button key={p} onClick={() => setFilters(f => ({ ...f, page: p }))}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filters.page === p ? 'bg-ocean-700 text-white' : 'border bg-white text-gray-600 hover:bg-gray-50'}`}>
-            {p}
-          </button>
-        ))}
-        <button disabled={filters.page >= pagination.pages} onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
-          className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-40">Next</button>
-      </div>
-    </div>
-  );
-}
 
 export default function CommunitySurveysPage() {
   const { isStaff } = useAuth();
