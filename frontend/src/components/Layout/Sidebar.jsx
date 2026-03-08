@@ -22,17 +22,17 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150
+        `flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm transition-colors duration-100
         ${isActive
-          ? 'bg-blue-50 text-blue-700'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          ? 'bg-gray-100 text-gray-900 font-medium'
+          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800 font-normal'
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon size={15} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
-          <span className="leading-none">{label}</span>
+          <Icon size={14} className={isActive ? 'text-gray-700' : 'text-gray-400'} strokeWidth={isActive ? 2 : 1.75} />
+          <span className="leading-none tracking-tight">{label}</span>
         </>
       )}
     </NavLink>
@@ -41,7 +41,7 @@ function NavItem({ to, icon: Icon, label }) {
 
 function SectionLabel({ label }) {
   return (
-    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.18em] px-3 pt-5 pb-1.5">
+    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.15em] px-2.5 pt-4 pb-1">
       {label}
     </p>
   );
@@ -50,41 +50,50 @@ function SectionLabel({ label }) {
 export default function Sidebar() {
   const { isAdmin } = useAuth();
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <aside className="w-52 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-gray-100">
+      <div className="px-4 py-3.5 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-            <img src={`${import.meta.env.BASE_URL}fisheries-logo.png`} alt="Vanuatu Fisheries"
-              className="w-8 h-8 object-contain" />
+          <div className="w-7 h-7 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <img
+              src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
+              alt="Vanuatu Fisheries"
+              className="w-6 h-6 object-contain"
+            />
           </div>
           <div>
-            <p className="font-bold text-[13px] text-gray-900 leading-tight">CBFM Platform</p>
-            <p className="text-gray-400 text-[10px] leading-tight mt-0.5">Dept. of Fisheries · Vanuatu</p>
+            <p className="font-semibold text-[12px] text-gray-800 leading-tight tracking-tight">CBFM Platform</p>
+            <p className="text-gray-400 text-[10px] leading-tight mt-0.5 tracking-tight">Dept. of Fisheries · Vanuatu</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2 px-2 overflow-y-auto space-y-0.5">
+      <nav className="flex-1 py-1 px-2 overflow-y-auto">
         <SectionLabel label="Overview" />
-        {mainNav.map(item => <NavItem key={item.to} {...item} />)}
+        <div className="space-y-0.5">
+          {mainNav.map(item => <NavItem key={item.to} {...item} />)}
+        </div>
 
         <SectionLabel label="Data Management" />
-        {dataNav.map(item => <NavItem key={item.to} {...item} />)}
+        <div className="space-y-0.5">
+          {dataNav.map(item => <NavItem key={item.to} {...item} />)}
+        </div>
 
         {isAdmin && (
           <>
             <SectionLabel label="Administration" />
-            <NavItem to="/admin" icon={Settings} label="Admin Panel" />
+            <div className="space-y-0.5">
+              <NavItem to="/admin" icon={Settings} label="Admin Panel" />
+            </div>
           </>
         )}
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100">
-        <div className="flex items-center gap-1.5 mb-1">
-          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+      <div className="px-3 py-2.5 border-t border-gray-100">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0" />
           <span className="text-gray-400 text-[10px]">System Online</span>
         </div>
         <p className="text-gray-300 text-[10px]">
