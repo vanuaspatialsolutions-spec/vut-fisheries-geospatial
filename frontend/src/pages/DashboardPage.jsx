@@ -263,7 +263,21 @@ export default function DashboardPage() {
   ];
 
   const marineByType     = (marine.byType || []).map(d => ({ name: AREA_TYPE_LABEL[d.areaType] || d.areaType, value: d.count, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
-  const marineByProvince = (marine.byProvince || []).map(d => ({ province: d.province.substring(0, 7), ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
+  const mergedByProvince = (() => {
+    const acc = {};
+    for (const d of (marine.byProvince || [])) {
+      const p = d.province;
+      if (!acc[p]) acc[p] = 0;
+      acc[p] += d.totalHa || 0;
+    }
+    for (const d of (datasets.byProvince || [])) {
+      const p = d.province;
+      if (!acc[p]) acc[p] = 0;
+      acc[p] += d.totalAreaHa || 0;
+    }
+    return Object.entries(acc).map(([province, ha]) => ({ province, ha: parseFloat(ha.toFixed(1)) }));
+  })();
+  const marineByProvince = mergedByProvince.map(d => ({ province: d.province.substring(0, 7), ha: d.ha }));
   const marineByStatus   = (marine.byStatus || []).map(d => ({ name: d.status.charAt(0).toUpperCase() + d.status.slice(1).replace(/_/g, ' '), value: d.count }));
   const surveysByProv    = (surveys.byProvince || []).map(d => ({ province: (d.province || 'Unknown').substring(0, 7), count: parseInt(d.count) }));
   const monByType        = (monitoring.byType || []).map(d => ({ name: (d.monitoringType || 'other').replace(/_/g, ' '), count: parseInt(d.count) }));
