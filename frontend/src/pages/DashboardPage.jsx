@@ -154,7 +154,8 @@ function ProvinceSummary({ data, loading }) {
         <tbody>
           {[...data].sort((a, b) => b.totalHa - a.totalHa).map(row => {
             const boundaryHa = PROVINCE_BOUNDARY_HA[row.province] || 1;
-            const pct = Math.min(100, Math.round((row.totalHa / boundaryHa) * 100));
+            const pct = Math.min(100, (row.totalHa / boundaryHa) * 100);
+            const pctDisplay = pct.toFixed(3);
             const color = PROVINCE_COLORS[row.province] || '#6b7280';
             return (
               <tr key={row.province} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
@@ -163,7 +164,7 @@ function ProvinceSummary({ data, loading }) {
                 <td className="py-3 px-3 text-center font-semibold text-gray-700">{row.totalHa ? parseFloat(row.totalHa).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}</td>
                 <td className="py-3 px-3 text-center text-gray-600">{row.communityCount}</td>
                 <td className="py-3 px-3 text-center"><span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${row.activeCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{row.activeCount}</span></td>
-                <td className="py-3 pl-3"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden max-w-[120px]"><div className="h-2 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} /></div><span className="text-xs text-gray-400 w-8 text-right">{pct}%</span></div></td>
+                <td className="py-3 pl-3"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden max-w-[120px]"><div className="h-2 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} /></div><span className="text-xs text-gray-400 w-12 text-right">{pctDisplay}%</span></div></td>
               </tr>
             );
           })}
