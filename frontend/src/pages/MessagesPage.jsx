@@ -71,12 +71,21 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
     );
   });
 
+  const [selecting, setSelecting] = useState(false);
+
   const handleSelect = async (target) => {
-    const myName = `${currentUser.firstName} ${currentUser.lastName}`;
-    const targetName = `${target.firstName} ${target.lastName}`;
-    const tid = await getOrCreateThread(currentUser.uid, myName, target.uid, targetName);
-    onOpen(tid, target);
-    onClose();
+    setSelecting(true);
+    try {
+      const myName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const targetName = `${target.firstName} ${target.lastName}`;
+      const tid = await getOrCreateThread(currentUser.uid, myName, target.uid, targetName);
+      onOpen(tid, target);
+      onClose();
+    } catch (err) {
+      toast.error('Could not open conversation: ' + (err.message || 'permission denied'));
+    } finally {
+      setSelecting(false);
+    }
   };
 
   return (
@@ -108,7 +117,8 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
               <button
                 key={u.uid}
                 onClick={() => handleSelect(u)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                disabled={selecting}
+                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left disabled:opacity-60"
               >
                 <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
                   {`${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase()}
