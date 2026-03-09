@@ -3,7 +3,7 @@
  * All reads/writes go directly to Firebase from the browser.
  */
 import { db, storage, auth, secondaryAuth } from '../firebase';
-import { createUserWithEmailAndPassword, signOut as secondarySignOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as secondarySignOut } from 'firebase/auth';
 import {
   collection, doc, getDoc, getDocsFromServer, addDoc, updateDoc, deleteDoc, setDoc,
   query, orderBy, serverTimestamp,
@@ -1082,10 +1082,27 @@ export async function createUserByAdmin({ email, password, firstName, lastName, 
   try {
     newCred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
   } catch (err) {
-    if (err.code === 'auth/email-already-in-use') throw new Error('An account with this email already exists.');
-    if (err.code === 'auth/weak-password') throw new Error('Password must be at least 6 characters.');
-    if (err.code === 'auth/invalid-email') throw new Error('Invalid email address.');
-    throw err;
+    if (err.code === 'auth/email-already-in-use') {
+      // Auth account exists (e.g. self-registered) but may lack a Firestore profile.
+      // Sign in with the supplied credentials to recover the UID, then create the profile.
+      try {
+        newCred = await signInWithEmailAndPassword(secondaryAuth, email, password);
+      } catch {
+        throw new Error('An account with this email already exists. Please check the password matches the user\'s existing password, or reset it first.');
+      }
+      // Check if a Firestore profile already exists for this user.
+      const existing = await getDoc(doc(db, 'users', newCred.user.uid));
+      if (existing.exists()) {
+        await secondarySignOut(secondaryAuth).catch(() => {});
+        throw new Error('A full account for this email already exists and is listed above.');
+      }
+    } else if (err.code === 'auth/weak-password') {
+      throw new Error('Password must be at least 6 characters.');
+    } else if (err.code === 'auth/invalid-email') {
+      throw new Error('Invalid email address.');
+    } else {
+      throw err;
+    }
   }
 
   const uid = newCred.user.uid;
