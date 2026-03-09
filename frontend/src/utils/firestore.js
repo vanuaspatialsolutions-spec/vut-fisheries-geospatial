@@ -942,6 +942,15 @@ export async function recacheDatasetGeoJSON(id, file) {
   });
 }
 
+export async function updateDatasetGeoJSON(id, geojson) {
+  const geojsonData = JSON.stringify(geojson);
+  const featureCount = geojson?.features?.length ?? 0;
+  const areaHa = calculateGeoJSONAreaHa(geojson);
+  const update = { geojsonData, featureCount, hasGeojsonData: true, updatedAt: serverTimestamp() };
+  if (areaHa > 0) update.calculatedAreaHa = areaHa;
+  return updateDoc(doc(db, 'datasets', id), update);
+}
+
 export async function deleteDataset(id, filePath) {
   // Delete storage file first (best-effort — may fail if already gone or no permission).
   if (filePath) {
