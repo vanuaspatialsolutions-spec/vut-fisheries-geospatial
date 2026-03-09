@@ -386,6 +386,7 @@ export async function getSurveyStats() {
   return {
     total: list.length,
     communityCount: communities.size,
+    communities: [...communities],
     byProvince: Object.entries(byProvince).map(([province, count]) => ({ province, count })),
   };
 }
@@ -498,6 +499,7 @@ export async function getMarineStats() {
     protectedAreaHa,
     activeCount,
     communityCount: communities.size,
+    communities: [...communities],
     restorationAreaHa,
     byType: Object.entries(byType).map(([areaType, v]) => ({ areaType, count: v.count, totalHa: v.totalHa })),
     byStatus: Object.entries(byStatus).map(([status, count]) => ({ status, count })),
