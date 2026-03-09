@@ -239,9 +239,9 @@ export default function DashboardPage() {
   const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
 
   const dsByType = Object.fromEntries((datasets.byType || []).map(d => [d.dataType, d]));
-  const dsSpatialCount   = dsByType.marine_spatial_plan?.count || 0;
+  const dsSpatialCount   = dsByType.marine_spatial_plan?.featureCount || 0;
   const dsSpatialHa      = dsByType.marine_spatial_plan?.publishedAreaHa || 0;
-  const dsProtectedCount = dsByType.protected_marine?.count || 0;
+  const dsProtectedCount = dsByType.protected_marine?.featureCount || 0;
   const dsProtectedHa    = dsByType.protected_marine?.publishedAreaHa || 0;
   const dsRestorationHa  = dsByType.habitat_restoration?.publishedAreaHa || 0;
 
@@ -251,19 +251,48 @@ export default function DashboardPage() {
   const totalProtectedHa    = (marine.protectedAreaHa || 0) + dsProtectedHa;
   const totalRestorationHa  = (marine.restorationAreaHa || 0) + dsRestorationHa;
   const mpaPct = totalProtectedHa ? parseFloat(((totalProtectedHa / VANUATU_MARINE_HA) * 100).toFixed(3)) : 0;
-  const totalMarineHa = totalSpatialHa + totalRestorationHa;
+  // marine.restorationAreaHa is already included in marine.totalAreaHa (and thus totalSpatialHa),
+  // so only add dsRestorationHa (from habitat_restoration datasets) to avoid double-counting.
+  const totalMarineHa = totalSpatialHa + dsRestorationHa;
 
   const heroCards = [
     { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones'                                              },
     { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1                       },
     { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`           },
     { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3                       },
-    { label:'Communities in Conservation', value:Math.max(marine.communityCount ?? 0, surveys.communityCount ?? 0), sub:'unique communities engaged'                           },
+    { label:'Communities in Conservation', value:new Set([...(marine.communities || []), ...(surveys.communities || [])]).size, sub:'unique communities engaged'                           },
     { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1                       },
   ];
 
   const marineByType     = (marine.byType || []).map(d => ({ name: AREA_TYPE_LABEL[d.areaType] || d.areaType, value: d.count, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
-  const marineByProvince = (marine.byProvince || []).map(d => ({ province: d.province.substring(0, 7), ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
+
+  // Merge marine areas + published dataset areas by province.
+  // All 6 Vanuatu provinces are always present (zeroed if no data yet).
+  // Used for both the Coverage chart and the Province Summary table.
+  const mergedProvinceData = (() => {
+    const acc = {};
+    for (const p of VANUATU_PROVINCES) {
+      acc[p] = { province: p, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
+    }
+    for (const d of (marine.byProvince || [])) {
+      if (!acc[d.province]) acc[d.province] = { province: d.province, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
+      acc[d.province].count = d.count;
+      acc[d.province].totalHa = d.totalHa || 0;
+      acc[d.province].communityCount = d.communityCount || 0;
+      acc[d.province].activeCount = d.activeCount || 0;
+    }
+    for (const d of (datasets.byProvince || [])) {
+      if (!acc[d.province]) acc[d.province] = { province: d.province, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
+      acc[d.province].totalHa = parseFloat(((acc[d.province].totalHa || 0) + (d.totalAreaHa || 0)).toFixed(1));
+    }
+    return Object.values(acc);
+  })();
+
+  const mergedByProvince = mergedProvinceData.map(d => ({ province: d.province, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
+  const marineByProvince = mergedByProvince.map(d => ({ province: d.province.substring(0, 7), ha: d.ha }));
+  const marineCountByProvince = (marine.byProvince || [])
+    .map(d => ({ province: d.province.substring(0, 7), count: d.count }))
+    .sort((a, b) => b.count - a.count);
   const marineByStatus   = (marine.byStatus || []).map(d => ({ name: d.status.charAt(0).toUpperCase() + d.status.slice(1).replace(/_/g, ' '), value: d.count }));
   const surveysByProv    = (surveys.byProvince || []).map(d => ({ province: (d.province || 'Unknown').substring(0, 7), count: parseInt(d.count) }));
   const monByType        = (monitoring.byType || []).map(d => ({ name: (d.monitoringType || 'other').replace(/_/g, ' '), count: parseInt(d.count) }));
@@ -383,7 +412,7 @@ export default function DashboardPage() {
           <MapPin size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
           <h3 className="font-medium text-gray-700 text-sm tracking-tight">Marine Conservation by Province</h3>
         </div>
-        <ProvinceSummary data={marine.byProvince || []} loading={statsLoading} />
+        <ProvinceSummary data={mergedProvinceData} loading={statsLoading} />
       </div>
 
       {/* Charts Row 1 */}
@@ -424,7 +453,19 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard title="Marine Areas by Province" icon={Anchor} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={marineCountByProvince} barSize={28}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="province" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
+              <Bar dataKey="count" name="Marine Areas" radius={[3, 3, 0, 0]}>{marineCountByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
         <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProv} barSize={32}>

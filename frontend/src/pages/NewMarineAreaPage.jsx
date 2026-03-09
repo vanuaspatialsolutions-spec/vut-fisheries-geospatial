@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { createMarineArea, updateMarineArea, getMarineArea, parseFileToGeoJSON } from '../utils/firestore';
+import { createMarineArea, updateMarineArea, getMarineArea, parseFileToGeoJSON, calculateGeoJSONAreaHa } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Upload, File, X, MapPin, SkipForward } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
@@ -45,7 +45,7 @@ export default function NewMarineAreaPage() {
   const [parsing, setParsing] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [selectedHabitats, setSelectedHabitats] = useState([]);
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm();
 
   useEffect(() => {
     if (isEdit) {
@@ -79,8 +79,10 @@ export default function NewMarineAreaPage() {
       const geom = extractGeometry(geojson);
       setGeometry(geom);
       const count = geojson.features?.length ?? 1;
-      setBoundaryMeta({ featureCount: count });
-      toast.success(`Boundary loaded — ${count.toLocaleString()} feature${count !== 1 ? 's' : ''}`);
+      const areaHa = calculateGeoJSONAreaHa(geojson);
+      if (areaHa > 0) setValue('areaSizeHa', parseFloat(areaHa.toFixed(2)));
+      setBoundaryMeta({ featureCount: count, areaHa: areaHa > 0 ? areaHa : null });
+      toast.success(`Boundary loaded — ${count.toLocaleString()} feature${count !== 1 ? 's' : ''}${areaHa > 0 ? ` · ${areaHa.toLocaleString(undefined, { maximumFractionDigits: 1 })} ha` : ''}`);
     } catch (err) {
       toast.error(`Could not read boundary: ${err.message}`);
       setBoundaryFile(null);

@@ -12,6 +12,7 @@ import { ref, uploadBytesResumable, getDownloadURL, getBytes, deleteObject } fro
 // sql-wasm.wasm is imported as a URL string only (no WASM bytes in the main bundle).
 // It is copied to /dist/assets/ by Vite and used only when a .gpkg file is parsed.
 import sqlWasm from 'sql.js/dist/sql-wasm.wasm?url';
+import { detectProvince } from './provinceDetect';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -242,7 +243,7 @@ export async function parseFileToGeoJSON(file) {
  * object and return the total in hectares (rounded to 2 decimal places).
  * Uses the spherical excess formula (same algorithm as @turf/area).
  */
-function calculateGeoJSONAreaHa(geojson) {
+export function calculateGeoJSONAreaHa(geojson) {
   const R = 6378137; // WGS84 mean radius in metres
   function rad(d) { return d * Math.PI / 180; }
 
@@ -385,6 +386,7 @@ export async function getSurveyStats() {
   return {
     total: list.length,
     communityCount: communities.size,
+    communities: [...communities],
     byProvince: Object.entries(byProvince).map(([province, count]) => ({ province, count })),
   };
 }
@@ -414,8 +416,10 @@ export async function getMarineAreas({ province, areaType, managementStatus, sea
 }
 
 export async function createMarineArea(data) {
+  const province = data.province || (data.geometry ? detectProvince(data.geometry) : null) || '';
   return addDoc(collection(db, 'marine_areas'), {
     ...data,
+    province,
     submittedBy: auth.currentUser?.uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -459,8 +463,8 @@ export async function getMarineStats() {
     byType[t].count += 1;
     byType[t].totalHa += ha;
 
-    // Province tally
-    const p = a.province || 'Unknown';
+    // Province tally — fall back to geometry-based detection if field is blank
+    const p = a.province || (a.geometry ? detectProvince(a.geometry) : null) || 'Unknown';
     if (!byProvince[p]) byProvince[p] = { count: 0, totalHa: 0, communities: new Set(), activeCount: 0 };
     byProvince[p].count += 1;
     byProvince[p].totalHa += ha;
@@ -495,6 +499,7 @@ export async function getMarineStats() {
     protectedAreaHa,
     activeCount,
     communityCount: communities.size,
+    communities: [...communities],
     restorationAreaHa,
     byType: Object.entries(byType).map(([areaType, v]) => ({ areaType, count: v.count, totalHa: v.totalHa })),
     byStatus: Object.entries(byStatus).map(([status, count]) => ({ status, count })),
@@ -663,15 +668,49 @@ export async function getDatasetStats() {
   const snap = await getDocs(collection(db, 'datasets'));
   const list = snap.docs.map(d => d.data());
   const byType = {};
+  const byProvince = {};
   let published = 0;
   list.forEach(d => {
     if (d.status === 'published') published++;
     const t = d.dataType || 'other';
-    if (!byType[t]) byType[t] = { count: 0, totalAreaHa: 0, publishedAreaHa: 0 };
+    if (!byType[t]) byType[t] = { count: 0, featureCount: 0, totalAreaHa: 0, publishedAreaHa: 0 };
     byType[t].count += 1;
+
+    // For spatial categories, count individual features (MPAs) within the dataset,
+    // not just the number of dataset files.
+    // Prefer inline geojsonData for an exact count; fall back to the stored
+    // featureCount (written at upload time) so datasets whose GeoJSON was too
+    // large to cache inline are still counted correctly.
+    const spatialTypes = ['protected_marine', 'marine_spatial_plan', 'habitat_restoration'];
+    if (spatialTypes.includes(t) && d.geojsonData) {
+      try {
+        const geojson = typeof d.geojsonData === 'string' ? JSON.parse(d.geojsonData) : d.geojsonData;
+        const feats = geojson?.features?.length ?? (d.featureCount || 1);
+        byType[t].featureCount += feats;
+      } catch {
+        byType[t].featureCount += d.featureCount || 1;
+      }
+    } else {
+      byType[t].featureCount += d.featureCount || 1;
+    }
+
     const ha = parseFloat(d.calculatedAreaHa) || 0;
     byType[t].totalAreaHa += ha;
     if (d.status === 'published') byType[t].publishedAreaHa += ha;
+
+    // Province breakdown — only published datasets with area contribute.
+    if (d.status === 'published' && ha > 0 && spatialTypes.includes(t)) {
+      let p = d.province;
+      if (!p && d.geojsonData) {
+        try {
+          const gj = typeof d.geojsonData === 'string' ? JSON.parse(d.geojsonData) : d.geojsonData;
+          p = detectProvince(gj);
+        } catch { /* ignore */ }
+      }
+      p = p || 'Unknown';
+      if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+      byProvince[p].totalAreaHa += ha;
+    }
   });
   return {
     total: list.length,
@@ -679,8 +718,13 @@ export async function getDatasetStats() {
     byType: Object.entries(byType).map(([dataType, v]) => ({
       dataType,
       count: v.count,
+      featureCount: v.featureCount,
       totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
       publishedAreaHa: Math.round(v.publishedAreaHa * 10) / 10,
+    })),
+    byProvince: Object.entries(byProvince).map(([province, v]) => ({
+      province,
+      totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
     })),
   };
 }
@@ -705,10 +749,12 @@ export async function uploadDataset(file, metadata, onProgress, onStage) {
   // If the GeoJSON is too large even after simplification, it's served from Storage instead.
   const mapFormats = ['json', 'geojson', 'zip', 'kml', 'gpkg', 'shp'];
   let geojsonData = null;
+  let rawFeatureCount = null;
   if (mapFormats.includes(ext)) {
     try {
       onStage?.('processing');
       const raw = await parseFileToGeoJSON(file);
+      rawFeatureCount = raw?.features?.length ?? null;
       geojsonData = await fitGeoJSONToLimit(raw);
       if (!geojsonData) {
         console.warn('GeoJSON too large even after simplification — inline cache skipped. Staff can use "Fix Map Layer" at publish time.');
@@ -753,7 +799,14 @@ export async function uploadDataset(file, metadata, onProgress, onStage) {
             docData.hasGeojsonData = true;
             const areaHa = calculateGeoJSONAreaHa(geojsonData);
             if (areaHa > 0) docData.calculatedAreaHa = areaHa;
+            // Auto-detect province from geometry if the user left it blank.
+            if (!docData.province) {
+              docData.province = detectProvince(geojsonData) || '';
+            }
           }
+          // Always store the parsed feature count so stats are accurate even
+          // when geojsonData is null (file was too large to cache inline).
+          if (rawFeatureCount !== null) docData.featureCount = rawFeatureCount;
           await addDoc(collection(db, 'datasets'), docData);
           resolve();
         } catch (err) {
@@ -1010,4 +1063,51 @@ export async function createUserByAdmin({ email, password, firstName, lastName, 
   });
 
   return uid;
+}
+
+// ── ADMIN MIGRATIONS ────────────────────────────────────────────────────────
+
+/**
+ * Backfill the `province` field for any marine_areas or datasets documents
+ * that are missing it but have geometry data we can use for detection.
+ * Returns a summary { marineUpdated, datasetsUpdated, marineSkipped, datasetsSkipped }.
+ */
+export async function backfillProvinces() {
+  const results = { marineUpdated: 0, datasetsUpdated: 0, marineSkipped: 0, datasetsSkipped: 0 };
+
+  // ── marine_areas ────────────────────────────────────────────────────────
+  const marineSnap = await getDocs(collection(db, 'marine_areas'));
+  for (const docSnap of marineSnap.docs) {
+    const d = docSnap.data();
+    if (d.province) { results.marineSkipped++; continue; }
+    const detected = d.geometry ? detectProvince(d.geometry) : null;
+    if (detected) {
+      await updateDoc(doc(db, 'marine_areas', docSnap.id), { province: detected, updatedAt: serverTimestamp() });
+      results.marineUpdated++;
+    } else {
+      results.marineSkipped++;
+    }
+  }
+
+  // ── datasets ────────────────────────────────────────────────────────────
+  const dsSnap = await getDocs(collection(db, 'datasets'));
+  for (const docSnap of dsSnap.docs) {
+    const d = docSnap.data();
+    if (d.province) { results.datasetsSkipped++; continue; }
+    let detected = null;
+    if (d.geojsonData) {
+      try {
+        const gj = typeof d.geojsonData === 'string' ? JSON.parse(d.geojsonData) : d.geojsonData;
+        detected = detectProvince(gj);
+      } catch { /* ignore */ }
+    }
+    if (detected) {
+      await updateDoc(doc(db, 'datasets', docSnap.id), { province: detected, updatedAt: serverTimestamp() });
+      results.datasetsUpdated++;
+    } else {
+      results.datasetsSkipped++;
+    }
+  }
+
+  return results;
 }
