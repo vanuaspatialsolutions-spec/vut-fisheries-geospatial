@@ -284,6 +284,7 @@ export default function DashboardPage() {
     for (const d of (datasets.byProvince || [])) {
       if (!acc[d.province]) acc[d.province] = { province: d.province, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
       acc[d.province].totalHa = parseFloat(((acc[d.province].totalHa || 0) + (d.totalAreaHa || 0)).toFixed(1));
+      acc[d.province].count = (acc[d.province].count || 0) + (d.featureCount || 0);
     }
     return Object.values(acc);
   })();
