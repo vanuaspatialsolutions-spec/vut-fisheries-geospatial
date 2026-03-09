@@ -12,6 +12,7 @@ import {
   Send, MessageSquare, Plus, X, Search, Users,
   Download, File, FileText, FileImage, Trash2, Paperclip, XCircle,
 } from 'lucide-react';
+import UserAvatar from '../components/UserAvatar';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,8 @@ export default function MessagesPage() {
 
   const uid = user?.uid;
   const myName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+  const myPosition  = user?.position  || null;
+  const myPhotoURL  = user?.photoURL  || null;
 
   // ── subscriptions ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -290,7 +293,7 @@ export default function MessagesPage() {
         attachment = await uploadAttachment(activeThreadId, savedFile, setUploadProgress);
         setUploadProgress(null);
       }
-      await sendMessage(activeThreadId, uid, myName, savedText, attachment);
+      await sendMessage(activeThreadId, uid, myName, savedText, attachment, myPosition, myPhotoURL);
     } catch (err) {
       toast.error('Failed to send: ' + err.message);
       setText(savedText);
@@ -461,11 +464,26 @@ export default function MessagesPage() {
             )}
             {messages.map((msg) => {
               const isMine = msg.senderId === uid;
+              // Build a minimal user-like object from the message for UserAvatar
+              const senderForAvatar = {
+                firstName:  msg.senderName?.split(' ')[0] || '',
+                lastName:   msg.senderName?.split(' ').slice(1).join(' ') || '',
+                photoURL:   msg.senderPhotoURL || null,
+              };
               return (
-                <div key={msg.id} className={`group flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                  <div className={`max-w-[70%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
+                <div key={msg.id} className={`group flex ${isMine ? 'flex-col items-end' : 'flex-row items-end gap-2'}`}>
+                  {/* Avatar for incoming messages */}
+                  {!isMine && (
+                    <UserAvatar user={senderForAvatar} sizePx={26} className="mb-4 flex-shrink-0" />
+                  )}
+                  <div className={`max-w-[68%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                     {!isMine && (
-                      <span className="text-[10px] text-gray-400 mb-1 px-1">{msg.senderName}</span>
+                      <div className="flex items-baseline gap-1.5 mb-1 px-1">
+                        <span className="text-[10px] font-medium text-gray-600">{msg.senderName}</span>
+                        {msg.senderPosition && (
+                          <span className="text-[10px] text-gray-400">{msg.senderPosition}</span>
+                        )}
+                      </div>
                     )}
                     <div className={`flex items-end gap-1.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                       {msg.deleted ? (

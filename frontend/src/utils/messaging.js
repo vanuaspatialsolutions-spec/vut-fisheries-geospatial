@@ -66,7 +66,10 @@ export async function createGroupThread(creatorUid, creatorName, members, groupN
 
 // ── Send message ──────────────────────────────────────────────────────────────
 
-export async function sendMessage(threadId, senderId, senderName, text, attachment = null) {
+export async function sendMessage(
+  threadId, senderId, senderName, text,
+  attachment = null, senderPosition = null, senderPhotoURL = null,
+) {
   const threadRef = doc(db, 'threads', threadId);
   const threadSnap = await getDoc(threadRef);
   if (!threadSnap.exists()) throw new Error('Thread not found');
@@ -77,6 +80,8 @@ export async function sendMessage(threadId, senderId, senderName, text, attachme
   await addDoc(collection(db, 'threads', threadId, 'messages'), {
     senderId,
     senderName,
+    senderPosition: senderPosition || null,
+    senderPhotoURL: senderPhotoURL || null,
     text: text || '',
     attachment: attachment || null,
     createdAt: serverTimestamp(),

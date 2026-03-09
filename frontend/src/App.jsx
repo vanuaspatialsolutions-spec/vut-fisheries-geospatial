@@ -15,6 +15,7 @@ import NewMonitoringPage from './pages/NewMonitoringPage';
 import AdminPage from './pages/AdminPage';
 import FilesPage from './pages/FilesPage';
 import MessagesPage from './pages/MessagesPage';
+import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="/monitoring/:id/edit" element={<NewMonitoringPage />} />
         <Route path="/files" element={<FilesPage />} />
         <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
       </Route>
     </Routes>

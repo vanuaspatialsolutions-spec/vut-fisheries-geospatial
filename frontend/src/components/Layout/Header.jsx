@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToNotifications, markNotificationRead, markAllNotificationsRead } from '../../utils/messaging';
 import {
   LogOut, Bell, MessageSquare, Paperclip,
-  LayoutDashboard, Users, Anchor, Activity, Database, Settings, FolderOpen,
+  LayoutDashboard, Users, Anchor, Activity, Database, Settings, FolderOpen, UserCircle,
 } from 'lucide-react';
+import UserAvatar from '../UserAvatar';
 
 const routeMeta = {
   '/dashboard':        { title: 'Dashboard',              desc: 'Real-time overview',          icon: LayoutDashboard },
@@ -19,6 +20,7 @@ const routeMeta = {
   '/datasets/upload':  { title: 'Upload Dataset',          desc: 'Datasets',                    icon: Database        },
   '/files':            { title: 'My Files',                desc: 'Personal file storage',       icon: FolderOpen      },
   '/messages':         { title: 'Messages',                desc: 'Chat with team members',      icon: MessageSquare   },
+  '/profile':          { title: 'My Profile',             desc: 'Account & profile settings',  icon: UserCircle      },
   '/admin':            { title: 'Admin Panel',             desc: 'User & content management',   icon: Settings        },
 };
 
@@ -33,14 +35,6 @@ const roleLabel = {
   community_officer: 'Officer',
 };
 
-function UserAvatar({ user }) {
-  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase();
-  return (
-    <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-      {initials || '?'}
-    </div>
-  );
-}
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -186,8 +180,8 @@ export default function Header() {
 
         <div className="w-px h-4 bg-gray-200" />
 
-        <div className="flex items-center gap-2">
-          <UserAvatar user={user} />
+        <Link to="/profile" className="flex items-center gap-2 rounded hover:bg-gray-50 px-1 py-0.5 transition-colors" title="My Profile">
+          <UserAvatar user={user} sizePx={28} />
           <div className="hidden sm:block leading-tight">
             <p className="text-xs font-medium text-gray-700 leading-none">
               {user?.firstName} {user?.lastName}
@@ -196,7 +190,7 @@ export default function Header() {
               {roleLabel[user?.role] || user?.role}
             </span>
           </div>
-        </div>
+        </Link>
 
         <button
           onClick={handleLogout}

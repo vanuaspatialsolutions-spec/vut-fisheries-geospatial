@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Users, Activity,
   Anchor, Settings, FolderOpen, MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToThreads } from '../../utils/messaging';
+import UserAvatar from '../UserAvatar';
 
 const dataNav = [
   { to: '/surveys',    icon: Users,          label: 'Community Surveys' },
@@ -112,14 +113,35 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-2.5 border-t border-gray-100">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0" />
-          <span className="text-gray-400 text-[10px]">System Online</span>
+      <div className="border-t border-gray-100">
+        {/* User profile link */}
+        <Link
+          to="/profile"
+          className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 transition-colors group"
+          title="My Profile"
+        >
+          <UserAvatar user={user} sizePx={26} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-gray-700 truncate leading-none">
+              {user?.firstName} {user?.lastName}
+            </p>
+            {user?.position ? (
+              <p className="text-[10px] text-gray-400 truncate mt-0.5 leading-none">{user.position}</p>
+            ) : (
+              <p className="text-[10px] text-gray-400 truncate mt-0.5 leading-none capitalize">{user?.role?.replace(/_/g, ' ')}</p>
+            )}
+          </div>
+        </Link>
+
+        <div className="px-3 pb-2.5">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0" />
+            <span className="text-gray-400 text-[10px]">System Online</span>
+          </div>
+          <p className="text-gray-300 text-[10px]">
+            © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
+          </p>
         </div>
-        <p className="text-gray-300 text-[10px]">
-          © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
-        </p>
       </div>
     </aside>
   );

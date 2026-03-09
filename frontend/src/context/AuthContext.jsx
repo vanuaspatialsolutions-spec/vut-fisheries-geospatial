@@ -209,6 +209,16 @@ export function AuthProvider({ children }) {
     return updated;
   };
 
+  // Update the current user's own profile fields (name, position, unit, photoURL, …)
+  const updateUserProfile = async (data) => {
+    if (!auth.currentUser) throw new Error('Not authenticated');
+    const uid = auth.currentUser.uid;
+    await updateDoc(doc(db, 'users', uid), { ...data, updatedAt: serverTimestamp() });
+    const cached = getCachedProfile(uid) || {};
+    cacheProfile(uid, { ...cached, ...data });
+    setUser(prev => ({ ...prev, ...data }));
+  };
+
   const logout = () => {
     if (auth.currentUser) clearCachedProfile(auth.currentUser.uid);
     return signOut(auth).then(() => setUser(null));
@@ -217,7 +227,7 @@ export function AuthProvider({ children }) {
   const isStaff = ['admin', 'staff'].includes(user?.role);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, saveProfile, isAdmin, isStaff }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, saveProfile, updateUserProfile, isAdmin, isStaff }}>
       {children}
     </AuthContext.Provider>
   );
