@@ -6,11 +6,12 @@ import { useAuth } from '../context/AuthContext';
 import {
   getDatasets, publishDataset, unpublishDataset, submitDatasetForReview,
   deleteDataset, recacheDatasetGeoJSON, getDatasetById, getDatasetGeoJSON,
+  updateDatasetGeoJSON,
 } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import {
   Upload, Download, CheckCircle, Clock, Archive, Search, Trash2, Wrench, MapPin,
-  Eye, X, Map as MapIcon, Table2,
+  Eye, X, Map as MapIcon, Table2, Pencil, Plus, Save,
 } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES, VANUATU_CENTER, VANUATU_ZOOM } from '../utils/constants';
 
@@ -62,14 +63,24 @@ function FitBounds({ geojson }) {
 const TABLE_ROW_LIMIT = 500;
 
 function DatasetPreviewModal({ dataset, onClose }) {
+  const { isAdmin } = useAuth();
   const [geojson, setGeojson] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [tab, setTab] = useState('map');
 
+  // ── Edit-mode state ──────────────────────────────────────────────────────
+  const [editMode, setEditMode] = useState(false);
+  const [editFeatures, setEditFeatures] = useState([]);
+  const [editKeys, setEditKeys] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [renamingCol, setRenamingCol] = useState(null); // key being renamed
+  const [renameVal, setRenameVal] = useState('');
+  const [newColName, setNewColName] = useState('');
+  const [showAddCol, setShowAddCol] = useState(false);
+  const newColInputRef = useRef(null);
+
   useEffect(() => {
     setLoadingPreview(true);
-    // Fetch the full document (with inline geojsonData) so getDatasetGeoJSON
-    // uses the fast Firestore path instead of falling through to slow Storage SDK calls.
     getDatasetById(dataset.id)
       .then(fullDoc => getDatasetGeoJSON(fullDoc || dataset))
       .then(g => setGeojson(g))
@@ -87,13 +98,100 @@ function DatasetPreviewModal({ dataset, onClose }) {
 
   const color = CATEGORY_COLOR[dataset.dataType] || '#38bdf8';
   const layerStyle = { color, weight: 1.5, fillColor: color, fillOpacity: 0.2 };
-
   const displayedRows = features.slice(0, TABLE_ROW_LIMIT);
+
+  // ── Edit helpers ─────────────────────────────────────────────────────────
+  const enterEditMode = () => {
+    setEditFeatures(features.map(f => ({ ...f, properties: { ...(f.properties || {}) } })));
+    setEditKeys([...propKeys]);
+    setEditMode(true);
+    setShowAddCol(false);
+    setRenamingCol(null);
+  };
+
+  const cancelEdit = () => {
+    setEditMode(false);
+    setShowAddCol(false);
+    setRenamingCol(null);
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      // Rebuild features with only the current editKeys (drops deleted columns)
+      const newGeojson = {
+        ...geojson,
+        features: editFeatures.map(f => ({
+          ...f,
+          properties: Object.fromEntries(editKeys.map(k => [k, f.properties?.[k] ?? ''])),
+        })),
+      };
+      await updateDatasetGeoJSON(dataset.id, newGeojson);
+      setGeojson(newGeojson);
+      setEditMode(false);
+      toast.success('Attribute table saved.');
+    } catch (err) {
+      toast.error('Save failed: ' + (err.message || 'unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateCell = (rowIdx, key, value) => {
+    setEditFeatures(prev =>
+      prev.map((f, i) =>
+        i === rowIdx ? { ...f, properties: { ...f.properties, [key]: value } } : f
+      )
+    );
+  };
+
+  const deleteRow = (idx) => setEditFeatures(prev => prev.filter((_, i) => i !== idx));
+
+  const addRow = () => {
+    const emptyProps = Object.fromEntries(editKeys.map(k => [k, '']));
+    setEditFeatures(prev => [...prev, { type: 'Feature', geometry: null, properties: emptyProps }]);
+  };
+
+  const deleteColumn = (key) => {
+    if (!window.confirm(`Delete column "${key}"? This cannot be undone.`)) return;
+    setEditKeys(prev => prev.filter(k => k !== key));
+  };
+
+  const addColumn = () => {
+    const name = newColName.trim();
+    if (!name) return;
+    if (editKeys.includes(name)) { toast.error(`Column "${name}" already exists.`); return; }
+    setEditKeys(prev => [...prev, name]);
+    setEditFeatures(prev => prev.map(f => ({ ...f, properties: { ...f.properties, [name]: '' } })));
+    setNewColName('');
+    setShowAddCol(false);
+  };
+
+  const startRenameCol = (key) => { setRenamingCol(key); setRenameVal(key); };
+
+  const commitRenameCol = (oldKey) => {
+    const newKey = renameVal.trim();
+    setRenamingCol(null);
+    if (!newKey || newKey === oldKey) return;
+    if (editKeys.includes(newKey)) { toast.error(`Column "${newKey}" already exists.`); return; }
+    setEditKeys(prev => prev.map(k => k === oldKey ? newKey : k));
+    setEditFeatures(prev => prev.map(f => {
+      const props = { ...f.properties };
+      props[newKey] = props[oldKey] ?? '';
+      delete props[oldKey];
+      return { ...f, properties: props };
+    }));
+  };
+
+  // Focus add-column input when it appears
+  useEffect(() => {
+    if (showAddCol) setTimeout(() => newColInputRef.current?.focus(), 50);
+  }, [showAddCol]);
 
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget && !editMode) onClose(); }}
     >
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col" style={{ maxHeight: '90vh' }}>
 
@@ -102,7 +200,7 @@ function DatasetPreviewModal({ dataset, onClose }) {
           <div className="min-w-0 mr-4">
             <h2 className="font-semibold text-gray-900 truncate">{dataset.title}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {loadingPreview ? 'Loading…' : `${features.length.toLocaleString()} feature${features.length !== 1 ? 's' : ''}`}
+              {loadingPreview ? 'Loading…' : `${(editMode ? editFeatures : features).length.toLocaleString()} feature${features.length !== 1 ? 's' : ''}`}
               {dataset.calculatedAreaHa > 0 && ` · ${Number(dataset.calculatedAreaHa).toLocaleString(undefined, { maximumFractionDigits: 1 })} ha`}
               {dataset.province && ` · ${dataset.province}`}
             </p>
@@ -110,7 +208,7 @@ function DatasetPreviewModal({ dataset, onClose }) {
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
               <button
-                onClick={() => setTab('map')}
+                onClick={() => { if (editMode) cancelEdit(); setTab('map'); }}
                 className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${tab === 'map' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <MapIcon size={13} /> Map
@@ -127,7 +225,7 @@ function DatasetPreviewModal({ dataset, onClose }) {
                 )}
               </button>
             </div>
-            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Close">
+            <button onClick={() => { if (!editMode) onClose(); }} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Close">
               <X size={16} className="text-gray-500" />
             </button>
           </div>
@@ -177,45 +275,177 @@ function DatasetPreviewModal({ dataset, onClose }) {
           </div>
         ) : (
           /* Attribute table */
-          <div className="flex-1 overflow-auto">
-            {propKeys.length === 0 ? (
-              <p className="text-center text-gray-400 py-12 text-sm">No attributes found in this dataset.</p>
-            ) : (
-              <>
-                {features.length > TABLE_ROW_LIMIT && (
-                  <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
-                    Showing first {TABLE_ROW_LIMIT.toLocaleString()} of {features.length.toLocaleString()} features.
+          <div className="flex flex-col flex-1 min-h-0">
+
+            {/* Table toolbar */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 flex-shrink-0 bg-gray-50/60">
+              {editMode ? (
+                <>
+                  <span className="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    Editing — {editFeatures.length} rows · {editKeys.length} columns
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={cancelEdit} className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveEdit}
+                      disabled={saving}
+                      className="px-3 py-1.5 text-xs rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                    >
+                      <Save size={11} />
+                      {saving ? 'Saving…' : 'Save changes'}
+                    </button>
                   </div>
-                )}
+                </>
+              ) : (
+                <>
+                  <span className="text-xs text-gray-400">
+                    {features.length > TABLE_ROW_LIMIT
+                      ? `Showing first ${TABLE_ROW_LIMIT.toLocaleString()} of ${features.length.toLocaleString()} features`
+                      : `${features.length.toLocaleString()} feature${features.length !== 1 ? 's' : ''} · ${propKeys.length} column${propKeys.length !== 1 ? 's' : ''}`}
+                  </span>
+                  {isAdmin && !loadingPreview && geojson && (
+                    <button
+                      onClick={enterEditMode}
+                      className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Pencil size={11} /> Edit attributes
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Table */}
+            <div className="flex-1 overflow-auto">
+              {(editMode ? editKeys : propKeys).length === 0 && !editMode ? (
+                <p className="text-center text-gray-400 py-12 text-sm">No attributes found in this dataset.</p>
+              ) : (
                 <table className="w-full text-xs border-collapse">
                   <thead className="sticky top-0 bg-gray-50 z-10">
                     <tr>
                       <th className="border-b border-gray-200 px-3 py-2 text-left text-gray-400 font-semibold w-10">#</th>
-                      {propKeys.map(k => (
-                        <th key={k} className="border-b border-gray-200 px-3 py-2 text-left text-gray-500 font-semibold whitespace-nowrap">
-                          {k}
+                      {(editMode ? editKeys : propKeys).map(k => (
+                        <th key={k} className="border-b border-gray-200 px-2 py-2 text-left text-gray-500 font-semibold whitespace-nowrap group">
+                          {editMode ? (
+                            <div className="flex items-center gap-1 min-w-[80px]">
+                              {renamingCol === k ? (
+                                <input
+                                  className="border border-blue-400 rounded px-1 py-0.5 text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                  value={renameVal}
+                                  autoFocus
+                                  onChange={e => setRenameVal(e.target.value)}
+                                  onBlur={() => commitRenameCol(k)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') commitRenameCol(k);
+                                    if (e.key === 'Escape') setRenamingCol(null);
+                                  }}
+                                />
+                              ) : (
+                                <span
+                                  className="cursor-pointer hover:text-blue-600 flex-1 truncate"
+                                  title="Double-click to rename"
+                                  onDoubleClick={() => startRenameCol(k)}
+                                >
+                                  {k}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => deleteColumn(k)}
+                                className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-0.5 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-all"
+                                title={`Delete column "${k}"`}
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : k}
                         </th>
                       ))}
+                      {editMode && (
+                        <th className="border-b border-gray-200 px-2 py-2 w-8">
+                          {showAddCol ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                ref={newColInputRef}
+                                className="border border-blue-400 rounded px-1.5 py-0.5 text-xs w-28 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                placeholder="Column name…"
+                                value={newColName}
+                                onChange={e => setNewColName(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') addColumn();
+                                  if (e.key === 'Escape') { setShowAddCol(false); setNewColName(''); }
+                                }}
+                              />
+                              <button onClick={addColumn} className="p-0.5 rounded bg-gray-900 text-white hover:bg-gray-700" title="Add">
+                                <Plus size={10} />
+                              </button>
+                              <button onClick={() => { setShowAddCol(false); setNewColName(''); }} className="p-0.5 rounded hover:bg-gray-100 text-gray-400">
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setShowAddCol(true)}
+                              className="flex items-center gap-1 text-gray-400 hover:text-gray-700 whitespace-nowrap px-1 py-0.5 rounded hover:bg-gray-100 transition-colors"
+                              title="Add column"
+                            >
+                              <Plus size={11} /> Col
+                            </button>
+                          )}
+                        </th>
+                      )}
+                      {editMode && <th className="border-b border-gray-200 w-8" />}
                     </tr>
                   </thead>
                   <tbody>
-                    {displayedRows.map((f, i) => (
-                      <tr key={i} className="hover:bg-gray-50 border-b border-gray-100">
-                        <td className="px-3 py-1.5 text-gray-300">{i + 1}</td>
-                        {propKeys.map(k => (
-                          <td
-                            key={k}
-                            className="px-3 py-1.5 text-gray-700 max-w-[200px] truncate"
-                            title={f.properties?.[k] != null ? String(f.properties[k]) : ''}
-                          >
-                            {f.properties?.[k] != null ? String(f.properties[k]) : <span className="text-gray-300">—</span>}
+                    {(editMode ? editFeatures : displayedRows).map((f, i) => (
+                      <tr key={i} className={`border-b border-gray-100 ${editMode ? 'hover:bg-blue-50/30' : 'hover:bg-gray-50'}`}>
+                        <td className="px-3 py-1.5 text-gray-300 select-none">{i + 1}</td>
+                        {(editMode ? editKeys : propKeys).map(k => (
+                          <td key={k} className="px-2 py-1 max-w-[200px]">
+                            {editMode ? (
+                              <input
+                                className="w-full min-w-[60px] border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1.5 py-0.5 text-gray-700 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 transition-colors"
+                                value={f.properties?.[k] ?? ''}
+                                onChange={e => updateCell(i, k, e.target.value)}
+                              />
+                            ) : (
+                              <span className="block truncate text-gray-700" title={f.properties?.[k] != null ? String(f.properties[k]) : ''}>
+                                {f.properties?.[k] != null ? String(f.properties[k]) : <span className="text-gray-300">—</span>}
+                              </span>
+                            )}
                           </td>
                         ))}
+                        {editMode && <td />}
+                        {editMode && (
+                          <td className="px-1 py-1 text-center">
+                            <button
+                              onClick={() => deleteRow(i)}
+                              className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                              title="Delete row"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </>
+              )}
+            </div>
+
+            {/* Add row footer */}
+            {editMode && (
+              <div className="border-t border-gray-100 px-4 py-2 flex-shrink-0 bg-gray-50/40">
+                <button
+                  onClick={addRow}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Plus size={12} /> Add row
+                </button>
+              </div>
             )}
           </div>
         )}
