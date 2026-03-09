@@ -2,6 +2,18 @@ export const VANUATU_PROVINCES = [
   'Malampa', 'Penama', 'Sanma', 'Shefa', 'Tafea', 'Torba',
 ];
 
+// Approximate total provincial boundary areas in hectares (land + coastal waters).
+// Source: Vanuatu National Statistics Office provincial boundaries.
+// Update these values if official GIS-derived boundary areas become available.
+export const PROVINCE_BOUNDARY_HA = {
+  Torba:   88_200,
+  Sanma:  369_800,
+  Penama: 123_200,
+  Malampa: 278_100,
+  Shefa:  153_300,
+  Tafea:  173_400,
+};
+
 export const DATA_TYPES = [
   { value: 'marine_spatial_plan', label: 'Marine areas under spatial plan' },
   { value: 'protected_marine',    label: 'Protected Marine areas' },

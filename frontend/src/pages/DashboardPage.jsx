@@ -13,7 +13,7 @@ import {
   getMonthlyActivityStats,
 } from '../utils/firestore';
 import CBFMMap from '../components/Map/CBFMMap';
-import { VANUATU_PROVINCES } from '../utils/constants';
+import { VANUATU_PROVINCES, PROVINCE_BOUNDARY_HA } from '../utils/constants';
 import {
   Users, Anchor, Activity, Database, Plus, MapPin,
   ArrowUpRight, RefreshCw, BarChart2, Shield,
@@ -143,7 +143,6 @@ function ProvinceSummary({ data, loading }) {
       <p className="text-sm text-gray-400">No provincial data yet — add marine areas to populate this table</p>
     </div>
   );
-  const maxHa = Math.max(...data.map(d => d.totalHa), 1);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -154,7 +153,8 @@ function ProvinceSummary({ data, loading }) {
         </tr></thead>
         <tbody>
           {[...data].sort((a, b) => b.totalHa - a.totalHa).map(row => {
-            const pct = Math.round((row.totalHa / maxHa) * 100);
+            const boundaryHa = PROVINCE_BOUNDARY_HA[row.province] || 1;
+            const pct = Math.min(100, Math.round((row.totalHa / boundaryHa) * 100));
             const color = PROVINCE_COLORS[row.province] || '#6b7280';
             return (
               <tr key={row.province} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
