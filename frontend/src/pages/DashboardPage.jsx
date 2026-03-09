@@ -239,9 +239,9 @@ export default function DashboardPage() {
   const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
 
   const dsByType = Object.fromEntries((datasets.byType || []).map(d => [d.dataType, d]));
-  const dsSpatialCount   = dsByType.marine_spatial_plan?.count || 0;
+  const dsSpatialCount   = dsByType.marine_spatial_plan?.featureCount || 0;
   const dsSpatialHa      = dsByType.marine_spatial_plan?.publishedAreaHa || 0;
-  const dsProtectedCount = dsByType.protected_marine?.count || 0;
+  const dsProtectedCount = dsByType.protected_marine?.featureCount || 0;
   const dsProtectedHa    = dsByType.protected_marine?.publishedAreaHa || 0;
   const dsRestorationHa  = dsByType.habitat_restoration?.publishedAreaHa || 0;
 

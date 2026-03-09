@@ -667,8 +667,24 @@ export async function getDatasetStats() {
   list.forEach(d => {
     if (d.status === 'published') published++;
     const t = d.dataType || 'other';
-    if (!byType[t]) byType[t] = { count: 0, totalAreaHa: 0, publishedAreaHa: 0 };
+    if (!byType[t]) byType[t] = { count: 0, featureCount: 0, totalAreaHa: 0, publishedAreaHa: 0 };
     byType[t].count += 1;
+
+    // For spatial categories, count individual features (MPAs) within the dataset,
+    // not just the number of dataset files.
+    const spatialTypes = ['protected_marine', 'marine_spatial_plan', 'habitat_restoration'];
+    if (spatialTypes.includes(t) && d.geojsonData) {
+      try {
+        const geojson = typeof d.geojsonData === 'string' ? JSON.parse(d.geojsonData) : d.geojsonData;
+        const feats = geojson?.features?.length ?? 1;
+        byType[t].featureCount += feats;
+      } catch {
+        byType[t].featureCount += 1;
+      }
+    } else {
+      byType[t].featureCount += 1;
+    }
+
     const ha = parseFloat(d.calculatedAreaHa) || 0;
     byType[t].totalAreaHa += ha;
     if (d.status === 'published') byType[t].publishedAreaHa += ha;
@@ -679,6 +695,7 @@ export async function getDatasetStats() {
     byType: Object.entries(byType).map(([dataType, v]) => ({
       dataType,
       count: v.count,
+      featureCount: v.featureCount,
       totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
       publishedAreaHa: Math.round(v.publishedAreaHa * 10) / 10,
     })),
