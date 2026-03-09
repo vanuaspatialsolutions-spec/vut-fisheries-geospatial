@@ -36,3 +36,16 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: frontend/dist
           publish_branch: gh-pages
+
+      # Deploy Firebase Storage + Firestore rules on every push to main.
+      # Requires a FIREBASE_SERVICE_ACCOUNT secret (JSON key for a service
+      # account that has roles/firebase.admin or roles/storage.admin +
+      # roles/datastore.owner on the project).
+      - name: Deploy Firebase rules
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only firestore:rules,storage
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: cbfm-fisheries
