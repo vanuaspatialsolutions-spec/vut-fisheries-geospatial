@@ -278,6 +278,9 @@ export default function DashboardPage() {
     return Object.entries(acc).map(([province, ha]) => ({ province, ha: parseFloat(ha.toFixed(1)) }));
   })();
   const marineByProvince = mergedByProvince.map(d => ({ province: d.province.substring(0, 7), ha: d.ha }));
+  const marineCountByProvince = (marine.byProvince || [])
+    .map(d => ({ province: d.province.substring(0, 7), count: d.count }))
+    .sort((a, b) => b.count - a.count);
   const marineByStatus   = (marine.byStatus || []).map(d => ({ name: d.status.charAt(0).toUpperCase() + d.status.slice(1).replace(/_/g, ' '), value: d.count }));
   const surveysByProv    = (surveys.byProvince || []).map(d => ({ province: (d.province || 'Unknown').substring(0, 7), count: parseInt(d.count) }));
   const monByType        = (monitoring.byType || []).map(d => ({ name: (d.monitoringType || 'other').replace(/_/g, ' '), count: parseInt(d.count) }));
@@ -438,7 +441,19 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard title="Marine Areas by Province" icon={Anchor} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={marineCountByProvince} barSize={28}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="province" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
+              <Bar dataKey="count" name="Marine Areas" radius={[3, 3, 0, 0]}>{marineCountByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
         <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProv} barSize={32}>
