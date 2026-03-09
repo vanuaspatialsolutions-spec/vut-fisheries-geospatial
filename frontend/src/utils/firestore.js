@@ -714,23 +714,27 @@ export async function getDatasetStats() {
                 d.province ||
                 'Unknown';
               const featHa = calculateGeoJSONAreaHa({ type: 'FeatureCollection', features: [feat] });
-              if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+              if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0, featureCount: 0 };
               byProvince[p].totalAreaHa += featHa;
+              byProvince[p].featureCount += 1;
             }
           } else {
             const p = d.province || detectProvince(gj) || 'Unknown';
-            if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+            if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0, featureCount: 0 };
             byProvince[p].totalAreaHa += ha;
+            byProvince[p].featureCount += 1;
           }
         } catch {
           const p = d.province || 'Unknown';
-          if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+          if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0, featureCount: 0 };
           byProvince[p].totalAreaHa += ha;
+          byProvince[p].featureCount += 1;
         }
       } else {
         const p = d.province || 'Unknown';
-        if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+        if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0, featureCount: 0 };
         byProvince[p].totalAreaHa += ha;
+        byProvince[p].featureCount += 1;
       }
     }
   });
@@ -747,6 +751,7 @@ export async function getDatasetStats() {
     byProvince: Object.entries(byProvince).map(([province, v]) => ({
       province,
       totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
+      featureCount: v.featureCount || 0,
     })),
   };
 }
