@@ -2,8 +2,7 @@
  * Firestore service layer — replaces all Express API calls.
  * All reads/writes go directly to Firebase from the browser.
  */
-import { db, storage, auth, secondaryAuth } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as secondarySignOut } from 'firebase/auth';
+import { db, storage, auth } from '../firebase';
 import {
   collection, doc, getDoc, getDocsFromServer, addDoc, updateDoc, deleteDoc, setDoc,
   query, orderBy, serverTimestamp,
@@ -1077,38 +1076,26 @@ export async function deleteUserProfile(uid) {
 export async function createUserByAdmin({ email, password, firstName, lastName, role, organization, province }) {
   if (!auth.currentUser) throw new Error('Must be signed in as admin.');
 
-  // Create Auth account using secondary app — does NOT affect the primary session.
-  let newCred;
-  try {
-    newCred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-  } catch (err) {
-    if (err.code === 'auth/email-already-in-use') {
-      // Auth account exists (e.g. self-registered) but may lack a Firestore profile.
-      // Sign in with the supplied credentials to recover the UID, then create the profile.
-      try {
-        newCred = await signInWithEmailAndPassword(secondaryAuth, email, password);
-      } catch {
-        throw new Error('An account with this email already exists. Please check the password matches the user\'s existing password, or reset it first.');
-      }
-      // Check if a Firestore profile already exists for this user.
-      const existing = await getDoc(doc(db, 'users', newCred.user.uid));
-      if (existing.exists()) {
-        await secondarySignOut(secondaryAuth).catch(() => {});
-        throw new Error('A full account for this email already exists and is listed above.');
-      }
-    } else if (err.code === 'auth/weak-password') {
-      throw new Error('Password must be at least 6 characters.');
-    } else if (err.code === 'auth/invalid-email') {
-      throw new Error('Invalid email address.');
-    } else {
-      throw err;
-    }
+  // Use the backend (Firebase Admin SDK) to create/update the Auth account.
+  // This handles the case where a Firebase Auth account already exists for the email.
+  const idToken = await auth.currentUser.getIdToken();
+  const apiUrl = import.meta.env.VITE_API_URL || '/api';
+  const res = await fetch(`${apiUrl}/admin/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || 'Failed to create user account.');
   }
+  const { uid } = await res.json();
 
-  const uid = newCred.user.uid;
-
-  // Sign the secondary app out immediately — we only needed it for account creation.
-  await secondarySignOut(secondaryAuth).catch(() => {});
+  // Check if a Firestore profile already exists for this user.
+  const existing = await getDoc(doc(db, 'users', uid));
+  if (existing.exists()) {
+    throw new Error('A full account for this email already exists and is listed above.');
+  }
 
   // Write the Firestore user profile (authenticated as the admin via primary app).
   await setDoc(doc(db, 'users', uid), {
