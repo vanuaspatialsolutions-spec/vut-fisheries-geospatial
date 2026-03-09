@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   Folder, FolderOpen, FolderPlus, Upload, MoreHorizontal, Eye, Pencil,
   Share2, Trash2, MoveRight, ChevronRight, Home, LayoutGrid, List,
   File, FileText, FileImage, FileVideo, FileArchive, X, Download,
-  Copy, Mail, Check,
+  Copy, Mail, Check, Send, Search, Users,
 } from 'lucide-react';
 import {
   createFolder, renameFolder, deleteFolderRecursive, moveFolder,
   getAllFolders, uploadFile, renameFile, deleteFile, moveFile,
   getFilesInFolder, getDescendantIds,
 } from '../utils/fileManager';
+import { getUsers } from '../utils/firestore';
+import { getOrCreateThread, sendMessage } from '../utils/messaging';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -192,6 +195,89 @@ function ShareModal({ file, onClose }) {
   );
 }
 
+// ── send to user modal ────────────────────────────────────────────────────────
+
+function SendToUserModal({ file, currentUser, onClose, onSent }) {
+  const [users, setUsers]     = useState([]);
+  const [search, setSearch]   = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    getUsers()
+      .then(all => setUsers(all.filter(u => u.uid !== currentUser.uid && u.firstName)))
+      .catch(() => toast.error('Could not load users'))
+      .finally(() => setLoading(false));
+  }, [currentUser.uid]);
+
+  const filtered = users.filter(u => {
+    const q = search.toLowerCase();
+    return `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+  });
+
+  const handleSend = async (target) => {
+    setSending(true);
+    try {
+      const myName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const targetName = `${target.firstName} ${target.lastName}`;
+      const tid = await getOrCreateThread(currentUser.uid, myName, target.uid, targetName);
+      await sendMessage(tid, currentUser.uid, myName, '', {
+        name: file.name,
+        size: file.size,
+        contentType: file.contentType,
+        downloadURL: file.downloadURL,
+      });
+      toast.success(`File sent to ${targetName}`);
+      onSent(tid);
+      onClose();
+    } catch (err) {
+      toast.error('Failed to send: ' + err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Modal title={`Send "${file.name}" to a user`} onClose={onClose}>
+      <div className="space-y-3">
+        <div className="relative">
+          <Search size={13} className="absolute left-3 top-2.5 text-gray-400" />
+          <input
+            className="form-input pl-8 py-2 text-sm w-full"
+            placeholder="Search users…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="max-h-60 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
+          {loading ? (
+            <p className="text-center text-xs text-gray-400 py-8">Loading users…</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-xs text-gray-400 py-8">No users found</p>
+          ) : filtered.map(u => (
+            <button
+              key={u.uid}
+              onClick={() => handleSend(u)}
+              disabled={sending}
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left disabled:opacity-60"
+            >
+              <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
+                {`${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{u.firstName} {u.lastName}</p>
+                <p className="text-xs text-gray-400 truncate">{u.role?.replace('_', ' ')}</p>
+              </div>
+              <Send size={12} className="text-gray-400 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ── move modal ────────────────────────────────────────────────────────────────
 
 function MoveModal({ item, itemType, allFolders, onMove, onClose }) {
@@ -271,6 +357,7 @@ function ActionMenu({ actions, onClose }) {
 
 export default function FilesPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const uid = user?.uid;
 
   // Navigation state (stack of {id, name})
@@ -302,6 +389,7 @@ export default function FilesPage() {
   const [moveTarget,    setMoveTarget]    = useState(null); // {item, type}
   const [previewTarget, setPreviewTarget] = useState(null); // file
   const [shareTarget,   setShareTarget]   = useState(null); // file
+  const [sendTarget,    setSendTarget]    = useState(null); // file
   const [editTarget,    setEditTarget]    = useState(null); // file
   const [editName,      setEditName]      = useState('');
   const [replacing,     setReplacing]     = useState(false);
@@ -455,10 +543,11 @@ export default function FilesPage() {
   ];
 
   const fileActions = (file) => [
-    { label: 'Preview',  icon: Eye,      onClick: () => setPreviewTarget(file) },
-    { label: 'Edit',     icon: Pencil,   onClick: () => { setEditTarget(file); setEditName(file.name); } },
-    { label: 'Share',    icon: Share2,   onClick: () => setShareTarget(file) },
-    { label: 'Move',     icon: MoveRight, onClick: () => setMoveTarget({ item: file, type: 'file' }) },
+    { label: 'Preview',       icon: Eye,      onClick: () => setPreviewTarget(file) },
+    { label: 'Edit',          icon: Pencil,   onClick: () => { setEditTarget(file); setEditName(file.name); } },
+    { label: 'Share',         icon: Share2,   onClick: () => setShareTarget(file) },
+    { label: 'Send to User',  icon: Send,     onClick: () => setSendTarget(file) },
+    { label: 'Move',          icon: MoveRight, onClick: () => setMoveTarget({ item: file, type: 'file' }) },
     {
       label: 'Download', icon: Download, onClick: () => {
         const a = document.createElement('a'); a.href = file.downloadURL; a.download = file.name; a.click();
@@ -750,6 +839,14 @@ export default function FilesPage() {
 
       {/* Share */}
       {shareTarget && <ShareModal file={shareTarget} onClose={() => setShareTarget(null)} />}
+      {sendTarget && (
+        <SendToUserModal
+          file={sendTarget}
+          currentUser={user}
+          onClose={() => setSendTarget(null)}
+          onSent={(tid) => navigate(`/messages?thread=${tid}`)}
+        />
+      )}
 
       {/* Edit File (rename + replace content) */}
       {editTarget && (

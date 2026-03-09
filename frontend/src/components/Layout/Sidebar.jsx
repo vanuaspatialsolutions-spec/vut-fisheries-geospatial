@@ -1,23 +1,22 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Users, Activity,
-  Anchor, Settings, FolderOpen,
+  Anchor, Settings, FolderOpen, MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-
-const mainNav = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-];
+import { subscribeToThreads } from '../../utils/messaging';
 
 const dataNav = [
-  { to: '/surveys',    icon: Users,       label: 'Community Surveys' },
-  { to: '/marine',     icon: Anchor,      label: 'Marine Areas' },
-  { to: '/monitoring', icon: Activity,    label: 'Bio. Monitoring' },
-  { to: '/datasets',   icon: Database,    label: 'Datasets' },
-  { to: '/files',      icon: FolderOpen,  label: 'My Files' },
+  { to: '/surveys',    icon: Users,          label: 'Community Surveys' },
+  { to: '/marine',     icon: Anchor,         label: 'Marine Areas' },
+  { to: '/monitoring', icon: Activity,       label: 'Bio. Monitoring' },
+  { to: '/datasets',   icon: Database,       label: 'Datasets' },
+  { to: '/files',      icon: FolderOpen,     label: 'My Files' },
+  { to: '/messages',   icon: MessageSquare,  label: 'Messages' },
 ];
 
-function NavItem({ to, icon: Icon, label }) {
+function NavItem({ to, icon: Icon, label, badge }) {
   return (
     <NavLink
       to={to}
@@ -32,7 +31,12 @@ function NavItem({ to, icon: Icon, label }) {
       {({ isActive }) => (
         <>
           <Icon size={14} className={isActive ? 'text-gray-700' : 'text-gray-400'} strokeWidth={isActive ? 2 : 1.75} />
-          <span className="leading-none tracking-tight">{label}</span>
+          <span className="leading-none tracking-tight flex-1">{label}</span>
+          {badge > 0 && (
+            <span className="bg-gray-900 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none flex-shrink-0">
+              {badge > 9 ? '9+' : badge}
+            </span>
+          )}
         </>
       )}
     </NavLink>
@@ -48,7 +52,18 @@ function SectionLabel({ label }) {
 }
 
 export default function Sidebar() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = subscribeToThreads(user.uid, (threads) => {
+      const count = threads.reduce((sum, t) => sum + (t.unread?.[user.uid] || 0), 0);
+      setTotalUnread(count);
+    });
+    return () => unsub();
+  }, [user?.uid]);
+
   return (
     <aside className="w-52 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
       {/* Logo */}
@@ -72,12 +87,18 @@ export default function Sidebar() {
       <nav className="flex-1 py-1 px-2 overflow-y-auto">
         <SectionLabel label="Overview" />
         <div className="space-y-0.5">
-          {mainNav.map(item => <NavItem key={item.to} {...item} />)}
+          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
         </div>
 
         <SectionLabel label="Data Management" />
         <div className="space-y-0.5">
-          {dataNav.map(item => <NavItem key={item.to} {...item} />)}
+          {dataNav.map(item => (
+            <NavItem
+              key={item.to}
+              {...item}
+              badge={item.to === '/messages' ? totalUnread : 0}
+            />
+          ))}
         </div>
 
         {isAdmin && (

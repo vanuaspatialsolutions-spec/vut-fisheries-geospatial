@@ -951,6 +951,11 @@ export async function updateDatasetGeoJSON(id, geojson) {
   return updateDoc(doc(db, 'datasets', id), update);
 }
 
+export async function getUsers() {
+  const snap = await getDocsFromServer(collection(db, 'users'));
+  return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+}
+
 export async function deleteDataset(id, filePath) {
   // Delete storage file first (best-effort — may fail if already gone or no permission).
   if (filePath) {
