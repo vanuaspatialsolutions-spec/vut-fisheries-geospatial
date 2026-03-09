@@ -672,17 +672,20 @@ export async function getDatasetStats() {
 
     // For spatial categories, count individual features (MPAs) within the dataset,
     // not just the number of dataset files.
+    // Prefer inline geojsonData for an exact count; fall back to the stored
+    // featureCount (written at upload time) so datasets whose GeoJSON was too
+    // large to cache inline are still counted correctly.
     const spatialTypes = ['protected_marine', 'marine_spatial_plan', 'habitat_restoration'];
     if (spatialTypes.includes(t) && d.geojsonData) {
       try {
         const geojson = typeof d.geojsonData === 'string' ? JSON.parse(d.geojsonData) : d.geojsonData;
-        const feats = geojson?.features?.length ?? 1;
+        const feats = geojson?.features?.length ?? (d.featureCount || 1);
         byType[t].featureCount += feats;
       } catch {
-        byType[t].featureCount += 1;
+        byType[t].featureCount += d.featureCount || 1;
       }
     } else {
-      byType[t].featureCount += 1;
+      byType[t].featureCount += d.featureCount || 1;
     }
 
     const ha = parseFloat(d.calculatedAreaHa) || 0;
@@ -722,10 +725,12 @@ export async function uploadDataset(file, metadata, onProgress, onStage) {
   // If the GeoJSON is too large even after simplification, it's served from Storage instead.
   const mapFormats = ['json', 'geojson', 'zip', 'kml', 'gpkg', 'shp'];
   let geojsonData = null;
+  let rawFeatureCount = null;
   if (mapFormats.includes(ext)) {
     try {
       onStage?.('processing');
       const raw = await parseFileToGeoJSON(file);
+      rawFeatureCount = raw?.features?.length ?? null;
       geojsonData = await fitGeoJSONToLimit(raw);
       if (!geojsonData) {
         console.warn('GeoJSON too large even after simplification — inline cache skipped. Staff can use "Fix Map Layer" at publish time.');
@@ -771,6 +776,9 @@ export async function uploadDataset(file, metadata, onProgress, onStage) {
             const areaHa = calculateGeoJSONAreaHa(geojsonData);
             if (areaHa > 0) docData.calculatedAreaHa = areaHa;
           }
+          // Always store the parsed feature count so stats are accurate even
+          // when geojsonData is null (file was too large to cache inline).
+          if (rawFeatureCount !== null) docData.featureCount = rawFeatureCount;
           await addDoc(collection(db, 'datasets'), docData);
           resolve();
         } catch (err) {
