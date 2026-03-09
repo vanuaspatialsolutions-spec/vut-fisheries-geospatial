@@ -936,6 +936,12 @@ function withTimeout(promise, ms, label) {
   ]);
 }
 
+export async function getDatasetById(id) {
+  const snap = await getDoc(doc(db, 'datasets', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
 export async function getDatasetGeoJSON(dataset) {
   // 1. Best path: GeoJSON was stored inline in Firestore at upload/publish time.
   //    No storage SDK or CORS needed.
