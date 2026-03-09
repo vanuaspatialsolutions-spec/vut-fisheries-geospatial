@@ -4,7 +4,6 @@ import Layout from './components/Layout/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import MapPage from './pages/MapPage';
 import DatasetsPage from './pages/DatasetsPage';
 import UploadDatasetPage from './pages/UploadDatasetPage';
 import CommunitySurveysPage from './pages/CommunitySurveysPage';
@@ -33,7 +32,6 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/map" element={<MapPage />} />
         <Route path="/datasets" element={<DatasetsPage />} />
         <Route path="/datasets/upload" element={<UploadDatasetPage />} />
         <Route path="/surveys" element={<CommunitySurveysPage />} />

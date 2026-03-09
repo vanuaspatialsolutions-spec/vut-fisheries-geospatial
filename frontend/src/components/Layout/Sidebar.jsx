@@ -1,13 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Map, Database, Users, Activity,
+  LayoutDashboard, Database, Users, Activity,
   Anchor, Settings, FolderOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/map',       icon: Map,             label: 'Interactive Map' },
 ];
 
 const dataNav = [
