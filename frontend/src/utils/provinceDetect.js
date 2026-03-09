@@ -61,11 +61,15 @@ function geoCentroid(geojson) {
       c.forEach(extract);
     }
   }
-  let geom = geojson;
-  if (geojson?.type === 'Feature') geom = geojson.geometry;
-  else if (geojson?.type === 'FeatureCollection') geom = geojson.features?.[0]?.geometry;
-  if (!geom?.coordinates) return null;
-  extract(geom.coordinates);
+  if (geojson?.type === 'FeatureCollection') {
+    for (const feat of (geojson.features || [])) {
+      if (feat?.geometry?.coordinates) extract(feat.geometry.coordinates);
+    }
+  } else {
+    const geom = geojson?.type === 'Feature' ? geojson.geometry : geojson;
+    if (!geom?.coordinates) return null;
+    extract(geom.coordinates);
+  }
   if (!coords.length) return null;
   const lon = coords.reduce((s, c) => s + c[0], 0) / coords.length;
   const lat = coords.reduce((s, c) => s + c[1], 0) / coords.length;

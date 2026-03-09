@@ -699,17 +699,39 @@ export async function getDatasetStats() {
     if (d.status === 'published') byType[t].publishedAreaHa += ha;
 
     // Province breakdown — only published datasets with area contribute.
+    // Break down per individual feature so multi-province datasets are split correctly.
     if (d.status === 'published' && ha > 0 && spatialTypes.includes(t)) {
-      let p = d.province;
-      if (!p && d.geojsonData) {
+      if (d.geojsonData) {
         try {
           const gj = typeof d.geojsonData === 'string' ? JSON.parse(d.geojsonData) : d.geojsonData;
-          p = detectProvince(gj);
-        } catch { /* ignore */ }
+          const features = gj?.features ?? (gj?.type === 'Feature' ? [gj] : []);
+          if (features.length > 0) {
+            for (const feat of features) {
+              const p =
+                feat.properties?.province ||
+                feat.properties?.Province ||
+                detectProvince(feat) ||
+                d.province ||
+                'Unknown';
+              const featHa = calculateGeoJSONAreaHa({ type: 'FeatureCollection', features: [feat] });
+              if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+              byProvince[p].totalAreaHa += featHa;
+            }
+          } else {
+            const p = d.province || detectProvince(gj) || 'Unknown';
+            if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+            byProvince[p].totalAreaHa += ha;
+          }
+        } catch {
+          const p = d.province || 'Unknown';
+          if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+          byProvince[p].totalAreaHa += ha;
+        }
+      } else {
+        const p = d.province || 'Unknown';
+        if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+        byProvince[p].totalAreaHa += ha;
       }
-      p = p || 'Unknown';
-      if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
-      byProvince[p].totalAreaHa += ha;
     }
   });
   return {
