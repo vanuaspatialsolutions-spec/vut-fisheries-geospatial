@@ -5,7 +5,7 @@ import L from 'leaflet';
 import { useAuth } from '../context/AuthContext';
 import {
   getDatasets, publishDataset, unpublishDataset, submitDatasetForReview,
-  deleteDataset, recacheDatasetGeoJSON, getDatasetGeoJSON,
+  deleteDataset, recacheDatasetGeoJSON, getDatasetById, getDatasetGeoJSON,
 } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import {
@@ -68,7 +68,10 @@ function DatasetPreviewModal({ dataset, onClose }) {
 
   useEffect(() => {
     setLoadingPreview(true);
-    getDatasetGeoJSON(dataset)
+    // Fetch the full document (with inline geojsonData) so getDatasetGeoJSON
+    // uses the fast Firestore path instead of falling through to slow Storage SDK calls.
+    getDatasetById(dataset.id)
+      .then(fullDoc => getDatasetGeoJSON(fullDoc || dataset))
       .then(g => setGeojson(g))
       .catch(() => setGeojson(null))
       .finally(() => setLoadingPreview(false));
