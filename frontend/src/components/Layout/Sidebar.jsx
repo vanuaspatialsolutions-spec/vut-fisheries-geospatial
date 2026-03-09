@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Map, Database, Users, Activity,
-  Anchor, Settings,
+  Anchor, Settings, FolderOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,10 +11,11 @@ const mainNav = [
 ];
 
 const dataNav = [
-  { to: '/surveys',    icon: Users,    label: 'Community Surveys' },
-  { to: '/marine',     icon: Anchor,   label: 'Marine Areas' },
-  { to: '/monitoring', icon: Activity, label: 'Bio. Monitoring' },
-  { to: '/datasets',   icon: Database, label: 'Datasets' },
+  { to: '/surveys',    icon: Users,       label: 'Community Surveys' },
+  { to: '/marine',     icon: Anchor,      label: 'Marine Areas' },
+  { to: '/monitoring', icon: Activity,    label: 'Bio. Monitoring' },
+  { to: '/datasets',   icon: Database,    label: 'Datasets' },
+  { to: '/files',      icon: FolderOpen,  label: 'My Files' },
 ];
 
 function NavItem({ to, icon: Icon, label }) {

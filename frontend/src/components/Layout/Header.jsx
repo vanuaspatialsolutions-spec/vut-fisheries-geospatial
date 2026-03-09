@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LogOut, Bell,
-  LayoutDashboard, Map, Users, Anchor, Activity, Database, Settings,
+  LayoutDashboard, Map, Users, Anchor, Activity, Database, Settings, FolderOpen,
 } from 'lucide-react';
 
 const routeMeta = {
@@ -16,6 +16,7 @@ const routeMeta = {
   '/monitoring/new':   { title: 'New Monitoring Record',   desc: 'Biological Monitoring',       icon: Activity        },
   '/datasets':         { title: 'Datasets',                desc: 'Files & geospatial data',     icon: Database        },
   '/datasets/upload':  { title: 'Upload Dataset',          desc: 'Datasets',                    icon: Database        },
+  '/files':            { title: 'My Files',                 desc: 'Personal file storage',       icon: FolderOpen      },
   '/admin':            { title: 'Admin Panel',             desc: 'User & content management',   icon: Settings        },
 };
 
