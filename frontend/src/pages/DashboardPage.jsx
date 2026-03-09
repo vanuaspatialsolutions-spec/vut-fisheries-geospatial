@@ -251,32 +251,44 @@ export default function DashboardPage() {
   const totalProtectedHa    = (marine.protectedAreaHa || 0) + dsProtectedHa;
   const totalRestorationHa  = (marine.restorationAreaHa || 0) + dsRestorationHa;
   const mpaPct = totalProtectedHa ? parseFloat(((totalProtectedHa / VANUATU_MARINE_HA) * 100).toFixed(3)) : 0;
-  const totalMarineHa = totalSpatialHa + totalRestorationHa;
+  // marine.restorationAreaHa is already included in marine.totalAreaHa (and thus totalSpatialHa),
+  // so only add dsRestorationHa (from habitat_restoration datasets) to avoid double-counting.
+  const totalMarineHa = totalSpatialHa + dsRestorationHa;
 
   const heroCards = [
     { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones'                                              },
     { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1                       },
     { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`           },
     { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3                       },
-    { label:'Communities in Conservation', value:Math.max(marine.communityCount ?? 0, surveys.communityCount ?? 0), sub:'unique communities engaged'                           },
+    { label:'Communities in Conservation', value:new Set([...(marine.communities || []), ...(surveys.communities || [])]).size, sub:'unique communities engaged'                           },
     { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1                       },
   ];
 
   const marineByType     = (marine.byType || []).map(d => ({ name: AREA_TYPE_LABEL[d.areaType] || d.areaType, value: d.count, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
-  const mergedByProvince = (() => {
+
+  // Merge marine areas + published dataset areas by province.
+  // All 6 Vanuatu provinces are always present (zeroed if no data yet).
+  // Used for both the Coverage chart and the Province Summary table.
+  const mergedProvinceData = (() => {
     const acc = {};
+    for (const p of VANUATU_PROVINCES) {
+      acc[p] = { province: p, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
+    }
     for (const d of (marine.byProvince || [])) {
-      const p = d.province;
-      if (!acc[p]) acc[p] = 0;
-      acc[p] += d.totalHa || 0;
+      if (!acc[d.province]) acc[d.province] = { province: d.province, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
+      acc[d.province].count = d.count;
+      acc[d.province].totalHa = d.totalHa || 0;
+      acc[d.province].communityCount = d.communityCount || 0;
+      acc[d.province].activeCount = d.activeCount || 0;
     }
     for (const d of (datasets.byProvince || [])) {
-      const p = d.province;
-      if (!acc[p]) acc[p] = 0;
-      acc[p] += d.totalAreaHa || 0;
+      if (!acc[d.province]) acc[d.province] = { province: d.province, count: 0, totalHa: 0, communityCount: 0, activeCount: 0 };
+      acc[d.province].totalHa = parseFloat(((acc[d.province].totalHa || 0) + (d.totalAreaHa || 0)).toFixed(1));
     }
-    return Object.entries(acc).map(([province, ha]) => ({ province, ha: parseFloat(ha.toFixed(1)) }));
+    return Object.values(acc);
   })();
+
+  const mergedByProvince = mergedProvinceData.map(d => ({ province: d.province, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
   const marineByProvince = mergedByProvince.map(d => ({ province: d.province.substring(0, 7), ha: d.ha }));
   const marineCountByProvince = (marine.byProvince || [])
     .map(d => ({ province: d.province.substring(0, 7), count: d.count }))
@@ -400,7 +412,7 @@ export default function DashboardPage() {
           <MapPin size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
           <h3 className="font-medium text-gray-700 text-sm tracking-tight">Marine Conservation by Province</h3>
         </div>
-        <ProvinceSummary data={marine.byProvince || []} loading={statsLoading} />
+        <ProvinceSummary data={mergedProvinceData} loading={statsLoading} />
       </div>
 
       {/* Charts Row 1 */}
