@@ -1,10 +1,18 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { MapContainer, TileLayer, GeoJSON as GeoJSONLayer, useMap } from 'react-leaflet';
+import L from 'leaflet';
 import { useAuth } from '../context/AuthContext';
-import { getDatasets, publishDataset, unpublishDataset, submitDatasetForReview, deleteDataset, recacheDatasetGeoJSON } from '../utils/firestore';
+import {
+  getDatasets, publishDataset, unpublishDataset, submitDatasetForReview,
+  deleteDataset, recacheDatasetGeoJSON, getDatasetGeoJSON,
+} from '../utils/firestore';
 import toast from 'react-hot-toast';
-import { Upload, Download, CheckCircle, Clock, Archive, Search, Trash2, Wrench, MapPin } from 'lucide-react';
-import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
+import {
+  Upload, Download, CheckCircle, Clock, Archive, Search, Trash2, Wrench, MapPin,
+  Eye, X, Map as MapIcon, Table2,
+} from 'lucide-react';
+import { DATA_TYPES, VANUATU_PROVINCES, VANUATU_CENTER, VANUATU_ZOOM } from '../utils/constants';
 
 function StatusBadge({ status }) {
   const map = {
@@ -19,6 +27,12 @@ function StatusBadge({ status }) {
 // All formats that produce a map layer — GeoJSON natively; others via conversion.
 const MAP_FORMATS = ['geojson', 'json', 'zip', 'kml', 'gpkg', 'shp'];
 
+const CATEGORY_COLOR = {
+  marine_spatial_plan: '#38bdf8',
+  protected_marine:    '#a78bfa',
+  habitat_restoration: '#34d399',
+};
+
 // Returns true for map-eligible datasets that don't yet have inline Firestore data.
 function needsGeojsonCache(d) {
   return MAP_FORMATS.includes(d.fileFormat?.toLowerCase()) && !d.hasGeojsonData;
@@ -30,6 +44,184 @@ function conversionLabel(fmt) {
   return labels[fmt?.toLowerCase()] || 'Needs map conversion';
 }
 
+// ── Map helper: auto-fit bounds to the loaded GeoJSON ───────────────────────
+function FitBounds({ geojson }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!geojson) return;
+    try {
+      const layer = L.geoJSON(geojson);
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
+    } catch { /* ignore invalid geometry */ }
+  }, [geojson, map]);
+  return null;
+}
+
+// ── Dataset preview modal (map + attribute table) ───────────────────────────
+const TABLE_ROW_LIMIT = 500;
+
+function DatasetPreviewModal({ dataset, onClose }) {
+  const [geojson, setGeojson] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(true);
+  const [tab, setTab] = useState('map');
+
+  useEffect(() => {
+    setLoadingPreview(true);
+    getDatasetGeoJSON(dataset)
+      .then(g => setGeojson(g))
+      .catch(() => setGeojson(null))
+      .finally(() => setLoadingPreview(false));
+  }, [dataset]);
+
+  const features = geojson?.features || [];
+
+  const propKeys = useMemo(() => {
+    const keys = new Set();
+    features.forEach(f => Object.keys(f.properties || {}).forEach(k => keys.add(k)));
+    return [...keys];
+  }, [features]);
+
+  const color = CATEGORY_COLOR[dataset.dataType] || '#38bdf8';
+  const layerStyle = { color, weight: 1.5, fillColor: color, fillOpacity: 0.2 };
+
+  const displayedRows = features.slice(0, TABLE_ROW_LIMIT);
+
+  return (
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col" style={{ maxHeight: '90vh' }}>
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+          <div className="min-w-0 mr-4">
+            <h2 className="font-semibold text-gray-900 truncate">{dataset.title}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {loadingPreview ? 'Loading…' : `${features.length.toLocaleString()} feature${features.length !== 1 ? 's' : ''}`}
+              {dataset.calculatedAreaHa > 0 && ` · ${Number(dataset.calculatedAreaHa).toLocaleString(undefined, { maximumFractionDigits: 1 })} ha`}
+              {dataset.province && ` · ${dataset.province}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+              <button
+                onClick={() => setTab('map')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${tab === 'map' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <MapIcon size={13} /> Map
+              </button>
+              <button
+                onClick={() => setTab('table')}
+                className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${tab === 'table' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Table2 size={13} /> Attributes
+                {!loadingPreview && features.length > 0 && (
+                  <span className="text-[10px] bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 font-medium">
+                    {features.length.toLocaleString()}
+                  </span>
+                )}
+              </button>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Close">
+              <X size={16} className="text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        {loadingPreview ? (
+          <div className="flex-1 flex items-center justify-center gap-3 text-gray-400 py-20">
+            <div className="w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+            Loading dataset…
+          </div>
+        ) : !geojson ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-20 gap-2">
+            <MapPin size={32} className="opacity-30" />
+            <p className="text-sm">Unable to load dataset preview.</p>
+            <p className="text-xs text-gray-300">The file may not be cached — try publishing or fixing the map layer first.</p>
+          </div>
+        ) : tab === 'map' ? (
+          <div className="flex-1 min-h-0" style={{ height: '520px' }}>
+            <MapContainer
+              center={VANUATU_CENTER}
+              zoom={VANUATU_ZOOM}
+              scrollWheelZoom
+              style={{ width: '100%', height: '100%' }}
+              className="rounded-b-xl"
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <GeoJSONLayer
+                key={dataset.id}
+                data={geojson}
+                style={() => layerStyle}
+                onEachFeature={(feature, layer) => {
+                  const props = feature.properties || {};
+                  const entries = Object.entries(props).slice(0, 12);
+                  if (!entries.length) return;
+                  const rows = entries
+                    .map(([k, v]) => `<tr><td class="pr-3 font-medium text-gray-500 align-top whitespace-nowrap">${k}</td><td class="text-gray-700 max-w-xs break-words">${v ?? ''}</td></tr>`)
+                    .join('');
+                  layer.bindPopup(`<table class="text-xs border-collapse">${rows}</table>`, { maxWidth: 320 });
+                }}
+              />
+              <FitBounds geojson={geojson} />
+            </MapContainer>
+          </div>
+        ) : (
+          /* Attribute table */
+          <div className="flex-1 overflow-auto">
+            {propKeys.length === 0 ? (
+              <p className="text-center text-gray-400 py-12 text-sm">No attributes found in this dataset.</p>
+            ) : (
+              <>
+                {features.length > TABLE_ROW_LIMIT && (
+                  <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
+                    Showing first {TABLE_ROW_LIMIT.toLocaleString()} of {features.length.toLocaleString()} features.
+                  </div>
+                )}
+                <table className="w-full text-xs border-collapse">
+                  <thead className="sticky top-0 bg-gray-50 z-10">
+                    <tr>
+                      <th className="border-b border-gray-200 px-3 py-2 text-left text-gray-400 font-semibold w-10">#</th>
+                      {propKeys.map(k => (
+                        <th key={k} className="border-b border-gray-200 px-3 py-2 text-left text-gray-500 font-semibold whitespace-nowrap">
+                          {k}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedRows.map((f, i) => (
+                      <tr key={i} className="hover:bg-gray-50 border-b border-gray-100">
+                        <td className="px-3 py-1.5 text-gray-300">{i + 1}</td>
+                        {propKeys.map(k => (
+                          <td
+                            key={k}
+                            className="px-3 py-1.5 text-gray-700 max-w-[200px] truncate"
+                            title={f.properties?.[k] != null ? String(f.properties[k]) : ''}
+                          >
+                            {f.properties?.[k] != null ? String(f.properties[k]) : <span className="text-gray-300">—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 export default function DatasetsPage() {
   const { isStaff } = useAuth();
   const [datasets, setDatasets] = useState([]);
@@ -37,6 +229,7 @@ export default function DatasetsPage() {
   const [filters, setFilters] = useState({ status: '', dataType: '', province: '', search: '', page: 1 });
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(null); // dataset id currently being published/fixed
+  const [previewDataset, setPreviewDataset] = useState(null);
 
   // One shared file-input element; mode ref tells the handler what to do.
   const fileInputRef = useRef(null);
@@ -52,7 +245,7 @@ export default function DatasetsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchDatasets(); }, [filters]);
+  useEffect(() => { fetchDatasets(); }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── shared file-picker handler ──────────────────────────────────────────
   const openFilePicker = (dataset, mode) => {
@@ -71,7 +264,6 @@ export default function DatasetsPage() {
       await recacheDatasetGeoJSON(dataset.id, file);
 
       if (mode === 'publish') {
-        // After caching succeed, publish the dataset.
         await publishDataset(dataset.id);
         toast.success('GeoJSON cached and dataset published — it will now appear on the map.');
       } else {
@@ -87,8 +279,6 @@ export default function DatasetsPage() {
 
   // ── publish ─────────────────────────────────────────────────────────────
   const handlePublish = async (dataset) => {
-    // GeoJSON datasets without inline data: require the user to provide the file
-    // so we can cache it before publishing. Storage SDK + fetch are both CORS-blocked.
     if (needsGeojsonCache(dataset)) {
       toast('Select the original file to convert and cache it — it will be published automatically.', {
         icon: '📂',
@@ -131,6 +321,11 @@ export default function DatasetsPage() {
     } catch { toast.error('Failed to delete dataset.'); }
   };
 
+  const handleDownload = (dataset) => {
+    if (!dataset.downloadURL) { toast.error('No download URL available.'); return; }
+    window.open(dataset.downloadURL, '_blank', 'noopener,noreferrer');
+  };
+
   const fileSizeDisplay = (bytes) => {
     if (!bytes) return '—';
     if (bytes < 1024) return `${bytes} B`;
@@ -154,6 +349,14 @@ export default function DatasetsPage() {
         className="hidden"
         onChange={handleFileSelected}
       />
+
+      {/* Preview modal */}
+      {previewDataset && (
+        <DatasetPreviewModal
+          dataset={previewDataset}
+          onClose={() => setPreviewDataset(null)}
+        />
+      )}
 
       <div className="flex items-center justify-between">
         <div>
@@ -247,6 +450,17 @@ export default function DatasetsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                  {/* Preview — shown when GeoJSON is cached */}
+                  {dataset.hasGeojsonData && (
+                    <button
+                      onClick={() => setPreviewDataset(dataset)}
+                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Preview map & attribute table"
+                    >
+                      <Eye size={16} />
+                    </button>
+                  )}
+
                   <button onClick={() => handleDownload(dataset)}
                     className="p-2 text-ocean-700 hover:bg-ocean-50 rounded-lg transition-colors" title="Download">
                     <Download size={16} />
