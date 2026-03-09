@@ -663,6 +663,7 @@ export async function getDatasetStats() {
   const snap = await getDocs(collection(db, 'datasets'));
   const list = snap.docs.map(d => d.data());
   const byType = {};
+  const byProvince = {};
   let published = 0;
   list.forEach(d => {
     if (d.status === 'published') published++;
@@ -691,6 +692,13 @@ export async function getDatasetStats() {
     const ha = parseFloat(d.calculatedAreaHa) || 0;
     byType[t].totalAreaHa += ha;
     if (d.status === 'published') byType[t].publishedAreaHa += ha;
+
+    // Province breakdown — only published datasets with area contribute.
+    if (d.status === 'published' && ha > 0 && spatialTypes.includes(t)) {
+      const p = d.province || 'Unknown';
+      if (!byProvince[p]) byProvince[p] = { totalAreaHa: 0 };
+      byProvince[p].totalAreaHa += ha;
+    }
   });
   return {
     total: list.length,
@@ -701,6 +709,10 @@ export async function getDatasetStats() {
       featureCount: v.featureCount,
       totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
       publishedAreaHa: Math.round(v.publishedAreaHa * 10) / 10,
+    })),
+    byProvince: Object.entries(byProvince).map(([province, v]) => ({
+      province,
+      totalAreaHa: Math.round(v.totalAreaHa * 10) / 10,
     })),
   };
 }
