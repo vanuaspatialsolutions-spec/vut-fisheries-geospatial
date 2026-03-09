@@ -5,7 +5,7 @@
 import { db, storage, auth, secondaryAuth } from '../firebase';
 import { createUserWithEmailAndPassword, signOut as secondarySignOut } from 'firebase/auth';
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
+  collection, doc, getDoc, getDocsFromServer, addDoc, updateDoc, deleteDoc, setDoc,
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, getBytes, deleteObject } from 'firebase/storage';
@@ -335,7 +335,7 @@ function paginate(arr, page, pageSize) {
 // ── SURVEYS ────────────────────────────────────────────────────────────────
 
 export async function getSurveys({ province, surveyType, search, page = 1, pageSize = 15 } = {}) {
-  const snap = await getDocs(query(collection(db, 'surveys'), orderBy('createdAt', 'desc')));
+  const snap = await getDocsFromServer(query(collection(db, 'surveys'), orderBy('createdAt', 'desc')));
   let list = snap.docs.map(docToObj);
   if (province) list = list.filter(s => s.province === province);
   if (surveyType) list = list.filter(s => s.surveyType === surveyType);
@@ -374,7 +374,7 @@ export async function deleteSurvey(id) {
 }
 
 export async function getSurveyStats() {
-  const snap = await getDocs(collection(db, 'surveys'));
+  const snap = await getDocsFromServer(collection(db, 'surveys'));
   const list = snap.docs.map(d => d.data());
   const byProvince = {};
   const communities = new Set();
@@ -392,14 +392,14 @@ export async function getSurveyStats() {
 }
 
 export async function getSurveysForMap() {
-  const snap = await getDocs(collection(db, 'surveys'));
+  const snap = await getDocsFromServer(collection(db, 'surveys'));
   return snap.docs.map(docToObj).filter(s => s.latitude && s.longitude);
 }
 
 // ── MARINE AREAS ───────────────────────────────────────────────────────────
 
 export async function getMarineAreas({ province, areaType, managementStatus, search, page = 1, pageSize = 15 } = {}) {
-  const snap = await getDocs(query(collection(db, 'marine_areas'), orderBy('createdAt', 'desc')));
+  const snap = await getDocsFromServer(query(collection(db, 'marine_areas'), orderBy('createdAt', 'desc')));
   let list = snap.docs.map(docToObj);
   if (province) list = list.filter(a => a.province === province);
   if (areaType) list = list.filter(a => a.areaType === areaType);
@@ -440,7 +440,7 @@ export async function getMarineArea(id) {
 }
 
 export async function getMarineStats() {
-  const snap = await getDocs(collection(db, 'marine_areas'));
+  const snap = await getDocsFromServer(collection(db, 'marine_areas'));
   const list = snap.docs.map(d => d.data());
 
   const byType = {};
@@ -514,7 +514,7 @@ export async function getMarineStats() {
 }
 
 export async function getMarineGeoJSON({ province, areaType } = {}) {
-  const snap = await getDocs(collection(db, 'marine_areas'));
+  const snap = await getDocsFromServer(collection(db, 'marine_areas'));
   let list = snap.docs.map(d => d.data());
   if (province) list = list.filter(a => a.province === province);
   if (areaType) list = list.filter(a => a.areaType === areaType);
@@ -538,7 +538,7 @@ export async function getMarineGeoJSON({ province, areaType } = {}) {
 // ── MONITORING ─────────────────────────────────────────────────────────────
 
 export async function getMonitoringRecords({ province, monitoringType, search, page = 1, pageSize = 15 } = {}) {
-  const snap = await getDocs(query(collection(db, 'monitoring'), orderBy('createdAt', 'desc')));
+  const snap = await getDocsFromServer(query(collection(db, 'monitoring'), orderBy('createdAt', 'desc')));
   let list = snap.docs.map(docToObj);
   if (province) list = list.filter(r => r.province === province);
   if (monitoringType) list = list.filter(r => r.monitoringType === monitoringType);
@@ -576,7 +576,7 @@ export async function getMonitoringRecord(id) {
 }
 
 export async function getMonitoringStats() {
-  const snap = await getDocs(collection(db, 'monitoring'));
+  const snap = await getDocsFromServer(collection(db, 'monitoring'));
   const list = snap.docs.map(d => d.data());
   const byType = {};
   let coralSum = 0, coralCount = 0;
@@ -593,7 +593,7 @@ export async function getMonitoringStats() {
 }
 
 export async function getMonitoringForMap() {
-  const snap = await getDocs(collection(db, 'monitoring'));
+  const snap = await getDocsFromServer(collection(db, 'monitoring'));
   return snap.docs.map(docToObj).filter(r => r.latitude && r.longitude);
 }
 
@@ -605,8 +605,8 @@ export async function getMonitoringForMap() {
  */
 export async function getMonthlyActivityStats() {
   const [surveySnap, monSnap] = await Promise.all([
-    getDocs(collection(db, 'surveys')),
-    getDocs(collection(db, 'monitoring')),
+    getDocsFromServer(collection(db, 'surveys')),
+    getDocsFromServer(collection(db, 'monitoring')),
   ]);
 
   // Build a map keyed by 'YYYY-MM' for the trailing 12 months (including current).
@@ -646,7 +646,7 @@ export async function getMonthlyActivityStats() {
 // ── DATASETS ───────────────────────────────────────────────────────────────
 
 export async function getDatasets({ status, dataType, province, search, page = 1, pageSize = 15 } = {}) {
-  const snap = await getDocs(query(collection(db, 'datasets'), orderBy('createdAt', 'desc')));
+  const snap = await getDocsFromServer(query(collection(db, 'datasets'), orderBy('createdAt', 'desc')));
   // Strip the large geojsonData blob — it's only needed by the map, not the list UI.
   let list = snap.docs.map(d => { const o = docToObj(d); delete o.geojsonData; return o; });
   if (status) list = list.filter(d => d.status === status);
@@ -665,7 +665,7 @@ export async function getDatasets({ status, dataType, province, search, page = 1
 }
 
 export async function getDatasetStats() {
-  const snap = await getDocs(collection(db, 'datasets'));
+  const snap = await getDocsFromServer(collection(db, 'datasets'));
   const list = snap.docs.map(d => d.data());
   const byType = {};
   const byProvince = {};
@@ -884,7 +884,7 @@ export async function submitDatasetForReview(id) {
 }
 
 export async function getPublishedGeoJSONDatasets() {
-  const snap = await getDocs(collection(db, 'datasets'));
+  const snap = await getDocsFromServer(collection(db, 'datasets'));
   return snap.docs
     .map(docToObj)
     .filter(d => {
@@ -995,7 +995,7 @@ export async function getDatasetGeoJSON(dataset) {
 // ── USERS (ADMIN) ──────────────────────────────────────────────────────────
 
 export async function getAllUsers() {
-  const snap = await getDocs(collection(db, 'users'));
+  const snap = await getDocsFromServer(collection(db, 'users'));
   return snap.docs.map(docToObj);
 }
 
@@ -1082,7 +1082,7 @@ export async function backfillProvinces() {
   const results = { marineUpdated: 0, datasetsUpdated: 0, marineSkipped: 0, datasetsSkipped: 0 };
 
   // ── marine_areas ────────────────────────────────────────────────────────
-  const marineSnap = await getDocs(collection(db, 'marine_areas'));
+  const marineSnap = await getDocsFromServer(collection(db, 'marine_areas'));
   for (const docSnap of marineSnap.docs) {
     const d = docSnap.data();
     if (d.province) { results.marineSkipped++; continue; }
@@ -1096,7 +1096,7 @@ export async function backfillProvinces() {
   }
 
   // ── datasets ────────────────────────────────────────────────────────────
-  const dsSnap = await getDocs(collection(db, 'datasets'));
+  const dsSnap = await getDocsFromServer(collection(db, 'datasets'));
   for (const docSnap of dsSnap.docs) {
     const d = docSnap.data();
     if (d.province) { results.datasetsSkipped++; continue; }
