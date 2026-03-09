@@ -1129,6 +1129,30 @@ export async function createUserByAdmin({ email, password, firstName, lastName, 
   return uid;
 }
 
+// ── ADMIN USER MANAGEMENT ───────────────────────────────────────────────────
+
+/**
+ * Sets a new password for any Firebase Auth user.
+ * Requires the caller to be an authenticated admin.
+ * Calls the backend which uses Firebase Admin SDK.
+ */
+export async function adminSetUserPassword(uid, newPassword) {
+  if (!auth.currentUser) throw new Error('Must be signed in as admin.');
+  const idToken = await auth.currentUser.getIdToken();
+  const apiUrl = import.meta.env.VITE_API_URL || '/api';
+  const res = await fetch(`${apiUrl}/admin/users/${uid}/password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ password: newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update password.');
+  return data;
+}
+
 // ── ADMIN MIGRATIONS ────────────────────────────────────────────────────────
 
 /**

@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, createUserByAdmin, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON, backfillProvinces } from '../utils/firestore';
+import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, createUserByAdmin, adminSetUserPassword, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON, backfillProvinces } from '../utils/firestore';
 import { useAuth } from '../context/AuthContext';
 import { VANUATU_PROVINCES } from '../utils/constants';
 import toast from 'react-hot-toast';
-import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, X, Eye, EyeOff } from 'lucide-react';
+import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 
 function TabButton({ active, onClick, children }) {
   return (
@@ -114,6 +114,71 @@ function CreateUserModal({ onClose, onCreated }) {
   );
 }
 
+function SetPasswordModal({ user, onClose }) {
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (password.length < 6) return toast.error('Password must be at least 6 characters.');
+    setSaving(true);
+    try {
+      await adminSetUserPassword(user.id, password);
+      toast.success(`Password updated for ${user.firstName} ${user.lastName}.`);
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Failed to update password.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <KeyRound size={18} style={{ color: '#003B7A' }} />
+            <h3 className="font-semibold text-gray-900">Set Password</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-500">
+            Setting a new password for <span className="font-medium text-gray-800">{user.firstName} {user.lastName}</span> ({user.email}).
+          </p>
+          <div>
+            <label className="form-label">New Password *</label>
+            <div className="relative">
+              <input
+                className="form-input pr-10"
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Min. 6 characters"
+                required
+                minLength={6}
+                autoFocus
+              />
+              <button type="button" onClick={() => setShowPw(p => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPw ? <EyeOff size={15}/> : <Eye size={15}/>}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60">
+              {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving…</> : <><KeyRound size={14}/>Set Password</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function UsersTab() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -121,6 +186,7 @@ function UsersTab() {
   const [error, setError]   = useState(null);
   const [working, setWorking] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [setPwUser, setSetPwUser] = useState(null); // user to set password for
 
   const fetchUsers = () => {
     setLoading(true);
@@ -244,6 +310,12 @@ function UsersTab() {
           onCreated={fetchUsers}
         />
       )}
+      {setPwUser && (
+        <SetPasswordModal
+          user={setPwUser}
+          onClose={() => setSetPwUser(null)}
+        />
+      )}
 
       {/* ── Pending approvals ── */}
       {pending.length > 0 && (
@@ -345,13 +417,21 @@ function UsersTab() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
-                      disabled={working === user.id}
-                      title="Delete user"
-                      className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
-                      <Trash2 size={15} />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setSetPwUser(user)}
+                        title="Set password"
+                        className="text-gray-300 hover:text-blue-500 transition-colors">
+                        <KeyRound size={15} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
+                        disabled={working === user.id}
+                        title="Delete user"
+                        className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
