@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, createUserByAdmin, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON } from '../utils/firestore';
+import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, createUserByAdmin, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON, backfillProvinces } from '../utils/firestore';
 import { useAuth } from '../context/AuthContext';
 import { VANUATU_PROVINCES } from '../utils/constants';
 import toast from 'react-hot-toast';
@@ -516,6 +516,57 @@ function DatasetsAdminTab() {
   );
 }
 
+function ToolsTab() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleBackfill = async () => {
+    setRunning(true);
+    setResult(null);
+    try {
+      const r = await backfillProvinces();
+      setResult(r);
+      toast.success(`Done — ${r.marineUpdated + r.datasetsUpdated} records updated.`);
+    } catch (err) {
+      toast.error(err.message || 'Migration failed.');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="card max-w-xl">
+        <div className="flex items-start gap-3">
+          <MapPin size={20} style={{ color: '#003B7A' }} className="mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-800">Backfill Province from Geometry</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Automatically detects the province for any Marine Area or Dataset that is missing one,
+              using the nearest-island centroid of its geometry. Records that already have a province
+              are untouched.
+            </p>
+            <button
+              onClick={handleBackfill}
+              disabled={running}
+              className="mt-3 btn-primary text-sm flex items-center gap-2"
+            >
+              <Wrench size={14} />
+              {running ? 'Running…' : 'Run Backfill'}
+            </button>
+            {result && (
+              <div className="mt-3 text-sm text-gray-700 bg-green-50 border border-green-200 rounded-lg p-3 space-y-0.5">
+                <p>Marine Areas updated: <strong>{result.marineUpdated}</strong> (skipped: {result.marineSkipped})</p>
+                <p>Datasets updated: <strong>{result.datasetsUpdated}</strong> (skipped: {result.datasetsSkipped})</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users');
   return (
@@ -533,9 +584,13 @@ export default function AdminPage() {
         <TabButton active={activeTab === 'datasets'} onClick={() => setActiveTab('datasets')}>
           <span className="flex items-center gap-2"><Database size={14} /> Dataset Review</span>
         </TabButton>
+        <TabButton active={activeTab === 'tools'} onClick={() => setActiveTab('tools')}>
+          <span className="flex items-center gap-2"><Wrench size={14} /> Tools</span>
+        </TabButton>
       </div>
       {activeTab === 'users' && <UsersTab />}
       {activeTab === 'datasets' && <DatasetsAdminTab />}
+      {activeTab === 'tools' && <ToolsTab />}
     </div>
   );
 }
