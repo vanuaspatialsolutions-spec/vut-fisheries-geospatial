@@ -1,14 +1,19 @@
 import {
   collection, doc, getDoc, setDoc, addDoc, updateDoc, onSnapshot,
   query, where, orderBy, serverTimestamp, increment, limit, writeBatch,
-  getDocs,
+  getDocs, arrayUnion,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 
-// Deterministic thread ID — same two users always get the same thread.
+// ── Thread ID helpers ─────────────────────────────────────────────────────────
+
+// Deterministic ID for 1-to-1 DMs only.
 export function makeThreadId(uid1, uid2) {
   return [uid1, uid2].sort().join('_');
 }
+
+// ── Create / get threads ──────────────────────────────────────────────────────
 
 export async function getOrCreateThread(uid1, name1, uid2, name2) {
   const tid = makeThreadId(uid1, uid2);
@@ -16,17 +21,50 @@ export async function getOrCreateThread(uid1, name1, uid2, name2) {
   const snap = await getDoc(ref);
   if (!snap.exists()) {
     await setDoc(ref, {
+      isGroup: false,
       participants: [uid1, uid2],
       participantNames: { [uid1]: name1, [uid2]: name2 },
       lastMessage: '',
       lastMessageAt: serverTimestamp(),
       lastMessageBy: null,
       unread: { [uid1]: 0, [uid2]: 0 },
+      deletedFor: [],
       createdAt: serverTimestamp(),
     });
+  } else {
+    // If it was previously deleted by the current user, restore it.
+    const data = snap.data();
+    if ((data.deletedFor || []).includes(uid1)) {
+      await updateDoc(ref, { deletedFor: data.deletedFor.filter(u => u !== uid1) });
+    }
   }
   return tid;
 }
+
+export async function createGroupThread(creatorUid, creatorName, members, groupName) {
+  // members: [{ uid, name }, ...]  — does NOT include the creator
+  const allUids = [creatorUid, ...members.map(m => m.uid)];
+  const participantNames = { [creatorUid]: creatorName };
+  members.forEach(m => { participantNames[m.uid] = m.name; });
+  const unread = {};
+  allUids.forEach(u => { unread[u] = 0; });
+
+  const threadRef = await addDoc(collection(db, 'threads'), {
+    isGroup: true,
+    name: groupName,
+    participants: allUids,
+    participantNames,
+    lastMessage: '',
+    lastMessageAt: serverTimestamp(),
+    lastMessageBy: null,
+    unread,
+    deletedFor: [],
+    createdAt: serverTimestamp(),
+  });
+  return threadRef.id;
+}
+
+// ── Send message ──────────────────────────────────────────────────────────────
 
 export async function sendMessage(threadId, senderId, senderName, text, attachment = null) {
   const threadRef = doc(db, 'threads', threadId);
@@ -34,7 +72,7 @@ export async function sendMessage(threadId, senderId, senderName, text, attachme
   if (!threadSnap.exists()) throw new Error('Thread not found');
 
   const threadData = threadSnap.data();
-  const otherUid = threadData.participants.find(p => p !== senderId);
+  const others = threadData.participants.filter(p => p !== senderId);
 
   await addDoc(collection(db, 'threads', threadId, 'messages'), {
     senderId,
@@ -45,35 +83,106 @@ export async function sendMessage(threadId, senderId, senderName, text, attachme
     readBy: [senderId],
   });
 
+  // Build unread increments for all other participants.
+  const unreadUpdates = {};
+  others.forEach(uid => { unreadUpdates[`unread.${uid}`] = increment(1); });
+
   await updateDoc(threadRef, {
-    lastMessage: attachment ? `\uD83D\uDCCE ${attachment.name}` : (text || ''),
+    lastMessage: attachment ? `📎 ${attachment.name}` : (text || ''),
     lastMessageAt: serverTimestamp(),
     lastMessageBy: senderId,
-    [`unread.${otherUid}`]: increment(1),
+    // Restore thread for anyone who had deleted it — new message revives it.
+    deletedFor: [],
+    ...unreadUpdates,
   });
 
-  if (otherUid) {
+  // Send in-app notification to all other participants.
+  const notifText = attachment
+    ? `Shared a file: ${attachment.name}`
+    : (text.length > 80 ? text.slice(0, 80) + '…' : text);
+  const notifType = attachment ? 'file_share' : 'message';
+  const fromLabel = threadData.isGroup ? `${senderName} in ${threadData.name}` : senderName;
+
+  for (const otherUid of others) {
     await addDoc(collection(db, 'notifications', otherUid, 'items'), {
-      type: attachment ? 'file_share' : 'message',
+      type: notifType,
       fromUid: senderId,
-      fromName: senderName,
+      fromName: fromLabel,
       threadId,
-      text: attachment ? `Shared a file: ${attachment.name}` : (text.length > 80 ? text.slice(0, 80) + '…' : text),
+      text: notifText,
       read: false,
       createdAt: serverTimestamp(),
     });
   }
 }
 
+// ── Upload attachment to Storage ──────────────────────────────────────────────
+
+export function uploadAttachment(threadId, file, onProgress) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `messages/${threadId}/${Date.now()}_${safeName}`;
+  const storageRef = ref(storage, path);
+  const task = uploadBytesResumable(storageRef, file);
+
+  return new Promise((resolve, reject) => {
+    task.on(
+      'state_changed',
+      snap => onProgress && onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+      reject,
+      async () => {
+        const downloadURL = await getDownloadURL(task.snapshot.ref);
+        resolve({
+          name: file.name,
+          contentType: file.type,
+          size: file.size,
+          storagePath: path,
+          downloadURL,
+        });
+      },
+    );
+  });
+}
+
+// ── Delete (soft) ─────────────────────────────────────────────────────────────
+
+export async function deleteMessage(threadId, messageId, senderId) {
+  const msgRef = doc(db, 'threads', threadId, 'messages', messageId);
+  await updateDoc(msgRef, { deleted: true, text: '', attachment: null });
+
+  // Refresh thread preview if this was the last message.
+  const threadRef = doc(db, 'threads', threadId);
+  const threadSnap = await getDoc(threadRef);
+  if (threadSnap.exists() && threadSnap.data().lastMessageBy === senderId) {
+    const msgsSnap = await getDocs(
+      query(collection(db, 'threads', threadId, 'messages'), orderBy('createdAt', 'desc'), limit(5))
+    );
+    const latest = msgsSnap.docs.find(d => !d.data().deleted);
+    await updateDoc(threadRef, {
+      lastMessage: latest
+        ? (latest.data().attachment ? `📎 ${latest.data().attachment.name}` : latest.data().text)
+        : '',
+    });
+  }
+}
+
+// Soft-delete a whole thread for the current user (adds uid to deletedFor).
+export async function deleteThread(threadId, uid) {
+  await updateDoc(doc(db, 'threads', threadId), {
+    deletedFor: arrayUnion(uid),
+  });
+}
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+
 export function subscribeToThreads(uid, callback) {
-  // No orderBy — combining array-contains with orderBy on a different field
-  // requires a composite index that may not exist. Sort client-side instead.
   const q = query(
     collection(db, 'threads'),
     where('participants', 'array-contains', uid),
   );
   return onSnapshot(q, snap => {
-    const threads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const threads = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(t => !(t.deletedFor || []).includes(uid));
     threads.sort((a, b) => {
       const at = a.lastMessageAt?.toMillis?.() ?? 0;
       const bt = b.lastMessageAt?.toMillis?.() ?? 0;
@@ -95,38 +204,13 @@ export function subscribeToMessages(threadId, callback) {
   );
 }
 
-// Soft-delete: replace message content with a deleted marker.
-// After deletion we also refresh the thread's lastMessage preview if needed.
-export async function deleteMessage(threadId, messageId, senderId) {
-  const msgRef = doc(db, 'threads', threadId, 'messages', messageId);
-  await updateDoc(msgRef, {
-    deleted: true,
-    text: '',
-    attachment: null,
-  });
-
-  // If this was the last message, update the thread preview.
-  const threadRef = doc(db, 'threads', threadId);
-  const threadSnap = await getDoc(threadRef);
-  if (threadSnap.exists() && threadSnap.data().lastMessageBy === senderId) {
-    // Find the new latest non-deleted message.
-    const msgsSnap = await getDocs(
-      query(collection(db, 'threads', threadId, 'messages'), orderBy('createdAt', 'desc'), limit(5))
-    );
-    const latest = msgsSnap.docs.find(d => !d.data().deleted);
-    await updateDoc(threadRef, {
-      lastMessage: latest ? (latest.data().attachment ? '📎 ' + latest.data().attachment.name : latest.data().text) : '',
-    });
-  }
-}
+// ── Thread read / notifications ───────────────────────────────────────────────
 
 export async function markThreadRead(threadId, uid) {
   await updateDoc(doc(db, 'threads', threadId), { [`unread.${uid}`]: 0 });
 }
 
 export function subscribeToNotifications(uid, callback) {
-  // No orderBy — where('read') + orderBy('createdAt') needs a composite index.
-  // Filter and sort client-side instead.
   const q = query(
     collection(db, 'notifications', uid, 'items'),
     where('read', '==', false),

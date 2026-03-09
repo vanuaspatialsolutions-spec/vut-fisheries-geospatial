@@ -2,17 +2,18 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  getOrCreateThread, sendMessage, subscribeToThreads,
-  subscribeToMessages, markThreadRead, makeThreadId, deleteMessage,
+  getOrCreateThread, createGroupThread, sendMessage, subscribeToThreads,
+  subscribeToMessages, markThreadRead, deleteMessage, deleteThread,
+  uploadAttachment,
 } from '../utils/messaging';
 import { getUsers } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import {
-  Send, Paperclip, MessageSquare, Plus, X, Search,
-  Download, File, FileText, FileImage, Trash2,
+  Send, MessageSquare, Plus, X, Search, Users,
+  Download, File, FileText, FileImage, Trash2, Paperclip, XCircle,
 } from 'lucide-react';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function formatTime(ts) {
   if (!ts) return '';
@@ -23,6 +24,15 @@ function formatTime(ts) {
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return d.toLocaleDateString([], { weekday: 'short' });
   return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+}
+
+function getThreadDisplayName(t, uid) {
+  if (t.isGroup) return t.name || 'Group Chat';
+  return Object.entries(t.participantNames || {}).find(([k]) => k !== uid)?.[1] || 'Unknown';
+}
+
+function getInitials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
 function getFileIcon(contentType) {
@@ -49,12 +59,16 @@ function AttachmentCard({ attachment }) {
   );
 }
 
-// ── new conversation modal ────────────────────────────────────────────────────
+// ── New conversation modal (DM + Group) ───────────────────────────────────────
 
 function NewConversationModal({ currentUser, onClose, onOpen }) {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState('dm'); // 'dm' | 'group'
+  const [selected, setSelected] = useState([]); // [{uid, name}] for group
+  const [groupName, setGroupName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     getUsers()
@@ -71,20 +85,40 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
     );
   });
 
-  const [selecting, setSelecting] = useState(false);
+  const toggleSelect = (u) => {
+    const exists = selected.find(s => s.uid === u.uid);
+    if (exists) setSelected(sel => sel.filter(s => s.uid !== u.uid));
+    else setSelected(sel => [...sel, { uid: u.uid, name: `${u.firstName} ${u.lastName}` }]);
+  };
 
-  const handleSelect = async (target) => {
-    setSelecting(true);
+  const handleDM = async (target) => {
+    setCreating(true);
     try {
       const myName = `${currentUser.firstName} ${currentUser.lastName}`;
       const targetName = `${target.firstName} ${target.lastName}`;
       const tid = await getOrCreateThread(currentUser.uid, myName, target.uid, targetName);
-      onOpen(tid, target);
+      onOpen(tid);
       onClose();
     } catch (err) {
       toast.error('Could not open conversation: ' + (err.message || 'permission denied'));
     } finally {
-      setSelecting(false);
+      setCreating(false);
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (selected.length < 1) { toast.error('Select at least one other member'); return; }
+    if (!groupName.trim()) { toast.error('Enter a group name'); return; }
+    setCreating(true);
+    try {
+      const myName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const tid = await createGroupThread(currentUser.uid, myName, selected, groupName.trim());
+      onOpen(tid);
+      onClose();
+    } catch (err) {
+      toast.error('Could not create group: ' + (err.message || 'permission denied'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -97,7 +131,48 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
             <X size={14} />
           </button>
         </div>
+
+        {/* Mode tabs */}
+        <div className="flex border-b border-gray-100">
+          <button
+            onClick={() => { setMode('dm'); setSelected([]); }}
+            className={`flex-1 py-2 text-xs font-medium transition-colors ${mode === 'dm' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            Direct Message
+          </button>
+          <button
+            onClick={() => setMode('group')}
+            className={`flex-1 py-2 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${mode === 'group' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <Users size={11} /> Group Chat
+          </button>
+        </div>
+
         <div className="p-4 space-y-3">
+          {mode === 'group' && (
+            <input
+              className="form-input py-2 text-sm w-full"
+              placeholder="Group name…"
+              value={groupName}
+              onChange={e => setGroupName(e.target.value)}
+              autoFocus
+            />
+          )}
+
+          {/* Selected members chips (group mode) */}
+          {mode === 'group' && selected.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {selected.map(s => (
+                <span key={s.uid} className="flex items-center gap-1 text-[11px] bg-gray-100 rounded-full px-2 py-0.5 text-gray-700">
+                  {s.name}
+                  <button onClick={() => toggleSelect({ uid: s.uid })} className="text-gray-400 hover:text-gray-700">
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="relative">
             <Search size={13} className="absolute left-3 top-2.5 text-gray-400" />
             <input
@@ -105,38 +180,57 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
               placeholder="Search users…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              autoFocus
+              autoFocus={mode === 'dm'}
             />
           </div>
-          <div className="max-h-64 overflow-y-auto divide-y divide-gray-50 border border-gray-100 rounded-lg">
+
+          <div className="max-h-52 overflow-y-auto divide-y divide-gray-50 border border-gray-100 rounded-lg">
             {loading ? (
               <p className="text-center text-xs text-gray-400 py-8">Loading users…</p>
             ) : filtered.length === 0 ? (
               <p className="text-center text-xs text-gray-400 py-8">No users found</p>
-            ) : filtered.map(u => (
-              <button
-                key={u.uid}
-                onClick={() => handleSelect(u)}
-                disabled={selecting}
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left disabled:opacity-60"
-              >
-                <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
-                  {`${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{u.firstName} {u.lastName}</p>
-                  <p className="text-xs text-gray-400 truncate">{u.role?.replace('_', ' ')} · {u.email}</p>
-                </div>
-              </button>
-            ))}
+            ) : filtered.map(u => {
+              const isChosen = selected.some(s => s.uid === u.uid);
+              return (
+                <button
+                  key={u.uid}
+                  onClick={() => mode === 'dm' ? handleDM(u) : toggleSelect(u)}
+                  disabled={creating}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left disabled:opacity-60 ${isChosen ? 'bg-gray-50' : ''}`}
+                >
+                  {mode === 'group' && (
+                    <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${isChosen ? 'bg-gray-900 border-gray-900' : 'border-gray-300'}`}>
+                      {isChosen && <span className="text-white text-[9px]">✓</span>}
+                    </div>
+                  )}
+                  <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
+                    {`${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{u.firstName} {u.lastName}</p>
+                    <p className="text-xs text-gray-400 truncate">{u.role?.replace('_', ' ')} · {u.email}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
+
+          {mode === 'group' && (
+            <button
+              onClick={handleCreateGroup}
+              disabled={creating || selected.length === 0 || !groupName.trim()}
+              className="w-full py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-40"
+            >
+              {creating ? 'Creating…' : `Create Group (${selected.length + 1} members)`}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -148,49 +242,60 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [threadSearch, setThreadSearch] = useState('');
+  // Attachment state
+  const [pendingFile, setPendingFile] = useState(null); // File object
+  const [uploadProgress, setUploadProgress] = useState(null); // 0-100 or null
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const uid = user?.uid;
   const myName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
 
-  // ── thread list subscription ────────────────────────────────────────────────
+  // ── subscriptions ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!uid) return;
-    const unsub = subscribeToThreads(uid, setThreads);
-    return () => unsub();
+    return subscribeToThreads(uid, setThreads);
   }, [uid]);
 
-  // ── open thread from URL param ──────────────────────────────────────────────
   useEffect(() => {
     const t = searchParams.get('thread');
     if (t) setActiveThreadId(t);
   }, []); // eslint-disable-line
 
-  // ── message subscription for active thread ──────────────────────────────────
   useEffect(() => {
     if (!activeThreadId) { setMessages([]); return; }
     const unsub = subscribeToMessages(activeThreadId, setMessages);
     markThreadRead(activeThreadId, uid).catch(() => {});
-    return () => unsub();
+    return unsub;
   }, [activeThreadId, uid]);
 
-  // ── auto-scroll to latest message ───────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ── send ─────────────────────────────────────────────────────────────────────
+  // ── send ──────────────────────────────────────────────────────────────────
   const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed || !activeThreadId) return;
+    if ((!trimmed && !pendingFile) || !activeThreadId) return;
     setSending(true);
+    const savedText = trimmed;
+    const savedFile = pendingFile;
     setText('');
+    setPendingFile(null);
     try {
-      await sendMessage(activeThreadId, uid, myName, trimmed);
+      let attachment = null;
+      if (savedFile) {
+        setUploadProgress(0);
+        attachment = await uploadAttachment(activeThreadId, savedFile, setUploadProgress);
+        setUploadProgress(null);
+      }
+      await sendMessage(activeThreadId, uid, myName, savedText, attachment);
     } catch (err) {
       toast.error('Failed to send: ' + err.message);
-      setText(trimmed);
+      setText(savedText);
+      setPendingFile(savedFile);
+      setUploadProgress(null);
     } finally {
       setSending(false);
       textareaRef.current?.focus();
@@ -204,8 +309,8 @@ export default function MessagesPage() {
     }
   };
 
-  // ── delete message ───────────────────────────────────────────────────────────
-  const handleDelete = async (msgId) => {
+  // ── delete message ────────────────────────────────────────────────────────
+  const handleDeleteMsg = async (msgId) => {
     if (!window.confirm('Delete this message?')) return;
     try {
       await deleteMessage(activeThreadId, msgId, uid);
@@ -214,24 +319,37 @@ export default function MessagesPage() {
     }
   };
 
-  // ── open thread ──────────────────────────────────────────────────────────────
+  // ── delete (leave) conversation ───────────────────────────────────────────
+  const handleDeleteThread = async (threadId, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Remove this conversation from your list?')) return;
+    try {
+      await deleteThread(threadId, uid);
+      if (activeThreadId === threadId) {
+        setActiveThreadId(null);
+        setSearchParams({});
+      }
+    } catch (err) {
+      toast.error('Could not remove conversation: ' + err.message);
+    }
+  };
+
+  // ── open thread ───────────────────────────────────────────────────────────
   const openThread = useCallback((tid) => {
     setActiveThreadId(tid);
     setSearchParams({ thread: tid });
   }, [setSearchParams]);
 
-  const openNewThread = (tid) => openThread(tid);
-
-  // ── active thread data ───────────────────────────────────────────────────────
+  // ── active thread metadata ────────────────────────────────────────────────
   const activeThread = threads.find(t => t.id === activeThreadId);
-  const otherName = activeThread
-    ? Object.entries(activeThread.participantNames || {}).find(([k]) => k !== uid)?.[1] || 'Unknown'
+  const threadName = activeThread ? getThreadDisplayName(activeThread, uid) : '';
+  const threadSubtitle = activeThread?.isGroup
+    ? `${activeThread.participants?.length || 0} members`
     : '';
 
-  const filteredThreads = threads.filter(t => {
-    const other = Object.entries(t.participantNames || {}).find(([k]) => k !== uid)?.[1] || '';
-    return other.toLowerCase().includes(threadSearch.toLowerCase());
-  });
+  const filteredThreads = threads.filter(t =>
+    getThreadDisplayName(t, uid).toLowerCase().includes(threadSearch.toLowerCase())
+  );
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
@@ -266,33 +384,33 @@ export default function MessagesPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400">
               <MessageSquare size={28} className="opacity-30" />
               <p className="text-xs">No conversations yet</p>
-              <button
-                onClick={() => setShowNew(true)}
-                className="text-xs text-gray-500 hover:text-gray-800 underline mt-1"
-              >
+              <button onClick={() => setShowNew(true)} className="text-xs text-gray-500 hover:text-gray-800 underline mt-1">
                 Start one
               </button>
             </div>
           ) : filteredThreads.map(t => {
-            const other = Object.entries(t.participantNames || {}).find(([k]) => k !== uid)?.[1] || 'Unknown';
-            const otherUid = t.participants?.find(p => p !== uid);
-            const initials = other.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            const name = getThreadDisplayName(t, uid);
+            const initials = getInitials(name);
             const unread = t.unread?.[uid] || 0;
             const isActive = t.id === activeThreadId;
 
             return (
-              <button
+              <div
                 key={t.id}
+                className={`group relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isActive ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
                 onClick={() => openThread(t.id)}
-                className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-colors border-b border-gray-50 ${isActive ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
               >
-                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0 mt-0.5">
-                  {initials}
+                {/* Avatar */}
+                <div className="relative w-8 h-8 flex-shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-[11px] font-semibold">
+                    {t.isGroup ? <Users size={13} /> : initials}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
+
+                <div className="flex-1 min-w-0 pr-6">
                   <div className="flex items-center justify-between gap-1">
                     <p className={`text-xs truncate ${unread > 0 ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
-                      {other}
+                      {name}
                     </p>
                     <span className="text-[10px] text-gray-400 flex-shrink-0">{formatTime(t.lastMessageAt)}</span>
                   </div>
@@ -307,7 +425,16 @@ export default function MessagesPage() {
                     )}
                   </div>
                 </div>
-              </button>
+
+                {/* Delete (leave) button — shown on hover */}
+                <button
+                  onClick={(e) => handleDeleteThread(t.id, e)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50"
+                  title="Remove conversation"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -319,9 +446,12 @@ export default function MessagesPage() {
           {/* Thread header */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 flex-shrink-0">
             <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
-              {otherName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+              {activeThread?.isGroup ? <Users size={12} /> : getInitials(threadName)}
             </div>
-            <p className="text-sm font-semibold text-gray-800">{otherName}</p>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">{threadName}</p>
+              {threadSubtitle && <p className="text-[10px] text-gray-400">{threadSubtitle}</p>}
+            </div>
           </div>
 
           {/* Messages */}
@@ -331,7 +461,6 @@ export default function MessagesPage() {
             )}
             {messages.map((msg) => {
               const isMine = msg.senderId === uid;
-              const time = formatTime(msg.createdAt);
               return (
                 <div key={msg.id} className={`group flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                   <div className={`max-w-[70%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
@@ -347,9 +476,7 @@ export default function MessagesPage() {
                         <>
                           {msg.text && (
                             <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
-                              isMine
-                                ? 'bg-gray-900 text-white rounded-br-sm'
-                                : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                              isMine ? 'bg-gray-900 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'
                             }`}>
                               {msg.text}
                             </div>
@@ -359,7 +486,7 @@ export default function MessagesPage() {
                       )}
                       {isMine && !msg.deleted && (
                         <button
-                          onClick={() => handleDelete(msg.id)}
+                          onClick={() => handleDeleteMsg(msg.id)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500"
                           title="Delete message"
                         >
@@ -367,7 +494,7 @@ export default function MessagesPage() {
                         </button>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-1 px-1">{time}</span>
+                    <span className="text-[10px] text-gray-400 mt-1 px-1">{formatTime(msg.createdAt)}</span>
                   </div>
                 </div>
               );
@@ -375,13 +502,48 @@ export default function MessagesPage() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Pending file preview */}
+          {pendingFile && (
+            <div className="flex-shrink-0 px-4 pt-2">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 w-fit max-w-xs">
+                <Paperclip size={12} className="text-gray-400 flex-shrink-0" />
+                <span className="truncate">{pendingFile.name}</span>
+                <button
+                  onClick={() => setPendingFile(null)}
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                >
+                  <XCircle size={13} />
+                </button>
+              </div>
+              {uploadProgress !== null && (
+                <div className="mt-1 h-1 bg-gray-200 rounded-full w-48">
+                  <div className="h-1 bg-gray-900 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Input */}
           <div className="flex-shrink-0 border-t border-gray-100 px-4 py-3">
             <div className="flex items-end gap-2">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={e => { if (e.target.files[0]) setPendingFile(e.target.files[0]); e.target.value = ''; }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors flex-shrink-0"
+                title="Attach file"
+              >
+                <Paperclip size={15} />
+              </button>
               <textarea
                 ref={textareaRef}
                 className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[40px] max-h-[120px]"
-                placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                placeholder="Type a message… (Enter to send)"
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -389,7 +551,7 @@ export default function MessagesPage() {
               />
               <button
                 onClick={handleSend}
-                disabled={!text.trim() || sending}
+                disabled={(!text.trim() && !pendingFile) || sending}
                 className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-900 text-white hover:bg-gray-700 transition-colors disabled:opacity-40 flex-shrink-0"
                 title="Send (Enter)"
               >
@@ -411,12 +573,11 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* New conversation modal */}
       {showNew && (
         <NewConversationModal
           currentUser={user}
           onClose={() => setShowNew(false)}
-          onOpen={openNewThread}
+          onOpen={openThread}
         />
       )}
     </div>
