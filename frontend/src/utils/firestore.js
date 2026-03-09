@@ -242,7 +242,7 @@ export async function parseFileToGeoJSON(file) {
  * object and return the total in hectares (rounded to 2 decimal places).
  * Uses the spherical excess formula (same algorithm as @turf/area).
  */
-function calculateGeoJSONAreaHa(geojson) {
+export function calculateGeoJSONAreaHa(geojson) {
   const R = 6378137; // WGS84 mean radius in metres
   function rad(d) { return d * Math.PI / 180; }
 
