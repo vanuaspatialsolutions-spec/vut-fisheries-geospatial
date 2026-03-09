@@ -14,6 +14,7 @@ import NewMarineAreaPage from './pages/NewMarineAreaPage';
 import MonitoringPage from './pages/MonitoringPage';
 import NewMonitoringPage from './pages/NewMonitoringPage';
 import AdminPage from './pages/AdminPage';
+import FilesPage from './pages/FilesPage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="/monitoring" element={<MonitoringPage />} />
         <Route path="/monitoring/new" element={<NewMonitoringPage />} />
         <Route path="/monitoring/:id/edit" element={<NewMonitoringPage />} />
+        <Route path="/files" element={<FilesPage />} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
       </Route>
     </Routes>
