@@ -65,14 +65,21 @@ export async function sendMessage(threadId, senderId, senderName, text, attachme
 }
 
 export function subscribeToThreads(uid, callback) {
+  // No orderBy — combining array-contains with orderBy on a different field
+  // requires a composite index that may not exist. Sort client-side instead.
   const q = query(
     collection(db, 'threads'),
     where('participants', 'array-contains', uid),
-    orderBy('lastMessageAt', 'desc'),
   );
-  return onSnapshot(q, snap =>
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-  );
+  return onSnapshot(q, snap => {
+    const threads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    threads.sort((a, b) => {
+      const at = a.lastMessageAt?.toMillis?.() ?? 0;
+      const bt = b.lastMessageAt?.toMillis?.() ?? 0;
+      return bt - at;
+    });
+    callback(threads);
+  }, err => console.error('subscribeToThreads:', err.code, err.message));
 }
 
 export function subscribeToMessages(threadId, callback) {
@@ -80,8 +87,10 @@ export function subscribeToMessages(threadId, callback) {
     collection(db, 'threads', threadId, 'messages'),
     orderBy('createdAt', 'asc'),
   );
-  return onSnapshot(q, snap =>
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  return onSnapshot(
+    q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => console.error('subscribeToMessages:', err.code, err.message),
   );
 }
 
@@ -90,15 +99,22 @@ export async function markThreadRead(threadId, uid) {
 }
 
 export function subscribeToNotifications(uid, callback) {
+  // No orderBy — where('read') + orderBy('createdAt') needs a composite index.
+  // Filter and sort client-side instead.
   const q = query(
     collection(db, 'notifications', uid, 'items'),
     where('read', '==', false),
-    orderBy('createdAt', 'desc'),
-    limit(30),
+    limit(50),
   );
-  return onSnapshot(q, snap =>
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-  );
+  return onSnapshot(q, snap => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    items.sort((a, b) => {
+      const at = a.createdAt?.toMillis?.() ?? 0;
+      const bt = b.createdAt?.toMillis?.() ?? 0;
+      return bt - at;
+    });
+    callback(items.slice(0, 30));
+  }, err => console.error('subscribeToNotifications:', err.code, err.message));
 }
 
 export async function markNotificationRead(uid, notifId) {
