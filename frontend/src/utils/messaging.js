@@ -1,6 +1,7 @@
 import {
   collection, doc, getDoc, setDoc, addDoc, updateDoc, onSnapshot,
   query, where, orderBy, serverTimestamp, increment, limit, writeBatch,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -92,6 +93,31 @@ export function subscribeToMessages(threadId, callback) {
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
     err => console.error('subscribeToMessages:', err.code, err.message),
   );
+}
+
+// Soft-delete: replace message content with a deleted marker.
+// After deletion we also refresh the thread's lastMessage preview if needed.
+export async function deleteMessage(threadId, messageId, senderId) {
+  const msgRef = doc(db, 'threads', threadId, 'messages', messageId);
+  await updateDoc(msgRef, {
+    deleted: true,
+    text: '',
+    attachment: null,
+  });
+
+  // If this was the last message, update the thread preview.
+  const threadRef = doc(db, 'threads', threadId);
+  const threadSnap = await getDoc(threadRef);
+  if (threadSnap.exists() && threadSnap.data().lastMessageBy === senderId) {
+    // Find the new latest non-deleted message.
+    const msgsSnap = await getDocs(
+      query(collection(db, 'threads', threadId, 'messages'), orderBy('createdAt', 'desc'), limit(5))
+    );
+    const latest = msgsSnap.docs.find(d => !d.data().deleted);
+    await updateDoc(threadRef, {
+      lastMessage: latest ? (latest.data().attachment ? '📎 ' + latest.data().attachment.name : latest.data().text) : '',
+    });
+  }
 }
 
 export async function markThreadRead(threadId, uid) {

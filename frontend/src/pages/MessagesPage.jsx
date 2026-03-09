@@ -3,13 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getOrCreateThread, sendMessage, subscribeToThreads,
-  subscribeToMessages, markThreadRead, makeThreadId,
+  subscribeToMessages, markThreadRead, makeThreadId, deleteMessage,
 } from '../utils/messaging';
 import { getUsers } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import {
   Send, Paperclip, MessageSquare, Plus, X, Search,
-  Download, File, FileText, FileImage,
+  Download, File, FileText, FileImage, Trash2,
 } from 'lucide-react';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -204,6 +204,16 @@ export default function MessagesPage() {
     }
   };
 
+  // ── delete message ───────────────────────────────────────────────────────────
+  const handleDelete = async (msgId) => {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      await deleteMessage(activeThreadId, msgId, uid);
+    } catch (err) {
+      toast.error('Could not delete: ' + err.message);
+    }
+  };
+
   // ── open thread ──────────────────────────────────────────────────────────────
   const openThread = useCallback((tid) => {
     setActiveThreadId(tid);
@@ -323,21 +333,40 @@ export default function MessagesPage() {
               const isMine = msg.senderId === uid;
               const time = formatTime(msg.createdAt);
               return (
-                <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                <div key={msg.id} className={`group flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                   <div className={`max-w-[70%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
                     {!isMine && (
                       <span className="text-[10px] text-gray-400 mb-1 px-1">{msg.senderName}</span>
                     )}
-                    {msg.text && (
-                      <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
-                        isMine
-                          ? 'bg-gray-900 text-white rounded-br-sm'
-                          : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-                      }`}>
-                        {msg.text}
-                      </div>
-                    )}
-                    {msg.attachment && <AttachmentCard attachment={msg.attachment} />}
+                    <div className={`flex items-end gap-1.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {msg.deleted ? (
+                        <div className="px-3 py-2 rounded-2xl text-xs italic text-gray-400 bg-gray-100 border border-dashed border-gray-200">
+                          Message deleted
+                        </div>
+                      ) : (
+                        <>
+                          {msg.text && (
+                            <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
+                              isMine
+                                ? 'bg-gray-900 text-white rounded-br-sm'
+                                : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                            }`}>
+                              {msg.text}
+                            </div>
+                          )}
+                          {msg.attachment && <AttachmentCard attachment={msg.attachment} />}
+                        </>
+                      )}
+                      {isMine && !msg.deleted && (
+                        <button
+                          onClick={() => handleDelete(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500"
+                          title="Delete message"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                     <span className="text-[10px] text-gray-400 mt-1 px-1">{time}</span>
                   </div>
                 </div>
