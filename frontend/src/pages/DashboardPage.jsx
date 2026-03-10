@@ -18,18 +18,19 @@ import {
   Users, Anchor, Activity, Database, Plus, MapPin,
   ArrowUpRight, RefreshCw, BarChart2, Shield,
   Waves, Layers, Filter, AlertTriangle, TrendingUp,
+  Globe, Leaf,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const VANUATU_MARINE_HA = 5_000_000;
-const CHART_COLORS = ['#334155','#475569','#64748b','#94a3b8','#1d4ed8','#2563eb','#3b82f6'];
-const PROVINCE_COLORS = { Malampa:'#334155',Penama:'#1d4ed8',Sanma:'#475569',Shefa:'#64748b',Tafea:'#2563eb',Torba:'#94a3b8' };
+const CHART_COLORS = ['#0891b2','#0d9488','#2563eb','#7c3aed','#db2777','#d97706','#16a34a'];
+const PROVINCE_COLORS = { Malampa:'#7c3aed',Penama:'#0891b2',Sanma:'#0d9488',Shefa:'#d97706',Tafea:'#ef4444',Torba:'#6366f1' };
 const LAYER_CFG = [
-  { key:'surveys',    label:'Surveys',    icon:Users,    on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
-  { key:'marine',     label:'Marine',     icon:Anchor,   on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
-  { key:'monitoring', label:'Monitoring', icon:Activity, on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
-  { key:'datasets',   label:'Datasets',   icon:Database, on:'bg-gray-900 text-white border-gray-900',  dot:'bg-gray-400' },
+  { key:'surveys',    label:'Surveys',    icon:Users,    on:'bg-violet-600 text-white border-violet-600',  dot:'bg-violet-400' },
+  { key:'marine',     label:'Marine',     icon:Anchor,   on:'bg-blue-600 text-white border-blue-600',      dot:'bg-blue-400'   },
+  { key:'monitoring', label:'Monitoring', icon:Activity, on:'bg-teal-600 text-white border-teal-600',      dot:'bg-teal-400'   },
+  { key:'datasets',   label:'Datasets',   icon:Database, on:'bg-cyan-600 text-white border-cyan-600',      dot:'bg-cyan-400'   },
 ];
 const LEGEND_ITEMS = [
   { color:'bg-gray-700',   label:'Community Survey',                round:true  },
@@ -73,48 +74,63 @@ function useCountUp(target, duration=1000, decimals=0) {
   return val;
 }
 
-function HeroCard({ label, value, unit, sub, loading, index, decimals=0 }) {
+function HeroCard({ label, value, unit, sub, loading, index, decimals=0, icon: Icon, color='#6b7280' }) {
   const counted = useCountUp(loading ? 0 : (typeof value === 'number' ? value : 0), 800, decimals);
   return (
     <div
-      style={{ animationDelay: `${index * 50}ms` }}
-      className="bg-white rounded-md border border-gray-200 p-4 stat-card-entrance select-none"
+      style={{ animationDelay: `${index * 60}ms` }}
+      className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 stat-card-entrance select-none hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 mb-2">{label}</p>
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 leading-snug pr-2 flex-1">{label}</p>
+        {Icon && (
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: `${color}1a` }}>
+            <Icon size={13} style={{ color }} strokeWidth={2} />
+          </div>
+        )}
+      </div>
       {loading
-        ? <div className="h-7 w-20 rounded bg-gray-100 animate-pulse mb-1" />
-        : <p className="text-2xl font-bold leading-none tracking-tight text-gray-900">
+        ? <div className="h-7 w-20 rounded-lg bg-gray-100 animate-pulse mb-1" />
+        : <p className="text-[1.6rem] font-bold leading-none tracking-tight text-gray-900">
             {decimals > 0
               ? counted.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
               : Math.round(counted).toLocaleString()}
-            {unit && <span className="text-sm font-medium ml-1 text-gray-400">{unit}</span>}
+            {unit && <span className="text-sm font-medium ml-1" style={{ color }}>{unit}</span>}
           </p>}
       {sub && (
-        <p className="text-[11px] mt-1.5 text-gray-400 leading-tight">
+        <p className="text-[11px] mt-2 text-gray-400 leading-tight">
           {loading ? <span className="inline-block h-3 w-24 rounded bg-gray-100 animate-pulse" /> : sub}
         </p>
       )}
+      {!loading && <div className="mt-3 h-0.5 rounded-full opacity-20 group-hover:opacity-40 transition-opacity" style={{ background: color }} />}
     </div>
   );
 }
 
-function ChartCard({ title, icon: Icon, children, loading, empty, emptyMsg, className='' }) {
+function ChartCard({ title, icon: Icon, children, loading, empty, emptyMsg, className='', color='#0891b2' }) {
   return (
-    <div className={`card ${className}`}>
-      <div className="flex items-center gap-2 mb-4">
-        <Icon size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
-        <h3 className="font-medium text-gray-700 text-sm tracking-tight">{title}</h3>
-      </div>
-      {loading
-        ? <div className="h-52 flex items-center justify-center">
-            <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
+    <div className={`bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+      <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${color}, ${color}33)` }} />
+      <div className="p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+            style={{ background: `${color}18` }}>
+            <Icon size={12} style={{ color }} strokeWidth={2.25} />
           </div>
-        : empty
-          ? <div className="h-52 flex flex-col items-center justify-center gap-2">
-              <BarChart2 size={24} className="text-gray-200" />
-              <p className="text-xs text-gray-400">{emptyMsg || 'No data yet'}</p>
+          <h3 className="font-semibold text-gray-700 text-sm tracking-tight">{title}</h3>
+        </div>
+        {loading
+          ? <div className="h-52 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-gray-100 rounded-full animate-spin" style={{ borderTopColor: color }} />
             </div>
-          : children}
+          : empty
+            ? <div className="h-52 flex flex-col items-center justify-center gap-2">
+                <BarChart2 size={28} className="text-gray-200" />
+                <p className="text-xs text-gray-400">{emptyMsg || 'No data yet'}</p>
+              </div>
+            : children}
+      </div>
     </div>
   );
 }
@@ -257,12 +273,12 @@ export default function DashboardPage() {
   const totalMarineHa = totalSpatialHa + dsRestorationHa;
 
   const heroCards = [
-    { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones'                                              },
-    { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1                       },
-    { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`           },
-    { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3                       },
-    { label:'Communities in Conservation', value:new Set([...(marine.communities || []), ...(surveys.communities || [])]).size, sub:'unique communities engaged'                           },
-    { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1                       },
+    { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones',                            icon:Anchor,  color:'#2563eb' },
+    { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1,      icon:Layers,  color:'#0d9488' },
+    { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, icon:Shield, color:'#10b981' },
+    { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3,      icon:Globe,   color:'#7c3aed' },
+    { label:'Communities in Conservation', value:new Set([...(marine.communities || []), ...(surveys.communities || [])]).size, sub:'unique communities engaged', icon:Users,  color:'#f97316' },
+    { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1,      icon:Leaf,    color:'#16a34a' },
   ];
 
   const marineByType = [
@@ -435,7 +451,7 @@ export default function DashboardPage() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ChartCard title="Marine Areas by Type" icon={Anchor} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet">
+        <ChartCard title="Marine Areas by Type" icon={Anchor} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -446,19 +462,19 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Coverage by Province (%)" icon={Waves} loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
+        <ChartCard title="Coverage by Province (%)" icon={Waves} loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet" color="#0d9488">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineByProvince} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="province" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-              <Bar dataKey="pct" name="Coverage %" radius={[3, 3, 0, 0]}>{marineByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(13,148,136,0.06)' }} />
+              <Bar dataKey="pct" name="Coverage %" radius={[4, 4, 0, 0]}>{marineByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Management Status" icon={Shield} loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet">
+        <ChartCard title="Management Status" icon={Shield} loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet" color="#10b981">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -472,39 +488,39 @@ export default function DashboardPage() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ChartCard title="Marine Areas by Province" icon={Anchor} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet">
+        <ChartCard title="Marine Areas by Province" icon={Anchor} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineCountByProvince} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="province" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-              <Bar dataKey="count" name="Marine Areas" radius={[3, 3, 0, 0]}>{marineCountByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
+              <Bar dataKey="count" name="Marine Areas" radius={[4, 4, 0, 0]}>{marineCountByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet">
+        <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet" color="#7c3aed">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProv} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="province" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-              <Bar dataKey="count" name="Surveys" fill="#334155" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="count" name="Surveys" fill="#7c3aed" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {monByType.length > 0 || statsLoading ? (
-          <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet">
+          <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet" color="#0d9488">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monByType} layout="vertical" barSize={18}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} width={140} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-                <Bar dataKey="count" name="Records" fill="#475569" radius={[0, 3, 3, 0]} />
+                <Bar dataKey="count" name="Records" fill="#0d9488" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>

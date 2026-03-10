@@ -9,32 +9,39 @@ import { subscribeToThreads } from '../../utils/messaging';
 import UserAvatar from '../UserAvatar';
 
 const dataNav = [
-  { to: '/surveys',    icon: Users,          label: 'Community Surveys' },
-  { to: '/marine',     icon: Anchor,         label: 'Marine Areas' },
-  { to: '/monitoring', icon: Activity,       label: 'Bio. Monitoring' },
-  { to: '/datasets',   icon: Database,       label: 'Datasets' },
-  { to: '/files',      icon: FolderOpen,     label: 'My Files' },
-  { to: '/messages',   icon: MessageSquare,  label: 'Messages' },
+  { to: '/surveys',    icon: Users,          label: 'Community Surveys', color: 'text-violet-400' },
+  { to: '/marine',     icon: Anchor,         label: 'Marine Areas',      color: 'text-cyan-400'   },
+  { to: '/monitoring', icon: Activity,       label: 'Bio. Monitoring',   color: 'text-teal-400'   },
+  { to: '/datasets',   icon: Database,       label: 'Datasets',          color: 'text-blue-400'   },
+  { to: '/files',      icon: FolderOpen,     label: 'My Files',          color: 'text-slate-400'  },
+  { to: '/messages',   icon: MessageSquare,  label: 'Messages',          color: 'text-slate-400'  },
 ];
 
-function NavItem({ to, icon: Icon, label, badge }) {
+function NavItem({ to, icon: Icon, label, badge, color = 'text-slate-400' }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm transition-colors duration-100
+        `relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-all duration-150
         ${isActive
-          ? 'bg-gray-100 text-gray-900 font-medium'
-          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800 font-normal'
+          ? 'bg-white/10 text-white font-medium shadow-sm'
+          : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 font-normal'
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <Icon size={14} className={isActive ? 'text-gray-700' : 'text-gray-400'} strokeWidth={isActive ? 2 : 1.75} />
+          {isActive && (
+            <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-cyan-400 rounded-full" />
+          )}
+          <Icon
+            size={14}
+            className={isActive ? 'text-cyan-400' : color}
+            strokeWidth={isActive ? 2.25 : 1.75}
+          />
           <span className="leading-none tracking-tight flex-1">{label}</span>
           {badge > 0 && (
-            <span className="bg-gray-900 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none flex-shrink-0">
+            <span className="bg-cyan-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none flex-shrink-0 shadow-sm">
               {badge > 9 ? '9+' : badge}
             </span>
           )}
@@ -46,7 +53,7 @@ function NavItem({ to, icon: Icon, label, badge }) {
 
 function SectionLabel({ label }) {
   return (
-    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.15em] px-2.5 pt-4 pb-1">
+    <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.16em] px-2.5 pt-5 pb-1.5">
       {label}
     </p>
   );
@@ -66,29 +73,30 @@ export default function Sidebar() {
   }, [user?.uid]);
 
   return (
-    <aside className="w-52 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <aside className="w-52 bg-slate-950 border-r border-slate-800/60 flex flex-col flex-shrink-0">
       {/* Logo */}
-      <div className="px-4 py-3.5 border-b border-gray-100">
+      <div className="px-4 py-4 border-b border-slate-800/60">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: '0 0 0 1px rgba(8,145,178,0.3)' }}>
             <img
               src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
               alt="Vanuatu Fisheries"
-              className="w-6 h-6 object-contain"
+              className="w-5 h-5 object-contain"
             />
           </div>
           <div>
-            <p className="font-semibold text-[12px] text-gray-800 leading-tight tracking-tight">CBFM Platform</p>
-            <p className="text-gray-400 text-[10px] leading-tight mt-0.5 tracking-tight">Dept. of Fisheries · Vanuatu</p>
+            <p className="font-bold text-[12.5px] text-white leading-tight tracking-tight">CBFM Platform</p>
+            <p className="text-slate-500 text-[10px] leading-tight mt-0.5 tracking-tight">Dept. of Fisheries · Vanuatu</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-1 px-2 overflow-y-auto">
+      <nav className="flex-1 py-1 px-2 overflow-y-auto sidebar-scroll">
         <SectionLabel label="Overview" />
         <div className="space-y-0.5">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" color="text-slate-400" />
         </div>
 
         <SectionLabel label="Data Management" />
@@ -106,39 +114,38 @@ export default function Sidebar() {
           <>
             <SectionLabel label="Administration" />
             <div className="space-y-0.5">
-              <NavItem to="/admin" icon={Settings} label="Admin Panel" />
+              <NavItem to="/admin" icon={Settings} label="Admin Panel" color="text-amber-400" />
             </div>
           </>
         )}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-100">
-        {/* User profile link */}
+      <div className="border-t border-slate-800/60">
         <Link
           to="/profile"
-          className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 transition-colors group"
+          className="flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors group"
           title="My Profile"
         >
           <UserAvatar user={user} sizePx={26} />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-700 truncate leading-none">
+            <p className="text-xs font-medium text-slate-200 truncate leading-none">
               {user?.firstName} {user?.lastName}
             </p>
             {user?.position ? (
-              <p className="text-[10px] text-gray-400 truncate mt-0.5 leading-none">{user.position}</p>
+              <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-none">{user.position}</p>
             ) : (
-              <p className="text-[10px] text-gray-400 truncate mt-0.5 leading-none capitalize">{user?.role?.replace(/_/g, ' ')}</p>
+              <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-none capitalize">{user?.role?.replace(/_/g, ' ')}</p>
             )}
           </div>
         </Link>
 
-        <div className="px-3 pb-2.5">
+        <div className="px-3 pb-3">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0" />
-            <span className="text-gray-400 text-[10px]">System Online</span>
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0 pulse-dot" />
+            <span className="text-slate-600 text-[10px]">System Online</span>
           </div>
-          <p className="text-gray-300 text-[10px]">
+          <p className="text-slate-700 text-[10px]">
             © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
           </p>
         </div>
