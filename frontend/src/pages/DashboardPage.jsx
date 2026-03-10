@@ -39,7 +39,7 @@ const LEGEND_ITEMS = [
   { color:'bg-gray-500',   label:'Bio. Monitoring',                 round:true  },
 ];
 const AREA_TYPE_LABEL = { lmma:'LMMA',taboo_area:'Taboo Area',patrol_zone:'Patrol Zone',buffer_zone:'Buffer Zone',spawning_aggregation:'Spawning Site',other:'Other' };
-const STATUS_COLORS = { Active:'#16a34a',Inactive:'#dc2626','Under Review':'#d97706',Proposed:'#2563eb' };
+const STATUS_COLORS = { Active:'#16a34a',Inactive:'#dc2626','Under Review':'#d97706',Proposed:'#2563eb',Published:'#0891b2' };
 const QUICK = [
   { label:'New Survey',   to:'/surveys/new',     icon:Users    },
   { label:'Marine Area',  to:'/marine/new',       icon:Anchor   },
@@ -265,7 +265,10 @@ export default function DashboardPage() {
     { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1                       },
   ];
 
-  const marineByType     = (marine.byType || []).map(d => ({ name: AREA_TYPE_LABEL[d.areaType] || d.areaType, value: d.count, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
+  const marineByType = [
+    ...(marine.byType || []).map(d => ({ name: AREA_TYPE_LABEL[d.areaType] || d.areaType, value: d.count, ha: parseFloat((d.totalHa || 0).toFixed(1)) })),
+    ...(datasets.byType || []).filter(d => CATEGORY_LABELS[d.dataType] && (d.featureCount || 0) > 0).map(d => ({ name: CATEGORY_LABELS[d.dataType], value: d.featureCount, ha: d.publishedAreaHa || 0 })),
+  ].filter(d => d.value > 0);
 
   // Merge marine areas + published dataset areas by province.
   // All 6 Vanuatu provinces are always present (zeroed if no data yet).
@@ -290,12 +293,25 @@ export default function DashboardPage() {
     return Object.values(acc);
   })();
 
-  const mergedByProvince = mergedProvinceData.map(d => ({ province: d.province, ha: parseFloat((d.totalHa || 0).toFixed(1)) }));
-  const marineByProvince = mergedByProvince.map(d => ({ province: d.province.substring(0, 7), ha: d.ha }));
-  const marineCountByProvince = (marine.byProvince || [])
-    .map(d => ({ province: d.province.substring(0, 7), count: d.count }))
+  const marineByProvince = mergedProvinceData
+    .filter(d => d.totalHa > 0)
+    .map(d => ({
+      province: d.province,
+      pct: parseFloat(((d.totalHa / (PROVINCE_BOUNDARY_HA[d.province] || 1)) * 100).toFixed(3)),
+    }))
+    .sort((a, b) => b.pct - a.pct);
+  // Include both marine_areas records AND dataset features; show 'Unknown' (no province assigned) as its own bar.
+  const marineCountByProvince = mergedProvinceData
+    .filter(d => d.count > 0)
+    .map(d => ({ province: d.province, count: d.count }))
     .sort((a, b) => b.count - a.count);
-  const marineByStatus   = (marine.byStatus || []).map(d => ({ name: d.status.charAt(0).toUpperCase() + d.status.slice(1).replace(/_/g, ' '), value: d.count }));
+  const publishedDsFeatureCount = (datasets.byType || [])
+    .filter(d => CATEGORY_LABELS[d.dataType])
+    .reduce((sum, d) => sum + (d.featureCount || 0), 0);
+  const marineByStatus = [
+    ...(marine.byStatus || []).map(d => ({ name: d.status.charAt(0).toUpperCase() + d.status.slice(1).replace(/_/g, ' '), value: d.count })),
+    ...(publishedDsFeatureCount > 0 ? [{ name: 'Published', value: publishedDsFeatureCount }] : []),
+  ];
   const surveysByProv    = (surveys.byProvince || []).map(d => ({ province: (d.province || 'Unknown').substring(0, 7), count: parseInt(d.count) }));
   const monByType        = (monitoring.byType || []).map(d => ({ name: (d.monitoringType || 'other').replace(/_/g, ' '), count: parseInt(d.count) }));
 
@@ -430,14 +446,14 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Coverage by Province (ha)" icon={Waves} loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
+        <ChartCard title="Coverage by Province (%)" icon={Waves} loading={statsLoading} empty={!marineByProvince.length} emptyMsg="No province data yet">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineByProvince} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="province" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.04)' }} />
-              <Bar dataKey="ha" name="Hectares" radius={[3, 3, 0, 0]}>{marineByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
+              <Bar dataKey="pct" name="Coverage %" radius={[3, 3, 0, 0]}>{marineByProvince.map((d, i) => <Cell key={i} fill={PROVINCE_COLORS[d.province] || CHART_COLORS[i]} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
