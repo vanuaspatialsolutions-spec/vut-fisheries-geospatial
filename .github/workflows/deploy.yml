@@ -11,6 +11,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +44,7 @@ jobs:
       # account that has roles/firebase.admin or roles/storage.admin +
       # roles/datastore.owner on the project).
       - name: Deploy Firebase rules
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        if: env.FIREBASE_SA_KEY != ''
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only firestore:rules,storage
