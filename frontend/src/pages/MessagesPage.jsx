@@ -10,11 +10,12 @@ import { getUsers } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import {
   Send, MessageSquare, Plus, X, Search, Users,
-  Download, File, FileText, FileImage, Trash2, Paperclip, XCircle,
+  Download, File, FileText, FileImage, Trash2, Paperclip, XCircle, CornerDownLeft,
 } from 'lucide-react';
 import UserAvatar from '../components/UserAvatar';
-
-// ── helpers ───────────────────────────────────────────────────────────────────
+import { ChatBubble, ChatBubbleAvatar, ChatBubbleMessage } from '@/components/ui/chat-bubble';
+import { ChatMessageList } from '@/components/ui/chat-message-list';
+import { ChatInput } from '@/components/ui/chat-input';
 
 function formatTime(ts) {
   if (!ts) return '';
@@ -51,23 +52,21 @@ function AttachmentCard({ attachment }) {
       download={attachment.name}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2 mt-1.5 px-3 py-2 bg-white/70 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-white transition-colors max-w-xs"
+      className="flex items-center gap-2 mt-1 px-3 py-2 bg-black/10 border border-white/20 rounded-xl text-xs hover:bg-black/20 transition-colors max-w-xs"
     >
-      <Icon size={14} className="text-gray-400 flex-shrink-0" />
+      <Icon size={14} className="flex-shrink-0 opacity-80" />
       <span className="truncate flex-1">{attachment.name}</span>
-      <Download size={11} className="text-gray-400 flex-shrink-0" />
+      <Download size={11} className="flex-shrink-0 opacity-60" />
     </a>
   );
 }
-
-// ── New conversation modal (DM + Group) ───────────────────────────────────────
 
 function NewConversationModal({ currentUser, onClose, onOpen }) {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState('dm'); // 'dm' | 'group'
-  const [selected, setSelected] = useState([]); // [{uid, name}] for group
+  const [mode, setMode] = useState('dm');
+  const [selected, setSelected] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -125,25 +124,29 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-800">New Message</h2>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <MessageSquare size={12} className="text-primary" />
+            </div>
+            <h2 className="text-sm font-semibold text-gray-800">New Message</h2>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
             <X size={14} />
           </button>
         </div>
 
-        {/* Mode tabs */}
         <div className="flex border-b border-gray-100">
           <button
             onClick={() => { setMode('dm'); setSelected([]); }}
-            className={`flex-1 py-2 text-xs font-medium transition-colors ${mode === 'dm' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${mode === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600'}`}
           >
             Direct Message
           </button>
           <button
             onClick={() => setMode('group')}
-            className={`flex-1 py-2 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${mode === 'group' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors flex items-center justify-center gap-1 ${mode === 'group' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600'}`}
           >
             <Users size={11} /> Group Chat
           </button>
@@ -160,13 +163,12 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
             />
           )}
 
-          {/* Selected members chips (group mode) */}
           {mode === 'group' && selected.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {selected.map(s => (
-                <span key={s.uid} className="flex items-center gap-1 text-[11px] bg-gray-100 rounded-full px-2 py-0.5 text-gray-700">
+                <span key={s.uid} className="flex items-center gap-1 text-[11px] bg-primary/10 text-primary rounded-full px-2.5 py-0.5 font-medium">
                   {s.name}
-                  <button onClick={() => toggleSelect({ uid: s.uid })} className="text-gray-400 hover:text-gray-700">
+                  <button onClick={() => toggleSelect({ uid: s.uid })} className="text-primary/60 hover:text-primary">
                     <X size={10} />
                   </button>
                 </span>
@@ -197,16 +199,14 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
                   key={u.uid}
                   onClick={() => mode === 'dm' ? handleDM(u) : toggleSelect(u)}
                   disabled={creating}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left disabled:opacity-60 ${isChosen ? 'bg-gray-50' : ''}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-primary/5 transition-colors text-left disabled:opacity-60 ${isChosen ? 'bg-primary/5' : ''}`}
                 >
                   {mode === 'group' && (
-                    <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${isChosen ? 'bg-gray-900 border-gray-900' : 'border-gray-300'}`}>
-                      {isChosen && <span className="text-white text-[9px]">✓</span>}
+                    <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${isChosen ? 'bg-primary border-primary' : 'border-gray-300'}`}>
+                      {isChosen && <span className="text-white text-[9px] font-bold">✓</span>}
                     </div>
                   )}
-                  <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
-                    {`${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase()}
-                  </div>
+                  <UserAvatar user={u} sizePx={28} />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{u.firstName} {u.lastName}</p>
                     <p className="text-xs text-gray-400 truncate">{u.role?.replace('_', ' ')} · {u.email}</p>
@@ -220,7 +220,7 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
             <button
               onClick={handleCreateGroup}
               disabled={creating || selected.length === 0 || !groupName.trim()}
-              className="w-full py-2 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-40"
+              className="w-full py-2 text-xs font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40"
             >
               {creating ? 'Creating…' : `Create Group (${selected.length + 1} members)`}
             </button>
@@ -230,8 +230,6 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
     </div>
   );
 }
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -243,19 +241,16 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [threadSearch, setThreadSearch] = useState('');
-  // Attachment state
-  const [pendingFile, setPendingFile] = useState(null); // File object
-  const [uploadProgress, setUploadProgress] = useState(null); // 0-100 or null
-  const messagesEndRef = useRef(null);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
   const uid = user?.uid;
   const myName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
-  const myPosition  = user?.position  || null;
-  const myPhotoURL  = user?.photoURL  || null;
+  const myPosition = user?.position || null;
+  const myPhotoURL = user?.photoURL || null;
 
-  // ── subscriptions ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!uid) return;
     return subscribeToThreads(uid, setThreads);
@@ -273,11 +268,6 @@ export default function MessagesPage() {
     return unsub;
   }, [activeThreadId, uid]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // ── send ──────────────────────────────────────────────────────────────────
   const handleSend = async () => {
     const trimmed = text.trim();
     if ((!trimmed && !pendingFile) || !activeThreadId) return;
@@ -306,75 +296,63 @@ export default function MessagesPage() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  // ── delete message ────────────────────────────────────────────────────────
   const handleDeleteMsg = async (msgId) => {
     if (!window.confirm('Delete this message?')) return;
-    try {
-      await deleteMessage(activeThreadId, msgId, uid);
-    } catch (err) {
-      toast.error('Could not delete: ' + err.message);
-    }
+    try { await deleteMessage(activeThreadId, msgId, uid); }
+    catch (err) { toast.error('Could not delete: ' + err.message); }
   };
 
-  // ── delete (leave) conversation ───────────────────────────────────────────
   const handleDeleteThread = async (threadId, e) => {
     e.stopPropagation();
     if (!window.confirm('Remove this conversation from your list?')) return;
     try {
       await deleteThread(threadId, uid);
-      if (activeThreadId === threadId) {
-        setActiveThreadId(null);
-        setSearchParams({});
-      }
-    } catch (err) {
-      toast.error('Could not remove conversation: ' + err.message);
-    }
+      if (activeThreadId === threadId) { setActiveThreadId(null); setSearchParams({}); }
+    } catch (err) { toast.error('Could not remove conversation: ' + err.message); }
   };
 
-  // ── open thread ───────────────────────────────────────────────────────────
   const openThread = useCallback((tid) => {
     setActiveThreadId(tid);
     setSearchParams({ thread: tid });
   }, [setSearchParams]);
 
-  // ── active thread metadata ────────────────────────────────────────────────
   const activeThread = threads.find(t => t.id === activeThreadId);
   const threadName = activeThread ? getThreadDisplayName(activeThread, uid) : '';
-  const threadSubtitle = activeThread?.isGroup
-    ? `${activeThread.participants?.length || 0} members`
-    : '';
-
+  const threadSubtitle = activeThread?.isGroup ? `${activeThread.participants?.length || 0} members` : '';
   const filteredThreads = threads.filter(t =>
     getThreadDisplayName(t, uid).toLowerCase().includes(threadSearch.toLowerCase())
   );
+  const meAsUser = { firstName: user?.firstName, lastName: user?.lastName, photoURL: user?.photoURL };
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
 
       {/* ── Thread list ── */}
-      <div className="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-800">Messages</h2>
+      <div className="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50/40">
+        <div className="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center">
+              <MessageSquare size={11} className="text-primary" />
+            </div>
+            <h2 className="text-sm font-semibold text-gray-800">Messages</h2>
+          </div>
           <button
             onClick={() => setShowNew(true)}
-            className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
             title="New conversation"
           >
             <Plus size={14} />
           </button>
         </div>
 
-        <div className="px-3 py-2 border-b border-gray-50">
+        <div className="px-3 py-2.5 border-b border-gray-100 bg-white">
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-2 text-gray-400" />
             <input
-              className="w-full text-xs pl-7 pr-2 py-1.5 rounded border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-300 bg-gray-50"
+              className="w-full text-xs pl-7 pr-2 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 bg-gray-50 transition-colors"
               placeholder="Search conversations…"
               value={threadSearch}
               onChange={e => setThreadSearch(e.target.value)}
@@ -387,49 +365,37 @@ export default function MessagesPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400">
               <MessageSquare size={28} className="opacity-30" />
               <p className="text-xs">No conversations yet</p>
-              <button onClick={() => setShowNew(true)} className="text-xs text-gray-500 hover:text-gray-800 underline mt-1">
-                Start one
-              </button>
+              <button onClick={() => setShowNew(true)} className="text-xs text-primary hover:underline mt-1">Start one</button>
             </div>
           ) : filteredThreads.map(t => {
             const name = getThreadDisplayName(t, uid);
-            const initials = getInitials(name);
             const unread = t.unread?.[uid] || 0;
             const isActive = t.id === activeThreadId;
-
             return (
               <div
                 key={t.id}
-                className={`group relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isActive ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                className={`group relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-all border-b border-gray-100/80
+                  ${isActive ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-white border-l-2 border-l-transparent'}`}
                 onClick={() => openThread(t.id)}
               >
-                {/* Avatar */}
                 <div className="relative w-8 h-8 flex-shrink-0 mt-0.5">
-                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-[11px] font-semibold">
-                    {t.isGroup ? <Users size={13} /> : initials}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold ${isActive ? 'bg-primary' : 'bg-slate-600'}`}>
+                    {t.isGroup ? <Users size={13} /> : getInitials(name)}
                   </div>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white" />
                 </div>
-
                 <div className="flex-1 min-w-0 pr-6">
                   <div className="flex items-center justify-between gap-1">
-                    <p className={`text-xs truncate ${unread > 0 ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
-                      {name}
-                    </p>
+                    <p className={`text-xs truncate ${unread > 0 ? 'font-semibold text-gray-900' : isActive ? 'font-medium text-primary' : 'font-medium text-gray-700'}`}>{name}</p>
                     <span className="text-[10px] text-gray-400 flex-shrink-0">{formatTime(t.lastMessageAt)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-1 mt-0.5">
-                    <p className={`text-[11px] truncate ${unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                      {t.lastMessage || 'No messages yet'}
-                    </p>
+                    <p className={`text-[11px] truncate ${unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>{t.lastMessage || 'No messages yet'}</p>
                     {unread > 0 && (
-                      <span className="bg-gray-900 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 font-medium">
-                        {unread > 9 ? '9+' : unread}
-                      </span>
+                      <span className="bg-primary text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 font-medium">{unread > 9 ? '9+' : unread}</span>
                     )}
                   </div>
                 </div>
-
-                {/* Delete (leave) button — shown on hover */}
                 <button
                   onClick={(e) => handleDeleteThread(t.id, e)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50"
@@ -445,146 +411,142 @@ export default function MessagesPage() {
 
       {/* ── Message thread ── */}
       {activeThreadId ? (
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Thread header */}
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 flex-shrink-0">
-            <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
-              {activeThread?.isGroup ? <Users size={12} /> : getInitials(threadName)}
+        <div className="flex-1 flex flex-col min-w-0 bg-white">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-white to-slate-50/60">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold bg-primary flex-shrink-0">
+              {activeThread?.isGroup ? <Users size={13} /> : getInitials(threadName)}
             </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">{threadName}</p>
-              {threadSubtitle && <p className="text-[10px] text-gray-400">{threadSubtitle}</p>}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{threadName}</p>
+              {threadSubtitle
+                ? <p className="text-[10px] text-gray-400">{threadSubtitle}</p>
+                : <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />Online</p>
+              }
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          {/* Messages — 21st.dev ChatMessageList with auto-scroll */}
+          <ChatMessageList className="flex-1 bg-slate-50/20" smooth>
             {messages.length === 0 && (
               <p className="text-center text-xs text-gray-400 py-12">No messages yet — say hello!</p>
             )}
             {messages.map((msg) => {
               const isMine = msg.senderId === uid;
-              // Build a minimal user-like object from the message for UserAvatar
               const senderForAvatar = {
-                firstName:  msg.senderName?.split(' ')[0] || '',
-                lastName:   msg.senderName?.split(' ').slice(1).join(' ') || '',
-                photoURL:   msg.senderPhotoURL || null,
+                firstName: msg.senderName?.split(' ')[0] || '',
+                lastName: msg.senderName?.split(' ').slice(1).join(' ') || '',
+                photoURL: msg.senderPhotoURL || null,
               };
               return (
-                <div key={msg.id} className={`group flex ${isMine ? 'flex-col items-end' : 'flex-row items-end gap-2'}`}>
-                  {/* Avatar for incoming messages */}
-                  {!isMine && (
-                    <UserAvatar user={senderForAvatar} sizePx={26} className="mb-4 flex-shrink-0" />
-                  )}
-                  <div className={`max-w-[68%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                <ChatBubble key={msg.id} variant={isMine ? 'sent' : 'received'}>
+                  {!isMine && <ChatBubbleAvatar user={senderForAvatar} />}
+                  {isMine && <ChatBubbleAvatar user={meAsUser} />}
+
+                  <div className={`flex flex-col max-w-[68%] ${isMine ? 'items-end' : 'items-start'}`}>
                     {!isMine && (
                       <div className="flex items-baseline gap-1.5 mb-1 px-1">
-                        <span className="text-[10px] font-medium text-gray-600">{msg.senderName}</span>
-                        {msg.senderPosition && (
-                          <span className="text-[10px] text-gray-400">{msg.senderPosition}</span>
-                        )}
+                        <span className="text-[10px] font-semibold text-gray-600">{msg.senderName}</span>
+                        {msg.senderPosition && <span className="text-[10px] text-gray-400">{msg.senderPosition}</span>}
                       </div>
                     )}
-                    <div className={`flex items-end gap-1.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+
+                    <div className={`group/msg flex items-end gap-1.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                       {msg.deleted ? (
-                        <div className="px-3 py-2 rounded-2xl text-xs italic text-gray-400 bg-gray-100 border border-dashed border-gray-200">
+                        <ChatBubbleMessage variant={isMine ? 'sent' : 'received'} className="italic opacity-50 !bg-transparent border border-dashed border-gray-300 !text-gray-400">
                           Message deleted
-                        </div>
+                        </ChatBubbleMessage>
                       ) : (
                         <>
-                          {msg.text && (
-                            <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap break-words ${
-                              isMine ? 'bg-gray-900 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-                            }`}>
-                              {msg.text}
-                            </div>
+                          <div className={`flex flex-col gap-1 ${isMine ? 'items-end' : 'items-start'}`}>
+                            {msg.text && (
+                              <ChatBubbleMessage variant={isMine ? 'sent' : 'received'}>
+                                {msg.text}
+                              </ChatBubbleMessage>
+                            )}
+                            {msg.attachment && <AttachmentCard attachment={msg.attachment} />}
+                          </div>
+                          {isMine && (
+                            <button
+                              onClick={() => handleDeleteMsg(msg.id)}
+                              className="opacity-0 group-hover/msg:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500 flex-shrink-0 mb-1"
+                              title="Delete message"
+                            >
+                              <Trash2 size={11} />
+                            </button>
                           )}
-                          {msg.attachment && <AttachmentCard attachment={msg.attachment} />}
                         </>
                       )}
-                      {isMine && !msg.deleted && (
-                        <button
-                          onClick={() => handleDeleteMsg(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500"
-                          title="Delete message"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      )}
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-1 px-1">{formatTime(msg.createdAt)}</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5 px-1">{formatTime(msg.createdAt)}</span>
                   </div>
-                </div>
+                </ChatBubble>
               );
             })}
-            <div ref={messagesEndRef} />
-          </div>
+          </ChatMessageList>
 
           {/* Pending file preview */}
           {pendingFile && (
             <div className="flex-shrink-0 px-4 pt-2">
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 w-fit max-w-xs">
-                <Paperclip size={12} className="text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg text-xs text-gray-700 w-fit max-w-xs">
+                <Paperclip size={12} className="text-primary flex-shrink-0" />
                 <span className="truncate">{pendingFile.name}</span>
-                <button
-                  onClick={() => setPendingFile(null)}
-                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-                >
-                  <XCircle size={13} />
-                </button>
+                <button onClick={() => setPendingFile(null)} className="text-gray-400 hover:text-gray-600 flex-shrink-0"><XCircle size={13} /></button>
               </div>
               {uploadProgress !== null && (
-                <div className="mt-1 h-1 bg-gray-200 rounded-full w-48">
-                  <div className="h-1 bg-gray-900 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                <div className="mt-1.5 h-1 bg-gray-200 rounded-full w-48">
+                  <div className="h-1 bg-primary rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
               )}
             </div>
           )}
 
-          {/* Input */}
+          {/* 21st.dev–styled ChatInput */}
           <div className="flex-shrink-0 border-t border-gray-100 px-4 py-3">
-            <div className="flex items-end gap-2">
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={e => { if (e.target.files[0]) setPendingFile(e.target.files[0]); e.target.value = ''; }}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors flex-shrink-0"
-                title="Attach file"
-              >
-                <Paperclip size={15} />
-              </button>
-              <textarea
+            <div className="relative rounded-xl border border-gray-200 bg-background focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all p-1">
+              <input ref={fileInputRef} type="file" className="hidden" onChange={e => { if (e.target.files[0]) setPendingFile(e.target.files[0]); e.target.value = ''; }} />
+              <ChatInput
                 ref={textareaRef}
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[40px] max-h-[120px]"
+                className="min-h-[44px] max-h-[120px] resize-none rounded-lg border-0 p-3 shadow-none focus-visible:ring-0 text-sm leading-relaxed"
                 placeholder="Type a message… (Enter to send)"
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
               />
-              <button
-                onClick={handleSend}
-                disabled={(!text.trim() && !pendingFile) || sending}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-900 text-white hover:bg-gray-700 transition-colors disabled:opacity-40 flex-shrink-0"
-                title="Send (Enter)"
-              >
-                <Send size={14} />
-              </button>
+              <div className="flex items-center justify-between px-2 pb-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                  title="Attach file"
+                >
+                  <Paperclip size={15} />
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={(!text.trim() && !pendingFile) || sending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-40"
+                >
+                  {sending ? 'Sending…' : 'Send'}
+                  <CornerDownLeft size={12} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
-          <MessageSquare size={40} className="opacity-20" />
-          <p className="text-sm">Select a conversation or start a new one</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4 bg-slate-50/30">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <MessageSquare size={28} className="text-primary opacity-60" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-600">No conversation selected</p>
+            <p className="text-xs text-gray-400 mt-1">Choose a conversation or start a new one</p>
+          </div>
           <button
             onClick={() => setShowNew(true)}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+            className="flex items-center gap-1.5 text-xs px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             <Plus size={12} /> New Message
           </button>
@@ -592,11 +554,7 @@ export default function MessagesPage() {
       )}
 
       {showNew && (
-        <NewConversationModal
-          currentUser={user}
-          onClose={() => setShowNew(false)}
-          onOpen={openThread}
-        />
+        <NewConversationModal currentUser={user} onClose={() => setShowNew(false)} onOpen={openThread} />
       )}
     </div>
   );
