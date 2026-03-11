@@ -40,6 +40,7 @@ export function VideoCallProvider({ children }) {
   const callUnsubRef = useRef(null);
   const candidateUnsubsRef = useRef([]);
   const isScreenSharingRef = useRef(false);
+  const videoSenderRef = useRef(null); // persists across screen-share toggle
   const callStatusRef = useRef('idle');
   const activeCallIdRef = useRef(null);
   const ringTimeoutRef = useRef(null);
@@ -83,6 +84,7 @@ export function VideoCallProvider({ children }) {
     candidateUnsubsRef.current = [];
     pendingCandidatesRef.current = [];
     isScreenSharingRef.current = false;
+    videoSenderRef.current = null;
     activeCallIdRef.current = null;
 
     setLocalStream(null);
@@ -304,57 +306,86 @@ export function VideoCallProvider({ children }) {
     if (!pcRef.current) return;
 
     if (isScreenSharingRef.current) {
-      // Restore camera track
+      // ── Stop: restore the original camera track ──────────────────────────
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach(t => t.stop());
         screenStreamRef.current = null;
       }
       const camTrack = localStreamRef.current?.getVideoTracks()[0];
-      if (camTrack) {
-        const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) await sender.replaceTrack(camTrack);
+      if (videoSenderRef.current && camTrack) {
+        try { await videoSenderRef.current.replaceTrack(camTrack); } catch (_) {}
       }
+      videoSenderRef.current = null;
+      // Restore camera preview in local PiP
+      setLocalStream(localStreamRef.current ?? null);
       isScreenSharingRef.current = false;
       setIsScreenSharing(false);
+
     } else {
+      // ── Start ─────────────────────────────────────────────────────────────
       if (!navigator.mediaDevices?.getDisplayMedia) {
         toast.error('Screen sharing is not supported in this browser');
         return;
       }
+
+      // Find video sender before opening the picker (fail fast)
       const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
       if (!sender) {
-        toast.error('No video track to replace for screen sharing');
+        toast.error('No video track available — start a video call to use screen sharing');
         return;
       }
+
+      let screenStream;
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true, audio: false,
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false, // avoid echo
         });
-        screenStreamRef.current = screenStream;
-        const screenTrack = screenStream.getVideoTracks()[0];
-
-        await sender.replaceTrack(screenTrack);
-
-        // Auto-stop when user clicks browser's "Stop sharing"
-        screenTrack.onended = () => {
-          if (isScreenSharingRef.current) toggleScreenShare();
-        };
-
-        isScreenSharingRef.current = true;
-        setIsScreenSharing(true);
       } catch (err) {
-        console.error('Screen share:', err);
-        if (err.name === 'NotAllowedError') {
-          toast('Screen sharing cancelled');
-        } else {
-          toast.error(`Screen sharing failed: ${err.message}`);
+        if (err.name === 'NotAllowedError' || err.name === 'AbortError') {
+          // User cancelled the picker — silent dismiss
+          return;
         }
-        // Clean up any partial stream
-        if (screenStreamRef.current) {
-          screenStreamRef.current.getTracks().forEach(t => t.stop());
-          screenStreamRef.current = null;
-        }
+        console.error('getDisplayMedia failed:', err);
+        toast.error(`Screen sharing failed: ${err.message}`);
+        return;
       }
+
+      // Guard: call may have ended while the user was picking
+      if (!pcRef.current) {
+        screenStream.getTracks().forEach(t => t.stop());
+        return;
+      }
+
+      const screenTrack = screenStream.getVideoTracks()[0];
+      if (!screenTrack) {
+        screenStream.getTracks().forEach(t => t.stop());
+        toast.error('Screen capture returned no video');
+        return;
+      }
+
+      try {
+        await sender.replaceTrack(screenTrack);
+      } catch (err) {
+        console.error('replaceTrack failed:', err);
+        screenStream.getTracks().forEach(t => t.stop());
+        toast.error(`Screen sharing failed: ${err.message}`);
+        return;
+      }
+
+      videoSenderRef.current = sender;
+      screenStreamRef.current = screenStream;
+
+      // Show the captured screen in the local PiP so the user sees what's shared
+      setLocalStream(screenStream);
+
+      // Auto-stop when the browser's native "Stop sharing" button is clicked
+      screenTrack.onended = () => {
+        if (isScreenSharingRef.current) toggleScreenShare();
+      };
+
+      isScreenSharingRef.current = true;
+      setIsScreenSharing(true);
     }
   }, []);
 

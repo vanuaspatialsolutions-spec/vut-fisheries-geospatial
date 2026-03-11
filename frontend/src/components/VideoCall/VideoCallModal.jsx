@@ -94,19 +94,27 @@ export default function VideoCallModal() {
         {/* Local video PiP */}
         {isVideo && (
           <div className="absolute bottom-4 right-4 w-40 h-28 rounded-xl overflow-hidden border-2 border-gray-600 bg-gray-900 shadow-xl">
-            {isCameraOff ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-800">
+            {/* Camera-off placeholder — hidden while screen sharing */}
+            {isCameraOff && !isScreenSharing && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800">
                 <VideoOff size={22} className="text-gray-500" />
               </div>
-            ) : (
-              <video
-                ref={localVideoRef}
-                autoPlay playsInline muted
-                className="w-full h-full object-cover"
-                style={{ transform: 'scaleX(-1)' }}
-              />
             )}
-            <span className="absolute bottom-1.5 left-2 text-[10px] text-white/70 font-medium">You</span>
+            {/*
+              Always keep this element mounted so srcObject assignment in the
+              useEffect works reliably across screen-share toggles.
+              - Camera mode: object-cover + mirror (scaleX(-1))
+              - Screen mode: object-contain + no mirror (text would appear reversed)
+            */}
+            <video
+              ref={localVideoRef}
+              autoPlay playsInline muted
+              className={`w-full h-full ${isScreenSharing ? 'object-contain bg-gray-950' : 'object-cover'}`}
+              style={isScreenSharing ? undefined : { transform: 'scaleX(-1)' }}
+            />
+            <span className="absolute bottom-1.5 left-2 text-[10px] text-white/70 font-medium z-10">
+              {isScreenSharing ? 'Screen' : 'You'}
+            </span>
           </div>
         )}
       </div>
