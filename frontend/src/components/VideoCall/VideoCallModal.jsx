@@ -27,6 +27,33 @@ export default function VideoCallModal() {
   const isVideo = activeCallData?.isVideo;
   const calleeName = activeCallData?.calleeName || 'Unknown';
   const isCalling = callStatus === 'calling';
+  const isConnecting = callStatus === 'connecting';
+
+  // ── Connecting overlay (shown while getUserMedia resolves after Answer) ──
+  if (isConnecting) {
+    return (
+      <div
+        className="fixed inset-0 flex flex-col items-center justify-center gap-5 bg-gray-950"
+        style={{ zIndex: 2000000000 }}
+      >
+        <div className="w-16 h-16 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin" />
+        <div className="text-center space-y-1">
+          <p className="text-white text-lg font-semibold">{calleeName}</p>
+          <p className="text-gray-400 text-sm">Connecting…</p>
+          {isVideo && (
+            <p className="text-gray-600 text-xs mt-1">Allow camera &amp; microphone if prompted</p>
+          )}
+        </div>
+        <button
+          onClick={hangUp}
+          className="mt-6 w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors shadow-lg"
+          title="Cancel"
+        >
+          <PhoneOff size={22} className="text-white" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

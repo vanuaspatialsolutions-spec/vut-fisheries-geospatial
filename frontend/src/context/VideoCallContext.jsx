@@ -19,7 +19,7 @@ export function VideoCallProvider({ children }) {
   const { user } = useAuth();
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [callStatus, setCallStatus] = useState('idle'); // idle|calling|ringing|active
+  const [callStatus, setCallStatus] = useState('idle'); // idle|calling|connecting|active
   const [activeCallData, setActiveCallData] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [localStream, setLocalStream] = useState(null);
@@ -222,8 +222,12 @@ export function VideoCallProvider({ children }) {
     if (calleeId !== uid) return;
     const isVideo = type === 'video';
 
-    // Hide the banner immediately so the user doesn't double-tap
+    // Hide the banner and show the call modal immediately so the user
+    // has visual feedback while getUserMedia permission prompt appears.
     setIncomingCall(null);
+    activeCallIdRef.current = callId;
+    setActiveCallData({ callId, calleeId: callerId, calleeName: callerName, isVideo, isCaller: false });
+    setCallStatus('connecting'); // shows VideoCallModal with a "Connecting…" overlay
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -233,10 +237,8 @@ export function VideoCallProvider({ children }) {
       localStreamRef.current = stream;
       setLocalStream(stream);
 
-      // Only show the modal after media is confirmed — prevents flash-then-close
       activeCallIdRef.current = callId;
       setCallStatus('active');
-      setActiveCallData({ callId, calleeId: callerId, calleeName: callerName, isVideo, isCaller: false });
 
       const pc = setupPC(callId, false);
       let answered = false;
@@ -469,7 +471,7 @@ export function VideoCallProvider({ children }) {
         />,
         document.body,
       )}
-      {(callStatus === 'calling' || callStatus === 'active') && createPortal(
+      {(callStatus === 'calling' || callStatus === 'connecting' || callStatus === 'active') && createPortal(
         <VideoCallModal />,
         document.body,
       )}
