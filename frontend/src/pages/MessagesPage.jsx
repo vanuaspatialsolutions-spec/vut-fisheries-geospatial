@@ -328,7 +328,7 @@ export default function MessagesPage() {
   const meAsUser = { firstName: user?.firstName, lastName: user?.lastName, photoURL: user?.photoURL };
 
   return (
-    <div className="flex h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
+    <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" style={{ height: 'calc(100vh - 7.5rem)' }}>
 
       {/* ── Thread list ── */}
       <div className="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col bg-gray-50/40">
@@ -411,7 +411,7 @@ export default function MessagesPage() {
 
       {/* ── Message thread ── */}
       {activeThreadId ? (
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-white">
           {/* Header */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-white to-slate-50/60">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold bg-primary flex-shrink-0">
@@ -427,7 +427,7 @@ export default function MessagesPage() {
           </div>
 
           {/* Messages — 21st.dev ChatMessageList with auto-scroll */}
-          <ChatMessageList className="flex-1 bg-slate-50/20" smooth>
+          <ChatMessageList className="flex-1 min-h-0 bg-slate-50/20" smooth>
             {messages.length === 0 && (
               <p className="text-center text-xs text-gray-400 py-12">No messages yet — say hello!</p>
             )}
