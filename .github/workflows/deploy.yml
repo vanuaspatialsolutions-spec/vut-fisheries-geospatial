@@ -6,13 +6,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# Only allow one deployment at a time; cancel in-progress if a new push arrives
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    env:
-      FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,19 +37,29 @@ jobs:
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: frontend/dist
-          publish_branch: gh-pages
+          path: frontend/dist
 
-      # Deploy Firebase Storage + Firestore rules on every push to main.
-      # Requires a FIREBASE_SERVICE_ACCOUNT secret (JSON key for a service
-      # account that has roles/firebase.admin or roles/storage.admin +
-      # roles/datastore.owner on the project).
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  firebase-rules:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - uses: actions/checkout@v4
       - name: Deploy Firebase rules
-        if: env.FIREBASE_SA_KEY != ''
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only firestore:rules,storage
