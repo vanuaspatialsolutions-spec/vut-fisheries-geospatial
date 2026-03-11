@@ -460,7 +460,7 @@ export default function DashboardPage() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ChartCard title="Marine Areas by Type" icon={Anchor} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
+        <ChartCard title="Marine Areas by Type" icon={Waves} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ChartCard title="Marine Areas by Province" icon={Anchor} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
+        <ChartCard title="Marine Areas by Province" icon={Waves} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineCountByProvince} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
