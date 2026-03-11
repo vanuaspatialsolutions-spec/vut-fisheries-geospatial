@@ -3,7 +3,8 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
-import { User, Shield } from 'lucide-react';
+import { useSessionTimeout } from '../../hooks/useSessionTimeout';
+import { User, Shield, Clock, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 function CompleteProfilePrompt() {
@@ -105,10 +106,76 @@ import ErrorBoundary from '../ErrorBoundary';
 import { GradientDots } from '../ui/gradient-dots';
 import { AuroraBackground } from '../ui/aurora-background';
 
+function fmtCountdown(secs) {
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function SessionTimeoutModal({ countdown, onKeepAlive, onLogout }) {
+  const urgent = countdown <= 30;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        {/* top accent */}
+        <div className="h-1" style={{ background: 'linear-gradient(90deg, #000F24 0%, #002855 30%, #003B7A 55%, #0062E6 80%, #4AA8FF 100%)' }} />
+
+        <div className="p-7 space-y-5 text-center">
+          {/* icon + countdown ring */}
+          <div className="flex flex-col items-center gap-3">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${urgent ? 'bg-red-50' : 'bg-amber-50'}`}
+              style={urgent ? { boxShadow: '0 0 0 4px #fee2e2' } : { boxShadow: '0 0 0 4px #fef3c7' }}>
+              <Clock size={26} className={urgent ? 'text-red-500' : 'text-amber-500'} />
+            </div>
+
+            <div className={`text-3xl font-mono font-bold tabular-nums tracking-tight ${urgent ? 'text-red-600' : 'text-amber-600'}`}>
+              {fmtCountdown(countdown)}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Session expiring soon</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              You've been inactive. You will be logged out automatically in{' '}
+              <span className={`font-semibold ${urgent ? 'text-red-600' : 'text-amber-600'}`}>
+                {fmtCountdown(countdown)}
+              </span>{' '}
+              to keep your data secure.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-1">
+            <button
+              onClick={onKeepAlive}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #001A38, #003B7A)' }}
+            >
+              Stay logged in
+            </button>
+            <button
+              onClick={onLogout}
+              className="w-full py-2 rounded-xl text-xs font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <LogOut size={12} /> Log out now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Layout() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const needsProfile = user && !user.role && !user.firstName;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleSessionExpire = () => {
+    toast.info('You were logged out due to inactivity.');
+    logout();
+  };
+
+  const { showWarning, countdown, keepAlive } = useSessionTimeout(handleSessionExpire);
 
   return (
     <div className="flex h-screen overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #D8EEFF 0%, #E8F4FF 40%, #EEF6FF 70%, #E0EEFA 100%)' }}>
@@ -125,6 +192,13 @@ export default function Layout() {
       />
 
       {needsProfile && <CompleteProfilePrompt />}
+      {showWarning && (
+        <SessionTimeoutModal
+          countdown={countdown}
+          onKeepAlive={keepAlive}
+          onLogout={logout}
+        />
+      )}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-col flex-1 overflow-hidden min-w-0 relative z-10">
         <Header onMenuClick={() => setSidebarOpen(v => !v)} />
