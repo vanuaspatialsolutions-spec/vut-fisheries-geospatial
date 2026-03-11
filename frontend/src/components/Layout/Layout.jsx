@@ -102,6 +102,7 @@ function CompleteProfilePrompt() {
   );
 }
 import ErrorBoundary from '../ErrorBoundary';
+import { GradientDots } from '../ui/gradient-dots';
 
 export default function Layout() {
   const { user } = useAuth();
@@ -109,10 +110,20 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#EEF6FF' }}>
+    <div className="flex h-screen overflow-hidden relative" style={{ background: '#EEF6FF' }}>
+      {/* Animated gradient-dots backdrop — very subtle opacity so it doesn't compete with content */}
+      <GradientDots
+        dotSize={7}
+        spacing={14}
+        duration={40}
+        colorCycleDuration={10}
+        backgroundColor="transparent"
+        style={{ opacity: 0.18, zIndex: 0 }}
+      />
+
       {needsProfile && <CompleteProfilePrompt />}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0 relative z-10">
         <Header onMenuClick={() => setSidebarOpen(v => !v)} />
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           <ErrorBoundary>
