@@ -18,9 +18,9 @@ export const ICE_CONFIG = {
   ],
 };
 
-// One active call per thread (deterministic doc ID).
+// Unique call ID per attempt — avoids setDoc collisions on stale ended-call docs.
 export function getCallId(threadId) {
-  return `call_${threadId}`;
+  return `call_${threadId}_${Date.now()}`;
 }
 
 // ── Call signaling ────────────────────────────────────────────────────────────
