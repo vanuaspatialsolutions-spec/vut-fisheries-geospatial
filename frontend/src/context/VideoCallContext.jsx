@@ -11,6 +11,7 @@ import {
 } from '../utils/webrtc';
 import VideoCallModal from '../components/VideoCall/VideoCallModal';
 import IncomingCallBanner from '../components/VideoCall/IncomingCallBanner';
+import MediaPermissionModal from '../components/VideoCall/MediaPermissionModal';
 
 const VideoCallContext = createContext(null);
 
@@ -27,6 +28,7 @@ export function VideoCallProvider({ children }) {
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [permDenied, setPermDenied] = useState(null); // null | { retryFn, callerName? }
 
   // ── Refs (mutable, not causing re-renders) ────────────────────────────────
   const pcRef = useRef(null);
@@ -195,12 +197,18 @@ export function VideoCallProvider({ children }) {
       }, 30_000);
     } catch (err) {
       console.error('startCall error:', err);
-      const msg = err.name === 'NotAllowedError' ? 'Camera/microphone access was denied'
-        : err.name === 'NotFoundError' ? 'No camera or microphone found on this device'
-        : `Call failed: ${err.message}`;
-      toast.error(msg);
-      await terminateCall(callId).catch(() => {});
-      cleanup();
+      if (err.name === 'NotAllowedError') {
+        // getUserMedia failed before initiateCall — no Firestore doc to clean up
+        cleanup();
+        setPermDenied({ retryFn: () => startCall(threadId, calleeId, calleeName, isVideo) });
+      } else {
+        const msg = err.name === 'NotFoundError'
+          ? 'No camera or microphone found on this device'
+          : `Call failed: ${err.message}`;
+        toast.error(msg);
+        await terminateCall(callId).catch(() => {});
+        cleanup();
+      }
     }
   }, [uid, user, setupPC, cleanup]);
 
@@ -250,12 +258,18 @@ export function VideoCallProvider({ children }) {
       });
     } catch (err) {
       console.error('answerCall error:', err);
-      const msg = err.name === 'NotAllowedError' ? 'Camera/microphone access was denied'
-        : err.name === 'NotFoundError' ? 'No camera or microphone found on this device'
-        : `Could not answer call: ${err.message}`;
-      toast.error(msg);
-      await terminateCall(callId).catch(() => {});
-      cleanup();
+      if (err.name === 'NotAllowedError') {
+        await terminateCall(callId).catch(() => {});
+        cleanup();
+        setPermDenied({ retryFn: null, callerName });
+      } else {
+        const msg = err.name === 'NotFoundError'
+          ? 'No camera or microphone found on this device'
+          : `Could not answer call: ${err.message}`;
+        toast.error(msg);
+        await terminateCall(callId).catch(() => {});
+        cleanup();
+      }
     }
   }, [uid, setupPC, cleanup]);
 
@@ -379,6 +393,8 @@ export function VideoCallProvider({ children }) {
     }
   }, []);
 
+  const dismissPermDenied = useCallback(() => setPermDenied(null), []);
+
   const value = {
     callStatus, activeCallData, localStream, remoteStream,
     isMuted, isCameraOff, isScreenSharing, isRecording,
@@ -392,6 +408,16 @@ export function VideoCallProvider({ children }) {
       {children}
       {incomingCall && createPortal(
         <IncomingCallBanner call={incomingCall} onAnswer={answerCall} onReject={rejectCall} />,
+        document.body,
+      )}
+      {permDenied && createPortal(
+        <MediaPermissionModal
+          onDismiss={dismissPermDenied}
+          onRetry={permDenied.retryFn
+            ? () => { setPermDenied(null); permDenied.retryFn(); }
+            : null}
+          callerName={permDenied.callerName}
+        />,
         document.body,
       )}
       {(callStatus === 'calling' || callStatus === 'active') && createPortal(
