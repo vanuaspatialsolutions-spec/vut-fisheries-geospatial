@@ -18,7 +18,6 @@ import MessagesPage from './pages/MessagesPage';
 import ProfilePage from './pages/ProfilePage';
 import SchedulePage from './pages/SchedulePage';
 import TripsPage from './pages/TripsPage';
-import NewTripPage from './pages/NewTripPage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -50,8 +49,8 @@ function AppRoutes() {
         <Route path="/monitoring/:id/edit" element={<NewMonitoringPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/trips" element={<TripsPage />} />
-        <Route path="/trips/new" element={<NewTripPage />} />
-        <Route path="/trips/:id/edit" element={<NewTripPage />} />
+        <Route path="/trips/new" element={<Navigate to="/trips" replace />} />
+        <Route path="/trips/:id/edit" element={<Navigate to="/trips" replace />} />
         <Route path="/files" element={<FilesPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
