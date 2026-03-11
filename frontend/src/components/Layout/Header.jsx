@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToNotifications, markNotificationRead, markAllNotificationsRead } from '../../utils/messaging';
@@ -180,17 +181,17 @@ export default function Header({ onMenuClick }) {
             )}
           </button>
 
-          {/* Notification dropdown — fixed so it escapes all stacking contexts */}
-          {showNotifs && (
+          {/* Notification dropdown — portalled to body to escape all stacking contexts */}
+          {showNotifs && createPortal(
             <div
               ref={panelRef}
-              className="fixed z-[200] w-80 rounded-xl overflow-hidden"
+              className="fixed w-80 rounded-xl overflow-hidden"
               style={{
                 top: panelPos.top,
                 right: panelPos.right,
-                background: 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                zIndex: 1000000000,
+                willChange: 'transform',
+                background: 'rgba(255,255,255,0.98)',
                 border: '1px solid rgba(255,255,255,0.65)',
                 boxShadow: '0 16px 48px rgba(0,27,70,0.20), 0 4px 12px rgba(0,27,70,0.10)',
               }}
@@ -232,7 +233,8 @@ export default function Header({ onMenuClick }) {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 
