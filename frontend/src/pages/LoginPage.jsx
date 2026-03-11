@@ -6,6 +6,7 @@ import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
+import SingularityWaveShader from '../components/ui/shader-animation';
 
 /* ── Decorative marine SVG icons ── */
 function MarineDecorations() {
@@ -160,45 +161,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center py-12 px-4 overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #000F24 0%, #001A38 25%, #002855 55%, #003B7A 80%, #0051A8 100%)' }}>
+    <div className="min-h-screen relative flex flex-col items-center justify-center py-12 px-4 overflow-hidden">
 
-      {/* Background layers */}
-      <div className="absolute inset-0 pacific-tapa" />
-      <div className="absolute inset-0 ocean-ripple" />
+      {/* WebGL shader — z-0, fixed full-screen */}
+      <SingularityWaveShader />
 
-      {/* Floating orbs */}
-      <div className="orb-float absolute top-[5%] right-[10%] w-[28rem] h-[28rem] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(0,98,230,0.18) 0%, rgba(0,59,122,0.06) 60%, transparent 80%)' }} />
-      <div className="orb-float-slow absolute bottom-[10%] left-[5%] w-[32rem] h-[32rem] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(74,168,255,0.10) 0%, rgba(0,98,230,0.04) 55%, transparent 78%)' }} />
-
-      {/* Vertical shimmer */}
-      <div className="absolute top-0 left-[38%] w-px h-full pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(74,168,255,0.10) 35%, rgba(0,98,230,0.14) 70%, transparent 100%)' }} />
-
-      <MarineDecorations />
-
-      {/* Ocean waves — bottom */}
-      <div className="absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none" style={{ height:110 }}>
-        <div className="wave-animate" style={{ display:'flex', width:'200%' }}>
-          {[0,1].map(i => (
-            <svg key={i} viewBox="0 0 1440 110" preserveAspectRatio="none"
-              style={{ width:'50%', height:110, flexShrink:0 }}>
-              <path d="M0,50 C240,90 480,10 720,50 C960,90 1200,15 1440,50 L1440,110 L0,110 Z"
-                fill="rgba(0,98,230,0.12)" />
-            </svg>
-          ))}
-        </div>
-        <div className="wave-animate-slow" style={{ display:'flex', width:'200%', marginTop:-65 }}>
-          {[0,1].map(i => (
-            <svg key={i} viewBox="0 0 1440 110" preserveAspectRatio="none"
-              style={{ width:'50%', height:110, flexShrink:0 }}>
-              <path d="M0,35 C300,80 600,5 900,40 C1100,70 1280,20 1440,35 L1440,110 L0,110 Z"
-                fill="rgba(0,15,36,0.55)" />
-            </svg>
-          ))}
-        </div>
+      {/* Marine SVG decorations — z-1, overlaid on shader */}
+      <div className="fixed inset-0 z-[1] pointer-events-none overflow-hidden">
+        <MarineDecorations />
       </div>
 
       {/* ── Page content ── */}
