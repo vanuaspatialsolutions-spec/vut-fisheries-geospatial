@@ -124,8 +124,8 @@ const SingularityWaveShader = () => {
     scene.add(new THREE.Mesh(geometry, material));
 
     const onResize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       renderer.setSize(w, h);
       uniforms.u_resolution.value.set(w, h);
     };
@@ -151,7 +151,7 @@ const SingularityWaveShader = () => {
   return (
     <div
       ref={containerRef}
-      style={{ position:'fixed', inset:0, zIndex:0, backgroundColor:'#000F24' }}
+      style={{ position:'fixed', top:0, right:0, bottom:0, left:0, zIndex:0, backgroundColor:'#000F24' }}
       aria-hidden="true"
     />
   );

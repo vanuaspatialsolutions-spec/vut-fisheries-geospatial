@@ -161,7 +161,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center py-12 px-4 overflow-hidden">
+    <div className="min-h-screen relative flex flex-col items-center justify-center py-12 px-4 overflow-hidden"
+      style={{ background: '#000F24' }}>
 
       {/* WebGL shader — z-0, fixed full-screen */}
       <SingularityWaveShader />
