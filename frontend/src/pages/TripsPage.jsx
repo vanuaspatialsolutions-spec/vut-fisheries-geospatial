@@ -364,20 +364,22 @@ export default function TripsPage() {
 
   // ── Submit ──────────────────────────────────────────────────────────────────
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const doSave = async () => {
     if (!title.trim()) { toast.error('Enter a trip title'); return; }
     if (!dateOfTravel) { toast.error('Select a date of travel'); return; }
     if (!duration || parseInt(duration) < 1) { toast.error('Enter a valid duration'); return; }
 
+    // Append seconds so iOS Safari can parse the datetime-local value reliably
+    const parsedDate = new Date(dateOfTravel.length === 16 ? dateOfTravel + ':00' : dateOfTravel);
+
     const tripData = {
       title: title.trim(),
       destination: destination.trim(),
-      dateOfTravel: new Date(dateOfTravel),
+      dateOfTravel: parsedDate,
       duration: parseInt(duration),
       purpose: purpose.trim(),
       teamMembers: teamMembers.filter((m) => m.name.trim()),
-      budgetItems: budgetItems.filter((r) => r.activity.trim()),
+      budgetItems: budgetItems.filter((r) => r.activity?.trim()),
     };
 
     setSaving(true);
@@ -395,6 +397,11 @@ export default function TripsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    doSave();
   };
 
   // ── Delete ──────────────────────────────────────────────────────────────────
@@ -812,8 +819,8 @@ export default function TripsPage() {
                     </p>
                   </div>
                   <button
-                    type="submit"
-                    form="trip-form"
+                    type="button"
+                    onClick={doSave}
                     disabled={saving || loadingTrip}
                     className="btn-primary w-full justify-center"
                   >
