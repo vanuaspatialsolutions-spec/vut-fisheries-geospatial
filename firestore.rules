@@ -60,5 +60,32 @@ service cloud.firestore {
       allow update, delete: if request.auth != null &&
         (resource.data.userId == request.auth.uid || isAdmin());
     }
+
+    // ── Video calls (WebRTC signaling) ──────────────────────────────────────
+    match /calls/{callId} {
+      allow read, write: if request.auth != null &&
+        (resource == null ||
+         request.auth.uid == resource.data.callerId ||
+         request.auth.uid == resource.data.calleeId);
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.callerId;
+
+      match /callerCandidates/{candidateId} {
+        allow read, write: if request.auth != null;
+      }
+      match /calleeCandidates/{candidateId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // ── Meetings ────────────────────────────────────────────────────────────
+    match /meetings/{meetingId} {
+      allow read: if request.auth != null &&
+        request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.createdBy;
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.createdBy || isAdmin());
+    }
   }
 }

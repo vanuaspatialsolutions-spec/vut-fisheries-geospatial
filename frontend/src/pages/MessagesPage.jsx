@@ -11,11 +11,16 @@ import { toast } from 'sonner';
 import {
   Send, MessageSquare, Plus, X, Search, Users,
   Download, File, FileText, FileImage, Trash2, Paperclip, XCircle, CornerDownLeft,
+  Phone, Video, CalendarDays,
 } from 'lucide-react';
 import UserAvatar from '../components/UserAvatar';
 import { ChatBubble, ChatBubbleAvatar, ChatBubbleMessage } from '@/components/ui/chat-bubble';
 import { ChatMessageList } from '@/components/ui/chat-message-list';
 import { ChatInput } from '@/components/ui/chat-input';
+import { useVideoCall } from '../context/VideoCallContext';
+import MeetingSchedulerModal from '../components/VideoCall/MeetingSchedulerModal';
+import MeetingCard from '../components/VideoCall/MeetingCard';
+import { getCallId } from '../utils/webrtc';
 
 function formatTime(ts) {
   if (!ts) return '';
@@ -233,6 +238,7 @@ function NewConversationModal({ currentUser, onClose, onOpen }) {
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const { startCall, callStatus } = useVideoCall();
   const [searchParams, setSearchParams] = useSearchParams();
   const [threads, setThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState(searchParams.get('thread') || null);
@@ -240,6 +246,7 @@ export default function MessagesPage() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [showMeetingScheduler, setShowMeetingScheduler] = useState(false);
   const [threadSearch, setThreadSearch] = useState('');
   const [pendingFile, setPendingFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
@@ -322,6 +329,19 @@ export default function MessagesPage() {
   const activeThread = threads.find(t => t.id === activeThreadId);
   const threadName = activeThread ? getThreadDisplayName(activeThread, uid) : '';
   const threadSubtitle = activeThread?.isGroup ? `${activeThread.participants?.length || 0} members` : '';
+
+  // For 1-on-1 threads, get the other participant's UID + name for calling
+  const calleeEntry = activeThread && !activeThread.isGroup
+    ? Object.entries(activeThread.participantNames || {}).find(([k]) => k !== uid)
+    : null;
+  const calleeId = calleeEntry?.[0] || null;
+  const calleeName = calleeEntry?.[1] || threadName;
+
+  const handleStartCall = (isVideo) => {
+    if (!calleeId) { toast.error('Group calls are not supported yet'); return; }
+    if (callStatus !== 'idle') { toast.error('Already in a call'); return; }
+    startCall(activeThreadId, calleeId, calleeName, isVideo);
+  };
   const filteredThreads = threads.filter(t =>
     getThreadDisplayName(t, uid).toLowerCase().includes(threadSearch.toLowerCase())
   );
@@ -413,7 +433,7 @@ export default function MessagesPage() {
       {activeThreadId ? (
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-white">
           {/* Header */}
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-white to-slate-50/60">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-white to-slate-50/60">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold bg-primary flex-shrink-0">
               {activeThread?.isGroup ? <Users size={13} /> : getInitials(threadName)}
             </div>
@@ -423,6 +443,36 @@ export default function MessagesPage() {
                 ? <p className="text-[10px] text-gray-400">{threadSubtitle}</p>
                 : <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />Online</p>
               }
+            </div>
+            {/* Call + schedule meeting actions */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {!activeThread?.isGroup && (
+                <>
+                  <button
+                    onClick={() => handleStartCall(false)}
+                    disabled={callStatus !== 'idle'}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                    title="Audio call"
+                  >
+                    <Phone size={15} />
+                  </button>
+                  <button
+                    onClick={() => handleStartCall(true)}
+                    disabled={callStatus !== 'idle'}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                    title="Video call"
+                  >
+                    <Video size={15} />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowMeetingScheduler(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                title="Schedule meeting"
+              >
+                <CalendarDays size={15} />
+              </button>
             </div>
           </div>
 
@@ -456,6 +506,13 @@ export default function MessagesPage() {
                         <ChatBubbleMessage variant={isMine ? 'sent' : 'received'} className="italic opacity-50 !bg-transparent border border-dashed border-gray-300 !text-gray-400">
                           Message deleted
                         </ChatBubbleMessage>
+                      ) : msg.type === 'meeting' ? (
+                        <MeetingCard
+                          meetingData={msg.meetingData}
+                          onJoin={!activeThread?.isGroup && calleeId
+                            ? () => handleStartCall(true)
+                            : null}
+                        />
                       ) : (
                         <>
                           <div className={`flex flex-col gap-1 ${isMine ? 'items-end' : 'items-start'}`}>
@@ -555,6 +612,13 @@ export default function MessagesPage() {
 
       {showNew && (
         <NewConversationModal currentUser={user} onClose={() => setShowNew(false)} onOpen={openThread} />
+      )}
+      {showMeetingScheduler && activeThreadId && (
+        <MeetingSchedulerModal
+          threadId={activeThreadId}
+          currentUser={user}
+          onClose={() => setShowMeetingScheduler(false)}
+        />
       )}
     </div>
   );

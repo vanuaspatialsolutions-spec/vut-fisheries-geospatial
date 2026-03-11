@@ -244,3 +244,58 @@ export async function markAllNotificationsRead(uid, notifIds) {
   });
   await batch.commit();
 }
+
+// ── Meetings ──────────────────────────────────────────────────────────────────
+
+export async function scheduleMeeting(threadId, senderId, senderName, { title, scheduledAt, description }) {
+  const threadRef = doc(db, 'threads', threadId);
+  const threadSnap = await getDoc(threadRef);
+  if (!threadSnap.exists()) throw new Error('Thread not found');
+  const participants = threadSnap.data().participants;
+
+  // Create meeting document
+  const meetingRef = await addDoc(collection(db, 'meetings'), {
+    threadId,
+    title,
+    scheduledAt,
+    description: description || '',
+    createdBy: senderId,
+    createdByName: senderName,
+    participants,
+    status: 'scheduled',
+    createdAt: serverTimestamp(),
+  });
+
+  // Send a system message containing the meeting card data
+  await addDoc(collection(db, 'threads', threadId, 'messages'), {
+    senderId,
+    senderName,
+    type: 'meeting',
+    meetingId: meetingRef.id,
+    text: `📅 Meeting scheduled: ${title}`,
+    meetingData: {
+      title,
+      scheduledAt,
+      description: description || '',
+      meetingId: meetingRef.id,
+      createdByName: senderName,
+    },
+    createdAt: serverTimestamp(),
+    readBy: [senderId],
+  });
+
+  // Update thread preview
+  const others = participants.filter(u => u !== senderId);
+  const unreadUpdates = {};
+  others.forEach(uid => { unreadUpdates[`unread.${uid}`] = increment(1); });
+
+  await updateDoc(threadRef, {
+    lastMessage: `📅 ${title}`,
+    lastMessageAt: serverTimestamp(),
+    lastMessageBy: senderId,
+    deletedFor: [],
+    ...unreadUpdates,
+  });
+
+  return meetingRef.id;
+}
