@@ -38,6 +38,7 @@ export function VideoCallProvider({ children }) {
   const candidateUnsubsRef = useRef([]);
   const isScreenSharingRef = useRef(false);
   const callStatusRef = useRef('idle');
+  const activeCallIdRef = useRef(null);
 
   // Keep ref in sync with state so callbacks see current value.
   useEffect(() => { callStatusRef.current = callStatus; }, [callStatus]);
@@ -77,6 +78,7 @@ export function VideoCallProvider({ children }) {
     candidateUnsubsRef.current = [];
     pendingCandidatesRef.current = [];
     isScreenSharingRef.current = false;
+    activeCallIdRef.current = null;
 
     setLocalStream(null);
     setRemoteStream(null);
@@ -114,10 +116,11 @@ export function VideoCallProvider({ children }) {
       }
     };
 
-    // Handle disconnects
+    // Handle disconnects — only 'failed' is unrecoverable; 'disconnected' is transient during ICE
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        hangUp();
+      if (pc.connectionState === 'failed') {
+        terminateCall(activeCallIdRef.current).catch(() => {});
+        cleanup();
       }
     };
 
@@ -141,6 +144,7 @@ export function VideoCallProvider({ children }) {
     const callId = getCallId(threadId);
     const callerName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
 
+    activeCallIdRef.current = callId;
     setCallStatus('calling');
     setActiveCallData({ callId, threadId, calleeId, calleeName, isVideo, isCaller: true });
 
@@ -191,6 +195,7 @@ export function VideoCallProvider({ children }) {
     if (calleeId !== uid) return;
     const isVideo = type === 'video';
 
+    activeCallIdRef.current = callId;
     setIncomingCall(null);
     setCallStatus('active');
     setActiveCallData({ callId, calleeId: callerId, calleeName: callerName, isVideo, isCaller: false });
