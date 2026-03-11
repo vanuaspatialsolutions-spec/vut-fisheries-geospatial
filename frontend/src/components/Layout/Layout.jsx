@@ -118,6 +118,19 @@ export default function Layout() {
             <Outlet />
           </ErrorBoundary>
         </main>
+
+        {/* Portal footer */}
+        <footer className="flex-shrink-0 flex items-center justify-between px-6 py-2 border-t"
+          style={{ background:'#fff', borderColor:'rgba(0,59,122,0.08)', minHeight:36 }}>
+          <p className="text-[10px]" style={{ color:'rgba(0,59,122,0.38)' }}>
+            &copy; {new Date().getFullYear()} Vanuatu Department of Fisheries &mdash; All rights reserved
+          </p>
+          <p className="text-[10px]" style={{ color:'rgba(0,59,122,0.38)' }}>
+            Prototype developed by{' '}
+            <span className="font-semibold" style={{ color:'rgba(0,81,168,0.55)' }}>Vanua Spatial Solutions</span>
+            {' '}for the Vanuatu Department of Fisheries
+          </p>
+        </footer>
       </div>
     </div>
   );

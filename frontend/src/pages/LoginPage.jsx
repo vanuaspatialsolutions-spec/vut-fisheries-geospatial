@@ -337,9 +337,16 @@ export default function LoginPage() {
         )}
 
         {/* Footer */}
-        <p className="text-center text-[11px] mt-6" style={{ color:'rgba(100,143,200,0.50)' }}>
-          &copy; {new Date().getFullYear()} Vanuatu Department of Fisheries &mdash; All rights reserved
-        </p>
+        <div className="text-center mt-6 space-y-1">
+          <p className="text-[11px]" style={{ color:'rgba(100,143,200,0.50)' }}>
+            &copy; {new Date().getFullYear()} Vanuatu Department of Fisheries &mdash; All rights reserved
+          </p>
+          <p className="text-[10px]" style={{ color:'rgba(100,143,200,0.35)' }}>
+            Prototype developed by{' '}
+            <span style={{ color:'rgba(74,168,255,0.55)', fontWeight:600 }}>Vanua Spatial Solutions</span>
+            {' '}for the Vanuatu Department of Fisheries
+          </p>
+        </div>
       </div>
     </div>
   );
