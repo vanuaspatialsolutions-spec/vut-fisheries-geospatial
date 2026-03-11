@@ -2,6 +2,7 @@ import {
   createContext, useContext, useEffect, useRef, useState, useCallback,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 import {
   ICE_CONFIG, getCallId, initiateCall, storeOffer, storeAnswer,
@@ -39,6 +40,7 @@ export function VideoCallProvider({ children }) {
   const isScreenSharingRef = useRef(false);
   const callStatusRef = useRef('idle');
   const activeCallIdRef = useRef(null);
+  const ringTimeoutRef = useRef(null);
 
   // Keep ref in sync with state so callbacks see current value.
   useEffect(() => { callStatusRef.current = callStatus; }, [callStatus]);
@@ -73,6 +75,7 @@ export function VideoCallProvider({ children }) {
       screenStreamRef.current.getTracks().forEach(t => t.stop());
       screenStreamRef.current = null;
     }
+    if (ringTimeoutRef.current) { clearTimeout(ringTimeoutRef.current); ringTimeoutRef.current = null; }
     if (callUnsubRef.current) { callUnsubRef.current(); callUnsubRef.current = null; }
     candidateUnsubsRef.current.forEach(u => u());
     candidateUnsubsRef.current = [];
@@ -170,6 +173,7 @@ export function VideoCallProvider({ children }) {
           callData.answer &&
           pcRef.current?.signalingState === 'have-local-offer'
         ) {
+          if (ringTimeoutRef.current) { clearTimeout(ringTimeoutRef.current); ringTimeoutRef.current = null; }
           await pcRef.current.setRemoteDescription(
             new RTCSessionDescription(callData.answer),
           );
@@ -180,8 +184,21 @@ export function VideoCallProvider({ children }) {
           setCallStatus('active');
         }
       });
+
+      // Auto-cancel if callee doesn't answer within 30 seconds
+      ringTimeoutRef.current = setTimeout(async () => {
+        if (callStatusRef.current === 'calling') {
+          toast('No answer', { description: `${calleeName} didn't pick up` });
+          await terminateCall(callId).catch(() => {});
+          cleanup();
+        }
+      }, 30_000);
     } catch (err) {
       console.error('startCall error:', err);
+      const msg = err.name === 'NotAllowedError' ? 'Camera/microphone access was denied'
+        : err.name === 'NotFoundError' ? 'No camera or microphone found on this device'
+        : `Call failed: ${err.message}`;
+      toast.error(msg);
       await terminateCall(callId).catch(() => {});
       cleanup();
     }
@@ -195,10 +212,8 @@ export function VideoCallProvider({ children }) {
     if (calleeId !== uid) return;
     const isVideo = type === 'video';
 
-    activeCallIdRef.current = callId;
+    // Hide the banner immediately so the user doesn't double-tap
     setIncomingCall(null);
-    setCallStatus('active');
-    setActiveCallData({ callId, calleeId: callerId, calleeName: callerName, isVideo, isCaller: false });
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -207,6 +222,11 @@ export function VideoCallProvider({ children }) {
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
+
+      // Only show the modal after media is confirmed — prevents flash-then-close
+      activeCallIdRef.current = callId;
+      setCallStatus('active');
+      setActiveCallData({ callId, calleeId: callerId, calleeName: callerName, isVideo, isCaller: false });
 
       const pc = setupPC(callId, false);
       let answered = false;
@@ -230,6 +250,10 @@ export function VideoCallProvider({ children }) {
       });
     } catch (err) {
       console.error('answerCall error:', err);
+      const msg = err.name === 'NotAllowedError' ? 'Camera/microphone access was denied'
+        : err.name === 'NotFoundError' ? 'No camera or microphone found on this device'
+        : `Could not answer call: ${err.message}`;
+      toast.error(msg);
       await terminateCall(callId).catch(() => {});
       cleanup();
     }
