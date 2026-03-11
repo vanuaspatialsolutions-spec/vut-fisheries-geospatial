@@ -59,8 +59,16 @@ function buildEventPayload(tripData) {
 
 export async function createTrip(userId, tripData) {
   const event = buildEventPayload(tripData);
-  const eventId = await createScheduleEvent(userId, event);
   const totalBudget = calcTotal(tripData.budgetItems);
+
+  // Create the calendar event first — but don't let a calendar failure
+  // block the trip from being saved.
+  let eventId = null;
+  try {
+    eventId = await createScheduleEvent(userId, event);
+  } catch (err) {
+    console.warn('createTrip: could not create schedule event:', err.message);
+  }
 
   const ref = await addDoc(collection(db, 'trips'), {
     ...tripData,
