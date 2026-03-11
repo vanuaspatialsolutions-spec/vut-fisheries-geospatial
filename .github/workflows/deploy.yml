@@ -10,7 +10,7 @@ permissions:
   pages: write
   id-token: write
 
-# Only allow one deployment at a time; cancel in-progress if a new push arrives
+# Cancel in-progress deployment if a newer push arrives
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -24,12 +24,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+
+      # Cache node_modules directly — skips npm ci entirely on cache hit
+      - name: Cache node_modules
+        id: cache-modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
 
       - name: Install dependencies
+        if: steps.cache-modules.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: frontend
+
+      # Cache Vite's dependency pre-bundle cache
+      - name: Cache Vite build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules/.vite
+          key: ${{ runner.os }}-vite-${{ hashFiles('frontend/src/**', 'frontend/vite.config.js') }}
+          restore-keys: ${{ runner.os }}-vite-
 
       - name: Build
         run: npm run build
@@ -42,6 +57,16 @@ jobs:
         with:
           path: frontend/dist
 
+      # Deploy Firebase rules in the same job — avoids spinning up a new runner
+      - name: Deploy Firebase rules
+        if: ${{ env.GCP_SA_KEY != '' }}
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only firestore:rules,storage
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: cbfm-fisheries
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -52,19 +77,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  firebase-rules:
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy Firebase rules
-        if: ${{ env.GCP_SA_KEY != '' }}
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only firestore:rules,storage
-        env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          PROJECT_ID: cbfm-fisheries
