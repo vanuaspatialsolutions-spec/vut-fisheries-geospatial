@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, query, where, orderBy, serverTimestamp, getDoc,
+  onSnapshot, query, orderBy, serverTimestamp, getDoc,
 } from 'firebase/firestore';
 import {
   createScheduleEvent, updateScheduleEvent, deleteScheduleEvent,
@@ -52,7 +52,7 @@ function buildEventPayload(tripData) {
     startTime,
     endTime,
     color: 'blue',
-    category: 'Field Trip',
+    category: 'Trip',
     tags: ['Travel', 'Field'],
   };
 }
@@ -104,10 +104,10 @@ export async function deleteTrip(tripId) {
   await deleteDoc(doc(db, 'trips', tripId));
 }
 
-export function subscribeToTrips(userId, callback) {
+export function subscribeToTrips(_userId, callback) {
+  // All authenticated users can see all trips (org-wide sharing).
   const q = query(
     collection(db, 'trips'),
-    where('userId', '==', userId),
     orderBy('dateOfTravel', 'desc'),
   );
   return onSnapshot(

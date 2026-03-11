@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -46,6 +46,12 @@ export function EventManager({
   availableTags = ["Important", "Urgent", "Work", "Personal", "Team", "Client"],
 }) {
   const [events, setEvents] = useState(initialEvents)
+  // Sync internal state when the Firestore-backed prop changes (e.g. after a trip is saved
+  // or another user adds an event). We replace the full list so the calendar always reflects
+  // the source of truth from Firestore.
+  useEffect(() => {
+    setEvents(initialEvents)
+  }, [initialEvents])
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState(defaultView)
   const [selectedEvent, setSelectedEvent] = useState(null)
