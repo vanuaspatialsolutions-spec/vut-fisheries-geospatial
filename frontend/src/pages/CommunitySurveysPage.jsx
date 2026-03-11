@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Plus, Search, Users, CheckCircle, XCircle, Edit, Trash2, Filter } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES } from '../utils/constants';
 import Pagination from '../components/Pagination';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 function SkeletonRow() {
   return (
@@ -67,7 +68,8 @@ export default function CommunitySurveysPage() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
+      <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <Filter size={14} className="text-gray-400 flex-shrink-0" />
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -93,7 +95,8 @@ export default function CommunitySurveysPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         {surveys.length === 0 && !loading ? (
           <div className="py-20 text-center">
             <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

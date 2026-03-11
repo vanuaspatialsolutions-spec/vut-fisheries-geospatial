@@ -1,8 +1,12 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { GlowingEffect } from "@/components/ui/glowing-effect"
 
-const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
+const Card = React.forwardRef(({ className, children, ...props }, ref) => (
+  <div ref={ref} className={cn("relative rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+    <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
+    {children}
+  </div>
 ))
 Card.displayName = "Card"
 

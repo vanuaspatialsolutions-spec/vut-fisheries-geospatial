@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Upload, File, X, MapPin, SkipForward } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
 import FormSidebar from '../components/FormSidebar';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const BOUNDARY_ACCEPT = {
   'application/zip': ['.zip'],
@@ -144,6 +145,7 @@ export default function NewMarineAreaPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* ── Area Identification ── */}
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Area Identification</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -163,6 +165,7 @@ export default function NewMarineAreaPage() {
 
         {/* ── Location ── */}
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Location</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -181,6 +184,7 @@ export default function NewMarineAreaPage() {
 
         {/* ── Boundary Map ── */}
         <div className="card space-y-3">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-ocean-800">Boundary Map</h3>
@@ -290,6 +294,7 @@ export default function NewMarineAreaPage() {
 
         {/* ── Management Details ── */}
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Management Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="form-label">Year Established</label>
@@ -338,6 +343,7 @@ export default function NewMarineAreaPage() {
 
         {/* ── Habitat Types ── */}
         <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2 mb-4">Habitat Types Present</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {HABITAT_TYPES.map(h => (
@@ -352,6 +358,7 @@ export default function NewMarineAreaPage() {
 
         {/* ── Notes ── */}
         <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <label className="form-label">Notes</label>
           <textarea className="form-input" rows={3} {...register('notes')} />
         </div>

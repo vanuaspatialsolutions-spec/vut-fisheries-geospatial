@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Plus, Search, Filter, Waves, Edit, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
 import Pagination from '../components/Pagination';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const TYPE_BADGE = {
   reef_fish_survey: 'bg-sky-100 text-sky-700',
@@ -97,7 +98,8 @@ export default function MonitoringPage() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
+      <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <Filter size={14} className="text-gray-400" />
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -120,7 +122,8 @@ export default function MonitoringPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         {!loading && records.length === 0 ? (
           <div className="py-20 text-center">
             <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

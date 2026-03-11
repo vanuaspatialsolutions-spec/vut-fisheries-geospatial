@@ -6,6 +6,7 @@ import { uploadDataset } from '../utils/firestore';
 import toast from 'react-hot-toast';
 import { Upload, File, X, MapPin } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 // iOS Safari often reports unexpected MIME types for geo files (e.g. geojson
 // as application/octet-stream or text/plain). Listing the extension under every
@@ -93,6 +94,7 @@ export default function UploadDatasetPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-gray-700 mb-4">Select File</h3>
           {!file ? (
             <div {...getRootProps()}
@@ -172,6 +174,7 @@ export default function UploadDatasetPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-gray-700">Dataset Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">

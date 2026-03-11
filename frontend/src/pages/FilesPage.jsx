@@ -15,6 +15,7 @@ import {
 } from '../utils/fileManager';
 import { getUsers } from '../utils/firestore';
 import { getOrCreateThread, sendMessage } from '../utils/messaging';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -700,6 +701,7 @@ export default function FilesPage() {
 
           /* ── list ── */
           <div className="card overflow-hidden p-0">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">

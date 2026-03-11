@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
 import FormSidebar from '../components/FormSidebar';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const THREATS = ['blast_fishing', 'poison_fishing', 'overfishing', 'runoff', 'sedimentation', 'tourism_pressure', 'anchor_damage', 'coral_bleaching'];
 
@@ -76,6 +77,7 @@ export default function NewMonitoringPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Survey Identification</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -97,6 +99,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Site Location</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -124,6 +127,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Survey Methodology</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div><label className="form-label">Transect Length (m)</label>
@@ -140,6 +144,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Survey Results</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {(monType === 'reef_fish_survey' || monType === 'catch_composition') && (
@@ -182,6 +187,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card space-y-3">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-ocean-800">Species Observations</h3>
             <button type="button" onClick={() => append({ species: '', commonName: '', count: '', sizeRange: '', notes: '' })}
@@ -203,6 +209,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card space-y-3">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800">Survey Team</h3>
           <div className="flex gap-2">
             <input className="form-input" placeholder="Add team member name" value={teamInput}
@@ -223,6 +230,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2 mb-4">Threats Observed</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {THREATS.map(t => (
@@ -236,6 +244,7 @@ export default function NewMonitoringPage() {
         </div>
 
         <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <label className="form-label">Additional Notes</label>
           <textarea className="form-input" rows={3} {...register('notes')} />
         </div>

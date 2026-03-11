@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves, Edit, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 import Pagination from '../components/Pagination';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const STATUS_BADGE = {
   active: 'bg-emerald-100 text-emerald-700',
@@ -35,8 +36,9 @@ const BORDER_COLOR = {
 function AreaCard({ area, canEdit, onDelete }) {
   const navigate = useNavigate();
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 p-5 hover:shadow-md transition-shadow"
+    <div className="relative bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 p-5 hover:shadow-md transition-shadow"
       style={{ borderLeftColor: BORDER_COLOR[area.areaType] || '#6b7280' }}>
+      <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 mr-3">
           <h3 className="font-semibold text-gray-900 text-sm leading-tight">{area.areaName}</h3>

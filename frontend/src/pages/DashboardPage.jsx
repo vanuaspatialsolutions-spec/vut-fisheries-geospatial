@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const VANUATU_MARINE_HA = 5_000_000;
 const CHART_COLORS = ['#0891b2','#0d9488','#2563eb','#7c3aed','#db2777','#d97706','#16a34a'];
@@ -79,8 +80,9 @@ function HeroCard({ label, value, unit, sub, loading, index, decimals=0, icon: I
   return (
     <div
       style={{ animationDelay: `${index * 60}ms` }}
-      className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 stat-card-entrance select-none hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
+      className="relative bg-white rounded-xl border border-gray-100 shadow-sm p-4 stat-card-entrance select-none hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
     >
+      <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <div className="flex items-start justify-between mb-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400 leading-snug pr-2 flex-1">{label}</p>
         {Icon && (
@@ -110,7 +112,8 @@ function HeroCard({ label, value, unit, sub, loading, index, decimals=0, icon: I
 
 function ChartCard({ title, icon: Icon, children, loading, empty, emptyMsg, className='', color='#0891b2' }) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+    <div className={`relative bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+      <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${color}, ${color}33)` }} />
       <div className="p-5">
         <div className="flex items-center gap-2.5 mb-4">
@@ -196,7 +199,8 @@ function ProvinceSummary({ data, loading }) {
 function QuickAction({ label, to, icon: Icon }) {
   return (
     <Link to={to}
-      className="group bg-white border border-gray-200 hover:border-gray-300 rounded-md p-3.5 flex items-center gap-3 transition-colors duration-150">
+      className="relative group bg-white border border-gray-200 hover:border-gray-300 rounded-md p-3.5 flex items-center gap-3 transition-colors duration-150">
+      <GlowingEffect spread={30} glow proximity={48} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <Icon size={14} className="text-gray-400 group-hover:text-gray-600 flex-shrink-0 transition-colors" strokeWidth={1.75} />
       <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 tracking-tight transition-colors">{label}</p>
       <ArrowUpRight size={12} className="text-gray-300 group-hover:text-gray-500 ml-auto flex-shrink-0 transition-colors" />
@@ -372,6 +376,7 @@ export default function DashboardPage() {
 
       {/* Interactive Map */}
       <div className="card !p-0 overflow-hidden">
+        <GlowingEffect spread={60} glow proximity={80} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 mr-3">
             <Layers size={13} className="text-gray-400" strokeWidth={1.75} />
@@ -445,6 +450,7 @@ export default function DashboardPage() {
 
       {/* Province Table */}
       <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="flex items-center gap-2 mb-4">
           <MapPin size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
           <h3 className="font-medium text-gray-700 text-sm tracking-tight">Marine Conservation by Province</h3>
@@ -529,6 +535,7 @@ export default function DashboardPage() {
           </ChartCard>
         ) : (
           <div className="card">
+            <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
             <div className="flex items-center gap-2 mb-4">
               <Database size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
               <h3 className="font-medium text-gray-700 text-sm tracking-tight">Platform Summary</h3>
@@ -607,6 +614,7 @@ export default function DashboardPage() {
 
       {/* Dataset Coverage by Category */}
       <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="flex items-center gap-2 mb-4">
           <Database size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
           <h3 className="font-medium text-gray-700 text-sm tracking-tight">Dataset Coverage by Category</h3>

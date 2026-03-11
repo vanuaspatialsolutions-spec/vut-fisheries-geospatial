@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Save, ArrowLeft } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES, COMMON_CHALLENGES, TRAINING_TYPES } from '../utils/constants';
 import FormSidebar from '../components/FormSidebar';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 function CheckboxGroup({ label, options, value = [], onChange }) {
   const toggle = (opt) => {
@@ -73,6 +74,7 @@ export default function NewSurveyPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Location Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -107,6 +109,7 @@ export default function NewSurveyPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Survey Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -132,6 +135,7 @@ export default function NewSurveyPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Community Profile</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div><label className="form-label">Total Households</label>
@@ -160,6 +164,7 @@ export default function NewSurveyPage() {
         </div>
 
         <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">CBFM Governance</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
@@ -186,6 +191,7 @@ export default function NewSurveyPage() {
         </div>
 
         <div className="card space-y-5">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <h3 className="font-semibold text-ocean-800 border-b border-gray-100 pb-2">Challenges & Capacity</h3>
           <Controller name="challenges" control={control}
             render={({ field }) => (
@@ -198,6 +204,7 @@ export default function NewSurveyPage() {
         </div>
 
         <div className="card">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <label className="form-label">Additional Notes</label>
           <textarea className="form-input" rows={3} {...register('notes')} />
         </div>

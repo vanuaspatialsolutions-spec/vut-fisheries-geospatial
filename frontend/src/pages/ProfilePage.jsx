@@ -4,6 +4,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
 import { Camera, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 export default function ProfilePage() {
   const { user, updateUserProfile } = useAuth();
@@ -84,7 +85,8 @@ export default function ProfilePage() {
     <div className="max-w-lg mx-auto space-y-5">
 
       {/* ── Main profile card ── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-800">My Profile</h2>
           <p className="text-xs text-gray-400 mt-0.5">Update your name, position, unit and profile picture</p>
@@ -201,7 +203,8 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Account info ── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="relative bg-white rounded-xl border border-gray-200 shadow-sm">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-800">Account Info</h2>
         </div>

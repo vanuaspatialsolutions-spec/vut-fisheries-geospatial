@@ -6,6 +6,7 @@ import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import toast from 'react-hot-toast';
 import {
+import { GlowingEffect } from '../components/ui/glowing-effect';
   ArrowLeft, Save, Plus, Trash2, UserPlus, Receipt,
   Users, Calendar, MapPin, Clock, FileText, ChevronDown,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ const emptyBudgetRow = () => ({
 function Section({ icon: Icon, title, subtitle, children }) {
   return (
     <div className="card space-y-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <div className="flex items-start gap-3 border-b border-gray-100 pb-3">
         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Icon size={15} className="text-primary" />
@@ -457,6 +459,7 @@ export default function NewTripPage() {
         <div className="space-y-4 sticky top-6">
           {/* Trip summary card */}
           <div className="card space-y-3">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
             <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
               <FileText size={14} className="text-primary" />
               Trip Summary

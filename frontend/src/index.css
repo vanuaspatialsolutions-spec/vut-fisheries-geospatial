@@ -100,7 +100,7 @@
 
   /* ── Cards ───────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-xl border border-gray-100 shadow-sm p-5;
+    @apply relative bg-white rounded-xl border border-gray-100 shadow-sm p-5;
   }
   .card-hover {
     @apply card hover:shadow-md hover:-translate-y-0.5 cursor-pointer transition-all duration-200;

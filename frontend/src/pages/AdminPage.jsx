@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { VANUATU_PROVINCES } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 function TabButton({ active, onClick, children }) {
   return (
@@ -282,6 +283,7 @@ function UsersTab() {
 
   if (error) return (
     <div className="card py-8 space-y-4 max-w-lg mx-auto">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <div className="flex items-center gap-3 text-red-600">
         <AlertTriangle size={22} className="flex-shrink-0" />
         <p className="font-semibold">Failed to load users</p>
@@ -369,6 +371,7 @@ function UsersTab() {
           </button>
         </div>
         <div className="card overflow-x-auto p-0">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
@@ -530,6 +533,7 @@ function DatasetsAdminTab() {
       <p className="text-sm text-gray-500">{datasets.length} datasets under review</p>
       {datasets.length === 0 ? (
         <div className="card text-center py-10 text-gray-400">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <CheckCircle size={32} className="mx-auto mb-2 opacity-30" />
           <p>No datasets pending review</p>
         </div>
@@ -617,6 +621,7 @@ function ToolsTab() {
   return (
     <div className="space-y-4">
       <div className="card max-w-xl">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="flex items-start gap-3">
           <MapPin size={20} style={{ color: '#003B7A' }} className="mt-0.5 flex-shrink-0" />
           <div className="flex-1">

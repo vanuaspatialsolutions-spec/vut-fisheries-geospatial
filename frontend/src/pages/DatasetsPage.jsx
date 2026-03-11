@@ -14,6 +14,7 @@ import {
   Eye, X, Map as MapIcon, Table2, Pencil, Plus, Save,
 } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES, VANUATU_CENTER, VANUATU_ZOOM } from '../utils/constants';
+import { GlowingEffect } from '../components/ui/glowing-effect';
 
 function StatusBadge({ status }) {
   const map = {
@@ -603,6 +604,7 @@ export default function DatasetsPage() {
       </div>
 
       <div className="card py-4">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
@@ -637,6 +639,7 @@ export default function DatasetsPage() {
         <div className="flex justify-center py-12 text-ocean-600">Loading datasets...</div>
       ) : datasets.length === 0 ? (
         <div className="card text-center py-16 text-gray-400">
+        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <Upload size={40} className="mx-auto mb-3 opacity-30" />
           <p className="font-medium">No datasets found</p>
           <p className="text-sm mt-1">Upload your first dataset to get started</p>
