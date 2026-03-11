@@ -93,17 +93,24 @@ export default function Sidebar({ isOpen, onClose }) {
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 w-64
-          bg-slate-950 border-r border-slate-800/60 flex flex-col
+          flex flex-col
           transform transition-transform duration-200 ease-in-out
           md:static md:w-52 md:translate-x-0 md:z-auto md:flex-shrink-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
+        style={{
+          background: 'rgba(2,8,23,0.94)',
+          borderRight: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '4px 0 32px rgba(0,0,0,0.45), 2px 0 8px rgba(0,0,0,0.25)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
       >
         {/* Logo */}
         <div className="px-4 py-4 border-b border-slate-800/60">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: '0 0 0 1px rgba(8,145,178,0.3)' }}>
+              style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: '0 0 0 1px rgba(8,145,178,0.35), 0 4px 12px rgba(8,145,178,0.40)' }}>
               <img
                 src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
                 alt="Vanuatu Fisheries"

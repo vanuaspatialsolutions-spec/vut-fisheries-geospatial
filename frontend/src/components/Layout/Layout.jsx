@@ -111,17 +111,17 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden relative" style={{ background: '#EEF6FF' }}>
+    <div className="flex h-screen overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #D8EEFF 0%, #E8F4FF 40%, #EEF6FF 70%, #E0EEFA 100%)' }}>
       {/* Aurora background — soft animated northern-lights */}
-      <AuroraBackground style={{ opacity: 0.55, zIndex: 0 }} />
+      <AuroraBackground style={{ opacity: 0.72, zIndex: 0 }} />
       {/* Gradient-dots on top of aurora for texture */}
       <GradientDots
-        dotSize={7}
-        spacing={14}
+        dotSize={6}
+        spacing={13}
         duration={40}
         colorCycleDuration={10}
         backgroundColor="transparent"
-        style={{ opacity: 0.12, zIndex: 1 }}
+        style={{ opacity: 0.10, zIndex: 1 }}
       />
 
       {needsProfile && <CompleteProfilePrompt />}
@@ -135,8 +135,15 @@ export default function Layout() {
         </main>
 
         {/* Portal footer */}
-        <footer className="flex-shrink-0 flex items-center justify-between px-6 py-2 border-t"
-          style={{ background:'#fff', borderColor:'rgba(0,59,122,0.08)', minHeight:36 }}>
+        <footer className="flex-shrink-0 flex items-center justify-between px-6 py-2"
+          style={{
+            background: 'rgba(255,255,255,0.65)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderTop: '1px solid rgba(255,255,255,0.55)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.60)',
+            minHeight: 36,
+          }}>
           <p className="text-[10px]" style={{ color:'rgba(0,59,122,0.38)' }}>
             &copy; {new Date().getFullYear()} Vanuatu Department of Fisheries &mdash; All rights reserved
           </p>

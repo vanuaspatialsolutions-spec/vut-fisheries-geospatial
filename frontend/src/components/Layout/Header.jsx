@@ -96,7 +96,14 @@ export default function Header({ onMenuClick }) {
   const unreadCount = notifications.length;
 
   return (
-    <header className="h-12 flex-shrink-0 bg-white border-b border-gray-200 px-3 sm:px-5 flex items-center justify-between">
+    <header className="h-12 flex-shrink-0 px-3 sm:px-5 flex items-center justify-between"
+      style={{
+        background: 'rgba(255,255,255,0.75)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.60)',
+        boxShadow: '0 2px 16px rgba(0,27,70,0.10), 0 1px 4px rgba(0,27,70,0.07), inset 0 -1px 0 rgba(0,27,70,0.05)',
+      }}>
       {/* Left — hamburger (mobile) + page title */}
       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
         <button
@@ -142,7 +149,14 @@ export default function Header({ onMenuClick }) {
           {showNotifs && (
             <div
               ref={panelRef}
-              className="absolute right-0 top-9 z-50 w-80 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+              className="absolute right-0 top-9 z-50 w-80 rounded-xl overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.90)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.65)',
+                boxShadow: '0 16px 48px rgba(0,27,70,0.20), 0 4px 12px rgba(0,27,70,0.10)',
+              }}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                 <p className="text-xs font-semibold text-gray-800">
