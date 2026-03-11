@@ -483,7 +483,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Management Status" icon={Shield} loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet" color="#10b981">
+        <ChartCard title="Management Status" icon={ShieldCheck} loading={statsLoading} empty={!marineByStatus.length} emptyMsg="No status data yet" color="#10b981">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={marineByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={3}>
@@ -509,7 +509,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Community Surveys by Province" icon={Users} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet" color="#7c3aed">
+        <ChartCard title="Community Surveys by Province" icon={ClipboardList} loading={statsLoading} empty={!surveysByProv.length} emptyMsg="No survey data yet" color="#7c3aed">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={surveysByProv} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -522,7 +522,7 @@ export default function DashboardPage() {
         </ChartCard>
 
         {monByType.length > 0 || statsLoading ? (
-          <ChartCard title="Biological Monitoring by Type" icon={Activity} loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet" color="#0d9488">
+          <ChartCard title="Biological Monitoring by Type" icon={Microscope} loading={statsLoading} empty={!monByType.length} emptyMsg="No monitoring records yet" color="#0d9488">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monByType} layout="vertical" barSize={18}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
@@ -537,7 +537,7 @@ export default function DashboardPage() {
           <div className="card">
             <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
             <div className="flex items-center gap-2 mb-4">
-              <Database size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
+              <Layers size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
               <h3 className="font-medium text-gray-700 text-sm tracking-tight">Platform Summary</h3>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -616,14 +616,14 @@ export default function DashboardPage() {
       <div className="card">
         <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         <div className="flex items-center gap-2 mb-4">
-          <Database size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
+          <Layers size={13} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
           <h3 className="font-medium text-gray-700 text-sm tracking-tight">Dataset Coverage by Category</h3>
         </div>
         {statsLoading ? (
           <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-14 rounded-xl bg-gray-50 animate-pulse" />)}</div>
         ) : datasetByCategory.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
-            <Database size={32} className="mx-auto mb-2 opacity-30" />
+            <Layers size={32} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">No published spatial datasets yet. Upload and publish data to see coverage.</p>
           </div>
         ) : (
