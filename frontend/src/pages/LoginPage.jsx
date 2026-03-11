@@ -5,14 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Map, BarChart3, Shield, Users, KeyRound, ArrowLeft, Anchor } from 'lucide-react';
-
-const features = [
-  { icon: Map,       label: 'Spatial Data Management',  desc: 'Visualise LMMAs and marine zones across Vanuatu' },
-  { icon: BarChart3, label: 'Real-time Analytics',      desc: 'Live dashboards for reef health and catch data' },
-  { icon: Users,     label: 'Community Surveys',        desc: 'Centralised CBFM surveys and monitoring records' },
-  { icon: Shield,    label: 'Secure & Role-based',      desc: 'Admin, staff, and community officer access levels' },
-];
+import { Eye, EyeOff, KeyRound, ArrowLeft, Anchor } from 'lucide-react';
 
 /* ── Decorative marine SVG icons for the left panel ── */
 function MarineDecorations() {
@@ -308,39 +301,6 @@ export default function LoginPage() {
               resources and fishing communities across all six provinces.
             </p>
 
-            {/* Quick stats */}
-            <div className="flex items-center gap-6 mb-8">
-              {[
-                { icon: '⚓', value:'6',    label:'Provinces' },
-                { icon: '🌊', value:'5M+',  label:'Ha Waters' },
-                { icon: '🔒', value:'100%', label:'Secure' },
-              ].map(({ icon, value, label }) => (
-                <div key={label} className="text-center">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-1.5 text-base"
-                    style={{ background:'rgba(74,168,255,0.10)', border:'1px solid rgba(74,168,255,0.18)' }}>
-                    {icon}
-                  </div>
-                  <p className="text-white font-bold text-base leading-none">{value}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color:'rgba(164,204,255,0.60)' }}>{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-3.5 mb-10">
-            {features.map(({ icon:Icon, label, desc }) => (
-              <div key={label} className="flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background:'rgba(0,98,230,0.18)', border:'1px solid rgba(74,168,255,0.22)' }}>
-                  <Icon size={14} style={{ color:'#6AAFFF' }} />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium leading-tight">{label}</p>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color:'rgba(164,204,255,0.58)' }}>{desc}</p>
-                </div>
-              </div>
-            ))}
           </div>
 
           {/* Footer */}
