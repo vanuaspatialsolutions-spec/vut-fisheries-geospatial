@@ -9,10 +9,10 @@ export function ChatMessageList({ className, children, smooth = false, ...props 
     useAutoScroll({ smooth, content: children });
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full flex-1 min-h-0">
       <div
         ref={scrollRef}
-        className={cn('flex flex-col w-full h-full overflow-y-auto px-5 py-4', className)}
+        className={cn('absolute inset-0 flex flex-col overflow-y-auto px-5 py-4', className)}
         onWheel={disableAutoScroll}
         onTouchMove={disableAutoScroll}
         {...props}

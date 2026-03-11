@@ -22,7 +22,7 @@ export function ChatBubbleMessage({ variant = 'received', isLoading, className, 
   return (
     <div
       className={cn(
-        'rounded-2xl px-3 py-2 text-xs leading-relaxed max-w-[70%] break-words whitespace-pre-wrap',
+        'rounded-2xl px-3 py-2 text-xs leading-relaxed break-words whitespace-pre-wrap',
         variant === 'sent'
           ? 'bg-primary text-primary-foreground rounded-br-sm'
           : 'bg-muted text-foreground rounded-bl-sm',
