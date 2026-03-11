@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Users, Activity,
-  Anchor, Settings, FolderOpen, MessageSquare, CalendarDays,
+  Anchor, Settings, FolderOpen, MessageSquare, CalendarDays, Plane,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToThreads } from '../../utils/messaging';
@@ -14,6 +14,7 @@ const dataNav = [
   { to: '/monitoring', icon: Activity,       label: 'Bio. Monitoring',   color: 'text-teal-400'   },
   { to: '/datasets',   icon: Database,       label: 'Datasets',          color: 'text-blue-400'   },
   { to: '/schedule',   icon: CalendarDays,   label: 'Schedule',          color: 'text-indigo-400' },
+  { to: '/trips',      icon: Plane,          label: 'Trips',             color: 'text-amber-400'  },
   { to: '/files',      icon: FolderOpen,     label: 'My Files',          color: 'text-slate-400'  },
   { to: '/messages',   icon: MessageSquare,  label: 'Messages',          color: 'text-slate-400'  },
 ];

@@ -78,5 +78,27 @@ service cloud.firestore {
       allow read, update: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null;
     }
+
+    // ── Schedule events ──────────────────────────────────────────────────────
+    // All authenticated users can read org-wide calendar events.
+    // Only the creator can update or delete their own events.
+    match /scheduleEvents/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ── Trip plans ───────────────────────────────────────────────────────────
+    // Trip details (team + budget) are private to the trip creator.
+    match /trips/{docId} {
+      allow read: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
   }
 }
