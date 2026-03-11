@@ -103,6 +103,7 @@ function CompleteProfilePrompt() {
 }
 import ErrorBoundary from '../ErrorBoundary';
 import { GradientDots } from '../ui/gradient-dots';
+import { AuroraBackground } from '../ui/aurora-background';
 
 export default function Layout() {
   const { user } = useAuth();
@@ -111,14 +112,16 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden relative" style={{ background: '#EEF6FF' }}>
-      {/* Animated gradient-dots backdrop — very subtle opacity so it doesn't compete with content */}
+      {/* Aurora background — soft animated northern-lights */}
+      <AuroraBackground style={{ opacity: 0.55, zIndex: 0 }} />
+      {/* Gradient-dots on top of aurora for texture */}
       <GradientDots
         dotSize={7}
         spacing={14}
         duration={40}
         colorCycleDuration={10}
         backgroundColor="transparent"
-        style={{ opacity: 0.18, zIndex: 0 }}
+        style={{ opacity: 0.12, zIndex: 1 }}
       />
 
       {needsProfile && <CompleteProfilePrompt />}
