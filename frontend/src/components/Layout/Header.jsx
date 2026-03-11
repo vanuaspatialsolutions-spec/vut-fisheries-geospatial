@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToNotifications, markNotificationRead, markAllNotificationsRead } from '../../utils/messaging';
 import {
-  LogOut, Bell, MessageSquare, Paperclip,
+  LogOut, Bell, MessageSquare, Paperclip, Menu,
   LayoutDashboard, Users, Anchor, Activity, Database, Settings, FolderOpen, UserCircle,
 } from 'lucide-react';
 import UserAvatar from '../UserAvatar';
@@ -46,7 +46,7 @@ function timeAgo(ts) {
   return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
 }
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -96,9 +96,16 @@ export default function Header() {
   const unreadCount = notifications.length;
 
   return (
-    <header className="h-12 flex-shrink-0 bg-white border-b border-gray-200 px-5 flex items-center justify-between">
-      {/* Left — page title */}
-      <div className="flex items-center gap-2.5 min-w-0">
+    <header className="h-12 flex-shrink-0 bg-white border-b border-gray-200 px-3 sm:px-5 flex items-center justify-between">
+      {/* Left — hamburger (mobile) + page title */}
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+          aria-label="Open navigation"
+        >
+          <Menu size={17} />
+        </button>
         {RouteIcon && (
           <RouteIcon size={14} className="text-gray-400 flex-shrink-0" strokeWidth={1.75} />
         )}

@@ -163,9 +163,12 @@ function ProvinceSummary({ data, loading }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-gray-100">
-          {['Province','Marine Areas','Coverage (ha)','Communities','Active','Coverage Bar'].map(h => (
-            <th key={h} className={`py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide ${h === 'Province' ? 'text-left pr-4' : h === 'Coverage Bar' ? 'text-left pl-3' : 'text-center px-3'}`}>{h}</th>
-          ))}
+            <th className="py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide text-left pr-4">Province</th>
+          <th className="py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide text-center px-3">Areas</th>
+          <th className="py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide text-center px-3 hidden sm:table-cell">Coverage (ha)</th>
+          <th className="py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide text-center px-3 hidden md:table-cell">Communities</th>
+          <th className="py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide text-center px-3 hidden sm:table-cell">Active</th>
+          <th className="py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wide text-left pl-3 hidden lg:table-cell">Coverage Bar</th>
         </tr></thead>
         <tbody>
           {[...data].sort((a, b) => b.totalHa - a.totalHa).map(row => {
@@ -177,10 +180,10 @@ function ProvinceSummary({ data, loading }) {
               <tr key={row.province} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                 <td className="py-3 pr-4"><div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} /><span className="font-medium text-gray-800">{row.province}</span></div></td>
                 <td className="py-3 px-3 text-center font-semibold text-gray-700">{row.count}</td>
-                <td className="py-3 px-3 text-center font-semibold text-gray-700">{row.totalHa ? parseFloat(row.totalHa).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}</td>
-                <td className="py-3 px-3 text-center text-gray-600">{row.communityCount}</td>
-                <td className="py-3 px-3 text-center"><span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${row.activeCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{row.activeCount}</span></td>
-                <td className="py-3 pl-3"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden max-w-[120px]"><div className="h-2 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} /></div><span className="text-xs text-gray-400 w-12 text-right">{pctDisplay}%</span></div></td>
+                <td className="py-3 px-3 text-center font-semibold text-gray-700 hidden sm:table-cell">{row.totalHa ? parseFloat(row.totalHa).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}</td>
+                <td className="py-3 px-3 text-center text-gray-600 hidden md:table-cell">{row.communityCount}</td>
+                <td className="py-3 px-3 text-center hidden sm:table-cell"><span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${row.activeCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{row.activeCount}</span></td>
+                <td className="py-3 pl-3 hidden lg:table-cell"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden max-w-[120px]"><div className="h-2 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} /></div><span className="text-xs text-gray-400 w-12 text-right">{pctDisplay}%</span></div></td>
               </tr>
             );
           })}
@@ -363,7 +366,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 6 Hero Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {heroCards.map((cfg, i) => <HeroCard key={cfg.label} {...cfg} loading={statsLoading} index={i} />)}
       </div>
 
@@ -401,7 +404,7 @@ export default function DashboardPage() {
             </select>
           </div>
         </div>
-        <div style={{ height: '460px' }} className="relative">
+        <div className="h-[260px] sm:h-[360px] lg:h-[460px] relative">
           {mapLoading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm">
               <div className="flex items-center gap-3 text-gray-700">
@@ -450,7 +453,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ChartCard title="Marine Areas by Type" icon={Anchor} loading={statsLoading} empty={!marineByType.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
@@ -487,7 +490,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ChartCard title="Marine Areas by Province" icon={Anchor} loading={statsLoading} empty={!marineCountByProvince.length} emptyMsg="No marine areas recorded yet" color="#2563eb">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={marineCountByProvince} barSize={28}>

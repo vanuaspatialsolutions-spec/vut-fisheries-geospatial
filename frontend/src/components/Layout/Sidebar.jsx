@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Users, Activity,
   Anchor, Settings, FolderOpen, MessageSquare, CalendarDays, Plane,
@@ -19,10 +19,11 @@ const dataNav = [
   { to: '/messages',   icon: MessageSquare,  label: 'Messages',          color: 'text-slate-400'  },
 ];
 
-function NavItem({ to, icon: Icon, label, badge, color = 'text-slate-400' }) {
+function NavItem({ to, icon: Icon, label, badge, color = 'text-slate-400', onClick }) {
   return (
     <NavLink
       to={to}
+      onClick={onClick}
       className={({ isActive }) =>
         `relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-all duration-150
         ${isActive
@@ -61,7 +62,7 @@ function SectionLabel({ label }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, isAdmin } = useAuth();
   const [totalUnread, setTotalUnread] = useState(0);
 
@@ -74,84 +75,109 @@ export default function Sidebar() {
     return () => unsub();
   }, [user?.uid]);
 
+  const handleNavClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="w-52 bg-slate-950 border-r border-slate-800/60 flex flex-col flex-shrink-0">
-      {/* Logo */}
-      <div className="px-4 py-4 border-b border-slate-800/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: '0 0 0 1px rgba(8,145,178,0.3)' }}>
-            <img
-              src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
-              alt="Vanuatu Fisheries"
-              className="w-5 h-5 object-contain"
-            />
-          </div>
-          <div>
-            <p className="font-bold text-[12.5px] text-white leading-tight tracking-tight">CBFM Platform</p>
-            <p className="text-slate-500 text-[10px] leading-tight mt-0.5 tracking-tight">Dept. of Fisheries · Vanuatu</p>
-          </div>
-        </div>
-      </div>
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Nav */}
-      <nav className="flex-1 py-1 px-2 overflow-y-auto sidebar-scroll">
-        <SectionLabel label="Overview" />
-        <div className="space-y-0.5">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" color="text-slate-400" />
-        </div>
-
-        <SectionLabel label="Data Management" />
-        <div className="space-y-0.5">
-          {dataNav.map(item => (
-            <NavItem
-              key={item.to}
-              {...item}
-              badge={item.to === '/messages' ? totalUnread : 0}
-            />
-          ))}
-        </div>
-
-        {isAdmin && (
-          <>
-            <SectionLabel label="Administration" />
-            <div className="space-y-0.5">
-              <NavItem to="/admin" icon={Settings} label="Admin Panel" color="text-amber-400" />
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64
+          bg-slate-950 border-r border-slate-800/60 flex flex-col
+          transform transition-transform duration-200 ease-in-out
+          md:static md:w-52 md:translate-x-0 md:z-auto md:flex-shrink-0
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Logo */}
+        <div className="px-4 py-4 border-b border-slate-800/60">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+              style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: '0 0 0 1px rgba(8,145,178,0.3)' }}>
+              <img
+                src={`${import.meta.env.BASE_URL}fisheries-logo.png`}
+                alt="Vanuatu Fisheries"
+                className="w-5 h-5 object-contain"
+              />
             </div>
-          </>
-        )}
-      </nav>
-
-      {/* Footer */}
-      <div className="border-t border-slate-800/60">
-        <Link
-          to="/profile"
-          className="flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors group"
-          title="My Profile"
-        >
-          <UserAvatar user={user} sizePx={26} />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-slate-200 truncate leading-none">
-              {user?.firstName} {user?.lastName}
-            </p>
-            {user?.position ? (
-              <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-none">{user.position}</p>
-            ) : (
-              <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-none capitalize">{user?.role?.replace(/_/g, ' ')}</p>
-            )}
+            <div>
+              <p className="font-bold text-[12.5px] text-white leading-tight tracking-tight">CBFM Platform</p>
+              <p className="text-slate-500 text-[10px] leading-tight mt-0.5 tracking-tight">Dept. of Fisheries · Vanuatu</p>
+            </div>
           </div>
-        </Link>
-
-        <div className="px-3 pb-3">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0 pulse-dot" />
-            <span className="text-slate-600 text-[10px]">System Online</span>
-          </div>
-          <p className="text-slate-700 text-[10px]">
-            © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
-          </p>
         </div>
-      </div>
-    </aside>
+
+        {/* Nav */}
+        <nav className="flex-1 py-1 px-2 overflow-y-auto sidebar-scroll">
+          <SectionLabel label="Overview" />
+          <div className="space-y-0.5">
+            <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" color="text-slate-400" onClick={handleNavClick} />
+          </div>
+
+          <SectionLabel label="Data Management" />
+          <div className="space-y-0.5">
+            {dataNav.map(item => (
+              <NavItem
+                key={item.to}
+                {...item}
+                badge={item.to === '/messages' ? totalUnread : 0}
+                onClick={handleNavClick}
+              />
+            ))}
+          </div>
+
+          {isAdmin && (
+            <>
+              <SectionLabel label="Administration" />
+              <div className="space-y-0.5">
+                <NavItem to="/admin" icon={Settings} label="Admin Panel" color="text-amber-400" onClick={handleNavClick} />
+              </div>
+            </>
+          )}
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-slate-800/60">
+          <Link
+            to="/profile"
+            onClick={handleNavClick}
+            className="flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors group"
+            title="My Profile"
+          >
+            <UserAvatar user={user} sizePx={26} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-slate-200 truncate leading-none">
+                {user?.firstName} {user?.lastName}
+              </p>
+              {user?.position ? (
+                <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-none">{user.position}</p>
+              ) : (
+                <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-none capitalize">{user?.role?.replace(/_/g, ' ')}</p>
+              )}
+            </div>
+          </Link>
+
+          <div className="px-3 pb-3">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0 pulse-dot" />
+              <span className="text-slate-600 text-[10px]">System Online</span>
+            </div>
+            <p className="text-slate-700 text-[10px]">
+              © {new Date().getFullYear()} Vanuatu Dept. of Fisheries
+            </p>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }

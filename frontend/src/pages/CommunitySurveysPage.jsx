@@ -10,11 +10,14 @@ import Pagination from '../components/Pagination';
 function SkeletonRow() {
   return (
     <tr className="border-b border-gray-50">
-      {[1,2,3,4,5,6,7,8].map(i => (
-        <td key={i} className="px-4 py-3.5">
-          <div className="skeleton-text w-full" style={{ width: `${60 + i * 5}%` }} />
-        </td>
-      ))}
+      <td className="px-4 py-3.5"><div className="skeleton-text w-full" style={{ width: '70%' }} /></td>
+      <td className="px-4 py-3.5 hidden sm:table-cell"><div className="skeleton-text" style={{ width: '65%' }} /></td>
+      <td className="px-4 py-3.5 hidden md:table-cell"><div className="skeleton-text" style={{ width: '55%' }} /></td>
+      <td className="px-4 py-3.5 hidden sm:table-cell"><div className="skeleton-text" style={{ width: '60%' }} /></td>
+      <td className="px-4 py-3.5 hidden lg:table-cell"><div className="skeleton-text" style={{ width: '40%' }} /></td>
+      <td className="px-4 py-3.5 hidden md:table-cell"><div className="skeleton-text" style={{ width: '30%' }} /></td>
+      <td className="px-4 py-3.5 hidden md:table-cell"><div className="skeleton-text" style={{ width: '30%' }} /></td>
+      <td className="px-4 py-3.5"><div className="skeleton-text" style={{ width: '50%' }} /></td>
     </tr>
   );
 }
@@ -55,7 +58,7 @@ export default function CommunitySurveysPage() {
     <div className="space-y-5 fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Community Surveys</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Community Surveys</h2>
           <p className="text-gray-400 text-sm">{pagination.total ?? 0} total records</p>
         </div>
         <Link to="/surveys/new" className="btn-primary flex items-center gap-2 text-sm">
@@ -111,12 +114,12 @@ export default function CommunitySurveysPage() {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Community</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Province / Island</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Type</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Fishers</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Committee</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Taboo</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Province / Island</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Type</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Fishers</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Committee</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Taboo</th>
                 <th className="w-20 px-4 py-3" />
               </tr>
             </thead>
@@ -129,23 +132,23 @@ export default function CommunitySurveysPage() {
                       <p className="font-semibold text-gray-800">{s.community}</p>
                       {s.lmmaName && <p className="text-xs text-gray-400 mt-0.5">{s.lmmaName}</p>}
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 hidden sm:table-cell">
                       <p className="text-gray-700">{s.province}</p>
                       <p className="text-xs text-gray-400">{s.island}</p>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">{s.surveyDate}</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap hidden md:table-cell">{s.surveyDate}</td>
+                    <td className="px-4 py-3.5 hidden sm:table-cell">
                       <span className="badge bg-ocean-50 text-ocean-700 capitalize">
                         {s.surveyType?.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right font-medium text-gray-700">{s.totalFishers ?? '—'}</td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td className="px-4 py-3.5 text-right font-medium text-gray-700 hidden lg:table-cell">{s.totalFishers ?? '—'}</td>
+                    <td className="px-4 py-3.5 text-center hidden md:table-cell">
                       {s.hasCBFMCommittee
                         ? <CheckCircle size={16} className="text-emerald-500 mx-auto" />
                         : <XCircle size={16} className="text-gray-200 mx-auto" />}
                     </td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td className="px-4 py-3.5 text-center hidden md:table-cell">
                       {s.hasTabooArea
                         ? <CheckCircle size={16} className="text-ocean-500 mx-auto" />
                         : <XCircle size={16} className="text-gray-200 mx-auto" />}

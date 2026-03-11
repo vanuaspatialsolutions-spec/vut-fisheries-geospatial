@@ -574,7 +574,7 @@ export default function FilesPage() {
               <ChevronRight size={11} className="text-gray-300 flex-shrink-0" />
               <button
                 onClick={() => goToBreadcrumb(i)}
-                className={`text-xs truncate max-w-[140px] transition-colors ${i === breadcrumbs.length - 1 ? 'text-gray-800 font-medium cursor-default' : 'text-gray-500 hover:text-gray-800'}`}
+                className={`text-xs truncate max-w-[70px] sm:max-w-[110px] md:max-w-[140px] transition-colors ${i === breadcrumbs.length - 1 ? 'text-gray-800 font-medium cursor-default' : 'text-gray-500 hover:text-gray-800'}`}
               >
                 {crumb.name}
               </button>

@@ -42,11 +42,13 @@ function CoralBar({ pct }) {
 function SkeletonRow() {
   return (
     <tr className="border-b border-gray-50">
-      {[1,2,3,4,5,6,7].map(i => (
-        <td key={i} className="px-4 py-3.5">
-          <div className="skeleton-text" style={{ width: `${50 + i * 7}%` }} />
-        </td>
-      ))}
+      <td className="px-4 py-3.5"><div className="skeleton-text" style={{ width: '70%' }} /></td>
+      <td className="px-4 py-3.5 hidden sm:table-cell"><div className="skeleton-text" style={{ width: '60%' }} /></td>
+      <td className="px-4 py-3.5 hidden md:table-cell"><div className="skeleton-text" style={{ width: '55%' }} /></td>
+      <td className="px-4 py-3.5 hidden md:table-cell"><div className="skeleton-text" style={{ width: '50%' }} /></td>
+      <td className="px-4 py-3.5 hidden lg:table-cell"><div className="skeleton-text" style={{ width: '45%' }} /></td>
+      <td className="px-4 py-3.5 hidden lg:table-cell"><div className="skeleton-text" style={{ width: '40%' }} /></td>
+      <td className="px-4 py-3.5 hidden sm:table-cell"><div className="skeleton-text" style={{ width: '35%' }} /></td>
     </tr>
   );
 }
@@ -87,7 +89,7 @@ export default function MonitoringPage() {
     <div className="space-y-5 fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Biological Monitoring</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Biological Monitoring</h2>
           <p className="text-gray-400 text-sm">{pagination.total ?? 0} total records</p>
         </div>
         <Link to="/monitoring/new" className="btn-primary flex items-center gap-2 text-sm">
@@ -139,12 +141,12 @@ export default function MonitoringPage() {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Site / Survey</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Type</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Location</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Coral Cover</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Fish (kg)</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Health</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Location</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Coral Cover</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Fish (kg)</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Health</th>
                 {isStaff && <th className="w-16 px-4 py-3" />}
               </tr>
             </thead>
@@ -157,21 +159,21 @@ export default function MonitoringPage() {
                       <p className="font-semibold text-gray-800">{r.siteName}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{r.surveyName}</p>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 hidden sm:table-cell">
                       <span className={`badge ${TYPE_BADGE[r.monitoringType] || 'bg-gray-100 text-gray-600'} capitalize`}>
                         {r.monitoringType?.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 hidden md:table-cell">
                       <p className="text-gray-700">{r.province}</p>
                       <p className="text-xs text-gray-400">{r.community}</p>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">{r.surveyDate}</td>
-                    <td className="px-4 py-3.5"><CoralBar pct={r.liveCoralCoverPct} /></td>
-                    <td className="px-4 py-3.5 text-right font-medium text-gray-700">
+                    <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap hidden md:table-cell">{r.surveyDate}</td>
+                    <td className="px-4 py-3.5 hidden lg:table-cell"><CoralBar pct={r.liveCoralCoverPct} /></td>
+                    <td className="px-4 py-3.5 text-right font-medium text-gray-700 hidden lg:table-cell">
                       {r.totalFishBiomassKg != null ? r.totalFishBiomassKg : '—'}
                     </td>
-                    <td className="px-4 py-3.5 text-center"><HealthScore score={r.reefHealthScore} /></td>
+                    <td className="px-4 py-3.5 text-center hidden sm:table-cell"><HealthScore score={r.reefHealthScore} /></td>
                     {isStaff && (
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1">

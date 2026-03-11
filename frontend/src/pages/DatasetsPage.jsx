@@ -244,7 +244,7 @@ function DatasetPreviewModal({ dataset, onClose }) {
             <p className="text-xs text-gray-300">The file may not be cached — try publishing or fixing the map layer first.</p>
           </div>
         ) : tab === 'map' ? (
-          <div className="flex-1 min-h-0" style={{ height: '520px' }}>
+          <div className="flex-1 min-h-0 h-[260px] sm:h-[380px] md:h-[520px]">
             <MapContainer
               center={VANUATU_CENTER}
               zoom={VANUATU_ZOOM}
