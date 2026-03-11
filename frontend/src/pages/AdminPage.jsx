@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { getAllUsers, updateUserProfile, approveUser, rejectUser, deleteUserProfile, createUserByAdmin, adminSetUserPassword, getDatasets, publishDataset, unpublishDataset, recacheDatasetGeoJSON, backfillProvinces } from '../utils/firestore';
 import { useAuth } from '../context/AuthContext';
 import { VANUATU_PROVINCES } from '../utils/constants';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Users, Database, CheckCircle, XCircle, UserCheck, UserX, Shield, MapPin, Wrench, Trash2, Clock, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { GlowingEffect } from '../components/ui/glowing-effect';
 

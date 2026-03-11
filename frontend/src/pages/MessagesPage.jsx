@@ -7,7 +7,7 @@ import {
   uploadAttachment,
 } from '../utils/messaging';
 import { getUsers } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   Send, MessageSquare, Plus, X, Search, Users,
   Download, File, FileText, FileImage, Trash2, Paperclip, XCircle, CornerDownLeft,

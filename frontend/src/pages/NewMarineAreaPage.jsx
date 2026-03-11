@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { createMarineArea, updateMarineArea, getMarineArea, parseFileToGeoJSON, calculateGeoJSONAreaHa } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Save, ArrowLeft, Upload, File, X, MapPin, SkipForward } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES, HABITAT_TYPES } from '../utils/constants';
 import FormSidebar from '../components/FormSidebar';

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMarineAreas, getMarineStats, deleteMarineArea } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Plus, Search, Anchor, MapPin, Filter, Shield, Waves, Edit, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 import Pagination from '../components/Pagination';

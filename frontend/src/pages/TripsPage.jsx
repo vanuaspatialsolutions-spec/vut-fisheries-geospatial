@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { createTrip, updateTrip, deleteTrip, subscribeToTrips, BUDGET_CATEGORIES } from '../utils/trips';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   Plus, MapPin, Calendar, Clock, Users, Receipt,
   Edit2, Trash2, Plane, Save, UserPlus, FileText,

@@ -21,7 +21,7 @@ import {
   Globe, Leaf,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const VANUATU_MARINE_HA = 5_000_000;

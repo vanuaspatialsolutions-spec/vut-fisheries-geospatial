@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   Folder, FolderOpen, FolderPlus, Upload, MoreHorizontal, Eye, Pencil,
   Share2, Trash2, MoveRight, ChevronRight, Home, LayoutGrid, List,

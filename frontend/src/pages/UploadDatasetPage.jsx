@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
 import { uploadDataset } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Upload, File, X, MapPin } from 'lucide-react';
 import { DATA_TYPES, VANUATU_PROVINCES } from '../utils/constants';
 import { GlowingEffect } from '../components/ui/glowing-effect';

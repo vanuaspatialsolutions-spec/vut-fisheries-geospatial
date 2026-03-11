@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
 import SingularityWaveShader from '../components/ui/shader-animation';
 

@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Anchor, Activity, Database, Settings, FolderOpen, UserCircle,
 } from 'lucide-react';
 import UserAvatar from '../UserAvatar';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const routeMeta = {
   '/dashboard':        { title: 'Dashboard',              desc: 'Real-time overview',          icon: LayoutDashboard },
@@ -84,17 +84,11 @@ export default function Header({ onMenuClick }) {
       // Show a pop-up for each new notification (no message content shown)
       newOnes.forEach(n => {
         const isFile = n.type === 'file_share';
-        toast(
-          `${isFile ? 'New attachment' : 'New message'} from ${n.fromName}`,
-          {
-            icon: isFile ? '📎' : '💬',
-            style: {
-              background: isFile ? '#1e3a5f' : '#0c4a6e',
-              color: '#fff',
-              borderRadius: '8px',
-            },
-          }
-        );
+        toast(n.fromName, {
+          description: isFile ? 'Sent you an attachment' : 'Sent you a message',
+          icon: isFile ? '📎' : '💬',
+          duration: 5000,
+        });
       });
     });
     return () => {

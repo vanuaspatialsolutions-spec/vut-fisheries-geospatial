@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { useEffect } from 'react';
 import { getSurvey, createSurvey, updateSurvey } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Save, ArrowLeft } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES, COMMON_CHALLENGES, TRAINING_TYPES } from '../utils/constants';
 import FormSidebar from '../components/FormSidebar';

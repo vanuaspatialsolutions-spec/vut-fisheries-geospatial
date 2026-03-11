@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
 import { User, Shield } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 function CompleteProfilePrompt() {
   const { user, saveProfile } = useAuth();

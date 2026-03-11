@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useState, useEffect } from 'react';
 import { createMonitoring, updateMonitoring, getMonitoringRecord } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { VANUATU_PROVINCES, MONITORING_TYPES } from '../utils/constants';
 import FormSidebar from '../components/FormSidebar';

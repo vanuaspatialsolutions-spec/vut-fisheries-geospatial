@@ -8,7 +8,7 @@ import {
   deleteDataset, recacheDatasetGeoJSON, getDatasetById, getDatasetGeoJSON,
   updateDatasetGeoJSON,
 } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
   Upload, Download, CheckCircle, Clock, Archive, Search, Trash2, Wrench, MapPin,
   Eye, X, Map as MapIcon, Table2, Pencil, Plus, Save,

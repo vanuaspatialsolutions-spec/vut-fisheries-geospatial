@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
 import { Camera, Save } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { GlowingEffect } from '../components/ui/glowing-effect';
 
 export default function ProfilePage() {

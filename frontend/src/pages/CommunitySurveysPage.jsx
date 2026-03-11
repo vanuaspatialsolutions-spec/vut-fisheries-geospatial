@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSurveys, deleteSurvey } from '../utils/firestore';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Plus, Search, Users, CheckCircle, XCircle, Edit, Trash2, Filter } from 'lucide-react';
 import { VANUATU_PROVINCES, SURVEY_TYPES } from '../utils/constants';
 import Pagination from '../components/Pagination';

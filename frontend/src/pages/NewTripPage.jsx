@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { createTrip, updateTrip, BUDGET_CATEGORIES } from '../utils/trips';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import {
 import { GlowingEffect } from '../components/ui/glowing-effect';
   ArrowLeft, Save, Plus, Trash2, UserPlus, Receipt,

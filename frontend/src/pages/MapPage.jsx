@@ -4,7 +4,7 @@ import { getSurveysForMap, getMarineGeoJSON, getMonitoringForMap, getPublishedGe
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES, AREA_TYPES } from '../utils/constants';
 import { Layers, Filter, RefreshCw, Users, Anchor, Activity, Database, AlertTriangle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const LAYER_CONFIG = [
   { key: 'surveys', label: 'Community Surveys', icon: Users, activeClass: 'bg-sky-500 text-white border-sky-500', dotClass: 'bg-sky-500' },
