@@ -317,15 +317,23 @@ export function VideoCallProvider({ children }) {
       isScreenSharingRef.current = false;
       setIsScreenSharing(false);
     } else {
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        toast.error('Screen sharing is not supported in this browser');
+        return;
+      }
+      const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
+      if (!sender) {
+        toast.error('No video track to replace for screen sharing');
+        return;
+      }
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true, audio: true,
+          video: true, audio: false,
         });
         screenStreamRef.current = screenStream;
         const screenTrack = screenStream.getVideoTracks()[0];
 
-        const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) await sender.replaceTrack(screenTrack);
+        await sender.replaceTrack(screenTrack);
 
         // Auto-stop when user clicks browser's "Stop sharing"
         screenTrack.onended = () => {
@@ -335,7 +343,17 @@ export function VideoCallProvider({ children }) {
         isScreenSharingRef.current = true;
         setIsScreenSharing(true);
       } catch (err) {
-        if (err.name !== 'NotAllowedError') console.error('Screen share:', err);
+        console.error('Screen share:', err);
+        if (err.name === 'NotAllowedError') {
+          toast('Screen sharing cancelled');
+        } else {
+          toast.error(`Screen sharing failed: ${err.message}`);
+        }
+        // Clean up any partial stream
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach(t => t.stop());
+          screenStreamRef.current = null;
+        }
       }
     }
   }, []);
