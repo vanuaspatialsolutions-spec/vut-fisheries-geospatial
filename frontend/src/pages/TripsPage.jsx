@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
   Plus, MapPin, Calendar, Clock, Users, Receipt,
   Edit2, Trash2, Plane, Save, UserPlus, FileText,
-  X, ChevronDown, ChevronUp,
+  X, ChevronDown, ChevronUp, User,
 } from 'lucide-react';
 import { GlowingEffect } from '../components/ui/glowing-effect';
 
@@ -140,6 +140,11 @@ function TripCard({ trip, onEdit, onDelete, deleting }) {
         {trip.destination && (
           <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
             <MapPin size={10} /> {trip.destination}
+          </p>
+        )}
+        {!trip.isOwner && trip.createdByName && (
+          <p className="text-xs text-primary/70 mt-0.5 flex items-center gap-1">
+            <User size={10} /> Planned by {trip.createdByName}
           </p>
         )}
       </div>
@@ -388,7 +393,8 @@ export default function TripsPage() {
         await updateTrip(editingId, user.uid, tripData);
         toast.success('Trip updated — calendar synced');
       } else {
-        await createTrip(user.uid, tripData);
+        const creatorName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
+        await createTrip(user.uid, tripData, creatorName);
         toast.success('Trip planned — added to your schedule');
       }
       closeForm();

@@ -44,6 +44,7 @@ export function EventManager({
   defaultView = "month",
   className,
   availableTags = ["Important", "Urgent", "Work", "Personal", "Team", "Client"],
+  currentUserId,
 }) {
   const [events, setEvents] = useState(initialEvents)
   // Sync internal state when the Firestore-backed prop changes (e.g. after a trip is saved
@@ -135,7 +136,10 @@ export function EventManager({
     setSelectedEvent(null)
   }, [onEventDelete])
 
-  const handleDragStart = useCallback((event) => { setDraggedEvent(event) }, [])
+  const handleDragStart = useCallback((event) => {
+    if (event.userId && currentUserId && event.userId !== currentUserId) return
+    setDraggedEvent(event)
+  }, [currentUserId])
   const handleDragEnd = useCallback(() => { setDraggedEvent(null) }, [])
 
   const handleDrop = useCallback((date, hour) => {
@@ -351,40 +355,58 @@ export function EventManager({
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isCreating ? "Create Event" : "Event Details"}</DialogTitle>
-            <DialogDescription>{isCreating ? "Add a new event to your calendar" : "View and edit event details"}</DialogDescription>
+            <DialogDescription>
+              {isCreating
+                ? "Add a new event to your calendar"
+                : (!isCreating && selectedEvent?.userId && currentUserId && selectedEvent.userId !== currentUserId)
+                  ? "You can view this event but cannot edit it."
+                  : "View and edit event details"}
+            </DialogDescription>
           </DialogHeader>
+          {/* Show creator name for non-owned events */}
+          {!isCreating && selectedEvent?.createdByName && selectedEvent?.userId !== currentUserId && (
+            <p className="text-xs text-muted-foreground -mt-2 mb-1">
+              Planned by <span className="font-medium text-foreground">{selectedEvent.createdByName}</span>
+            </p>
+          )}
+          {(() => {
+            const isReadOnly = !isCreating && selectedEvent?.userId && currentUserId && selectedEvent.userId !== currentUserId
+            return (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input id="title" value={isCreating ? newEvent.title : selectedEvent?.title}
                 onChange={(e) => isCreating ? setNewEvent((prev) => ({ ...prev, title: e.target.value })) : setSelectedEvent((prev) => prev ? { ...prev, title: e.target.value } : null)}
-                placeholder="Event title" />
+                placeholder="Event title" disabled={isReadOnly} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" value={isCreating ? newEvent.description : selectedEvent?.description}
                 onChange={(e) => isCreating ? setNewEvent((prev) => ({ ...prev, description: e.target.value })) : setSelectedEvent((prev) => prev ? { ...prev, description: e.target.value } : null)}
-                placeholder="Event description" rows={3} />
+                placeholder="Event description" rows={3} disabled={isReadOnly} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startTime">Start Time</Label>
                 <Input id="startTime" type="datetime-local"
                   value={isCreating ? (newEvent.startTime ? new Date(newEvent.startTime.getTime() - newEvent.startTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "") : (selectedEvent ? new Date(selectedEvent.startTime.getTime() - selectedEvent.startTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "")}
-                  onChange={(e) => { const date = new Date(e.target.value); isCreating ? setNewEvent((prev) => ({ ...prev, startTime: date })) : setSelectedEvent((prev) => prev ? { ...prev, startTime: date } : null) }} />
+                  onChange={(e) => { const date = new Date(e.target.value); isCreating ? setNewEvent((prev) => ({ ...prev, startTime: date })) : setSelectedEvent((prev) => prev ? { ...prev, startTime: date } : null) }}
+                  disabled={isReadOnly} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="endTime">End Time</Label>
                 <Input id="endTime" type="datetime-local"
                   value={isCreating ? (newEvent.endTime ? new Date(newEvent.endTime.getTime() - newEvent.endTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "") : (selectedEvent ? new Date(selectedEvent.endTime.getTime() - selectedEvent.endTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "")}
-                  onChange={(e) => { const date = new Date(e.target.value); isCreating ? setNewEvent((prev) => ({ ...prev, endTime: date })) : setSelectedEvent((prev) => prev ? { ...prev, endTime: date } : null) }} />
+                  onChange={(e) => { const date = new Date(e.target.value); isCreating ? setNewEvent((prev) => ({ ...prev, endTime: date })) : setSelectedEvent((prev) => prev ? { ...prev, endTime: date } : null) }}
+                  disabled={isReadOnly} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select value={isCreating ? newEvent.category : selectedEvent?.category}
-                  onValueChange={(value) => isCreating ? setNewEvent((prev) => ({ ...prev, category: value })) : setSelectedEvent((prev) => prev ? { ...prev, category: value } : null)}>
+                  onValueChange={(value) => !isReadOnly && (isCreating ? setNewEvent((prev) => ({ ...prev, category: value })) : setSelectedEvent((prev) => prev ? { ...prev, category: value } : null))}
+                  disabled={isReadOnly}>
                   <SelectTrigger id="category"><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>{categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}</SelectContent>
                 </Select>
@@ -392,7 +414,8 @@ export function EventManager({
               <div className="space-y-2">
                 <Label htmlFor="color">Color</Label>
                 <Select value={isCreating ? newEvent.color : selectedEvent?.color}
-                  onValueChange={(value) => isCreating ? setNewEvent((prev) => ({ ...prev, color: value })) : setSelectedEvent((prev) => prev ? { ...prev, color: value } : null)}>
+                  onValueChange={(value) => !isReadOnly && (isCreating ? setNewEvent((prev) => ({ ...prev, color: value })) : setSelectedEvent((prev) => prev ? { ...prev, color: value } : null))}
+                  disabled={isReadOnly}>
                   <SelectTrigger id="color"><SelectValue placeholder="Select color" /></SelectTrigger>
                   <SelectContent>
                     {colors.map((color) => (
@@ -411,7 +434,8 @@ export function EventManager({
                   const isSelected = isCreating ? newEvent.tags?.includes(tag) : selectedEvent?.tags?.includes(tag)
                   return (
                     <Badge key={tag} variant={isSelected ? "default" : "outline"}
-                      className="cursor-pointer transition-all hover:scale-105" onClick={() => toggleTag(tag, isCreating)}>
+                      className={cn("transition-all hover:scale-105", isReadOnly ? "cursor-default opacity-60" : "cursor-pointer")}
+                      onClick={() => !isReadOnly && toggleTag(tag, isCreating)}>
                       {tag}
                     </Badge>
                   )
@@ -419,12 +443,17 @@ export function EventManager({
               </div>
             </div>
           </div>
+          )})()}
           <DialogFooter>
-            {!isCreating && (
-              <Button variant="destructive" onClick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}>Delete</Button>
+            {!isCreating && selectedEvent && !(selectedEvent.userId && currentUserId && selectedEvent.userId !== currentUserId) && (
+              <Button variant="destructive" onClick={() => handleDeleteEvent(selectedEvent.id)}>Delete</Button>
             )}
-            <Button variant="outline" onClick={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null) }}>Cancel</Button>
-            <Button onClick={isCreating ? handleCreateEvent : handleUpdateEvent}>{isCreating ? "Create" : "Save"}</Button>
+            <Button variant="outline" onClick={() => { setIsDialogOpen(false); setIsCreating(false); setSelectedEvent(null) }}>
+              {!isCreating && selectedEvent?.userId && currentUserId && selectedEvent.userId !== currentUserId ? "Close" : "Cancel"}
+            </Button>
+            {(!(!isCreating && selectedEvent?.userId && currentUserId && selectedEvent.userId !== currentUserId)) && (
+              <Button onClick={isCreating ? handleCreateEvent : handleUpdateEvent}>{isCreating ? "Create" : "Save"}</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

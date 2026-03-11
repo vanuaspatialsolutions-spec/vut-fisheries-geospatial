@@ -57,7 +57,7 @@ function buildEventPayload(tripData) {
   };
 }
 
-export async function createTrip(userId, tripData) {
+export async function createTrip(userId, tripData, createdByName) {
   const event = buildEventPayload(tripData);
   const totalBudget = calcTotal(tripData.budgetItems);
 
@@ -65,7 +65,7 @@ export async function createTrip(userId, tripData) {
   // block the trip from being saved.
   let eventId = null;
   try {
-    eventId = await createScheduleEvent(userId, event);
+    eventId = await createScheduleEvent(userId, { ...event, createdByName: createdByName || '' });
   } catch (err) {
     console.warn('createTrip: could not create schedule event:', err.message);
   }
@@ -73,6 +73,7 @@ export async function createTrip(userId, tripData) {
   const ref = await addDoc(collection(db, 'trips'), {
     ...tripData,
     userId,
+    createdByName: createdByName || '',
     scheduleEventId: eventId,
     totalBudget,
     dateOfTravel: event.startTime,

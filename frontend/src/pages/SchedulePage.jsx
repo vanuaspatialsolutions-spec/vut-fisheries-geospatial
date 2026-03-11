@@ -25,6 +25,8 @@ export default function SchedulePage() {
           color: e.color || 'blue',
           category: e.category || 'Meeting',
           tags: e.tags || [],
+          userId: e.userId || '',
+          createdByName: e.createdByName || '',
         }))
       )
     })
@@ -48,6 +50,7 @@ export default function SchedulePage() {
   }, [user?.uid])
 
   const handleUpdate = useCallback(async (id, event) => {
+    if (event.userId && event.userId !== user?.uid) return
     try {
       await updateScheduleEvent(id, {
         title: event.title,
@@ -61,15 +64,16 @@ export default function SchedulePage() {
     } catch (err) {
       console.error('Failed to update event:', err)
     }
-  }, [])
+  }, [user?.uid])
 
-  const handleDelete = useCallback(async (id) => {
+  const handleDelete = useCallback(async (id, event) => {
+    if (event?.userId && event.userId !== user?.uid) return
     try {
       await deleteScheduleEvent(id)
     } catch (err) {
       console.error('Failed to delete event:', err)
     }
-  }, [])
+  }, [user?.uid])
 
   return (
     <div className="p-4 sm:p-6">
@@ -83,6 +87,7 @@ export default function SchedulePage() {
         <EventManager
           key="schedule-manager"
           events={events}
+          currentUserId={user?.uid}
           categories={["Survey", "Monitoring", "Meeting", "Training", "Review", "Deadline", "Trip"]}
           availableTags={["Important", "Urgent", "Field", "Community", "Government", "Team"]}
           defaultView="month"
