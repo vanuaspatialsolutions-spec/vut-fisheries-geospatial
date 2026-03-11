@@ -79,7 +79,6 @@ function TripStatusBadge({ trip }) {
 function Section({ icon: Icon, title, subtitle, children }) {
   return (
     <div className="card space-y-4">
-        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       <div className="flex items-start gap-3 border-b border-gray-100 pb-3">
         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Icon size={15} className="text-primary" />
@@ -90,6 +89,7 @@ function Section({ icon: Icon, title, subtitle, children }) {
         </div>
       </div>
       {children}
+      <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
     </div>
   );
 }
@@ -101,7 +101,6 @@ function TripCard({ trip, onEdit, onDelete, deleting }) {
 
   return (
     <div className="card group">
-        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
       {/* Top row: status + actions */}
       <div className="flex items-start justify-between gap-2">
         <TripStatusBadge trip={trip} />
@@ -242,6 +241,7 @@ function TripCard({ trip, onEdit, onDelete, deleting }) {
           )}
         </div>
       )}
+      <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
     </div>
   );
 }
@@ -473,8 +473,8 @@ export default function TripsPage() {
 
               {loadingTrip ? (
                 <div className="card flex items-center justify-center py-12 text-gray-400 text-sm">
-        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
                   Loading trip…
+                  <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
                 </div>
               ) : (
                 <>
@@ -734,7 +734,6 @@ export default function TripsPage() {
             {/* Right sidebar summary */}
             <div className="space-y-4 sticky top-6">
               <div className="card space-y-3">
-        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
                 <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
                   <FileText size={14} className="text-primary" />
                   Trip Summary
@@ -829,6 +828,7 @@ export default function TripsPage() {
                     Cancel
                   </button>
                 </div>
+                <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
               </div>
             </div>
 
@@ -839,7 +839,6 @@ export default function TripsPage() {
       {/* Saved trip records */}
       {trips.length === 0 && !showForm ? (
         <div className="card flex flex-col items-center py-20 gap-4 text-center">
-        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
             <Plane size={28} className="text-primary opacity-60" />
           </div>
@@ -852,6 +851,7 @@ export default function TripsPage() {
           <button onClick={openNewForm} className="btn-primary">
             <Plus size={14} /> Plan the first trip
           </button>
+          <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} borderWidth={2} disabled={false} />
         </div>
       ) : trips.length > 0 ? (
         <div>
