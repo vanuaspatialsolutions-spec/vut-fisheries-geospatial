@@ -4,32 +4,35 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeToNotifications, markNotificationRead, markAllNotificationsRead } from '../../utils/messaging';
 import {
-  LogOut, Bell, MessageSquare, Paperclip, Menu,
-  LayoutDashboard, Users, Anchor, Activity, Database, Settings, FolderOpen, UserCircle,
+  LogOut, Bell, MessageCircle, Paperclip, Menu,
+  LayoutDashboard, ClipboardList, Waves, Microscope, Layers,
+  ShieldCheck, FileStack, UserCircle, Ship, CalendarCheck,
 } from 'lucide-react';
 import UserAvatar from '../UserAvatar';
 import { toast } from 'sonner';
 
 const routeMeta = {
   '/dashboard':        { title: 'Dashboard',              desc: 'Real-time overview',          icon: LayoutDashboard },
-  '/surveys':          { title: 'Community Surveys',       desc: 'CBFM survey records',         icon: Users           },
-  '/surveys/new':      { title: 'New Survey',              desc: 'Community Surveys',           icon: Users           },
-  '/marine':           { title: 'Marine Areas',            desc: 'LMMAs & protected zones',     icon: Anchor          },
-  '/marine/new':       { title: 'New Marine Area',         desc: 'Marine Areas',                icon: Anchor          },
-  '/monitoring':       { title: 'Biological Monitoring',   desc: 'Reef & ecosystem data',       icon: Activity        },
-  '/monitoring/new':   { title: 'New Monitoring Record',   desc: 'Biological Monitoring',       icon: Activity        },
-  '/datasets':         { title: 'Datasets',                desc: 'Files & geospatial data',     icon: Database        },
-  '/datasets/upload':  { title: 'Upload Dataset',          desc: 'Datasets',                    icon: Database        },
-  '/files':            { title: 'My Files',                desc: 'Personal file storage',       icon: FolderOpen      },
-  '/messages':         { title: 'Messages',                desc: 'Chat with team members',      icon: MessageSquare   },
-  '/profile':          { title: 'My Profile',             desc: 'Account & profile settings',  icon: UserCircle      },
-  '/admin':            { title: 'Admin Panel',             desc: 'User & content management',   icon: Settings        },
+  '/surveys':          { title: 'Community Surveys',       desc: 'CBFM survey records',         icon: ClipboardList   },
+  '/surveys/new':      { title: 'New Survey',              desc: 'Community Surveys',           icon: ClipboardList   },
+  '/marine':           { title: 'Marine Areas',            desc: 'LMMAs & protected zones',     icon: Waves           },
+  '/marine/new':       { title: 'New Marine Area',         desc: 'Marine Areas',                icon: Waves           },
+  '/monitoring':       { title: 'Biological Monitoring',   desc: 'Reef & ecosystem data',       icon: Microscope      },
+  '/monitoring/new':   { title: 'New Monitoring Record',   desc: 'Biological Monitoring',       icon: Microscope      },
+  '/datasets':         { title: 'Datasets',                desc: 'Files & geospatial data',     icon: Layers          },
+  '/datasets/upload':  { title: 'Upload Dataset',          desc: 'Datasets',                    icon: Layers          },
+  '/schedule':         { title: 'Schedule',                desc: 'Field activity planning',     icon: CalendarCheck   },
+  '/trips':            { title: 'Trips',                   desc: 'Field trip records',          icon: Ship            },
+  '/files':            { title: 'My Files',                desc: 'Personal file storage',       icon: FileStack       },
+  '/messages':         { title: 'Messages',                desc: 'Chat with team members',      icon: MessageCircle   },
+  '/profile':          { title: 'My Profile',              desc: 'Account & profile settings',  icon: UserCircle      },
+  '/admin':            { title: 'Admin Panel',             desc: 'User & content management',   icon: ShieldCheck     },
 };
 
 const roleBadge = {
-  admin:             'bg-gray-100 text-gray-700',
-  staff:             'bg-gray-100 text-gray-700',
-  community_officer: 'bg-gray-100 text-gray-700',
+  admin:             'bg-blue-50 text-blue-700 border border-blue-100',
+  staff:             'bg-indigo-50 text-indigo-700 border border-indigo-100',
+  community_officer: 'bg-teal-50 text-teal-700 border border-teal-100',
 };
 const roleLabel = {
   admin:             'Admin',
@@ -222,8 +225,8 @@ export default function Header({ onMenuClick }) {
                     onClick={() => handleNotifClick(n)}
                     className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0"
                   >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${n.type === 'file_share' ? 'bg-blue-50 text-blue-500' : 'bg-gray-100 text-gray-500'}`}>
-                      {n.type === 'file_share' ? <Paperclip size={12} /> : <MessageSquare size={12} />}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${n.type === 'file_share' ? 'bg-blue-50 text-blue-500' : 'bg-violet-50 text-violet-500'}`}>
+                      {n.type === 'file_share' ? <Paperclip size={12} /> : <MessageCircle size={12} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-gray-800">{n.fromName}</p>

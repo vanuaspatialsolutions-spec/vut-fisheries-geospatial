@@ -15,23 +15,23 @@ import {
 import CBFMMap from '../components/Map/CBFMMap';
 import { VANUATU_PROVINCES, PROVINCE_BOUNDARY_HA } from '../utils/constants';
 import {
-  Users, Anchor, Activity, Database, Plus, MapPin,
-  ArrowUpRight, RefreshCw, BarChart2, Shield,
-  Waves, Layers, Filter, AlertTriangle, TrendingUp,
-  Globe, Leaf,
+  ClipboardList, Waves, Microscope, Layers, Plus, MapPin,
+  ArrowUpRight, RefreshCw, BarChart2, ShieldCheck,
+  Filter, AlertTriangle, TrendingUp,
+  Globe, TreePine, UsersRound, Ship,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { GlowingEffect } from '../components/ui/glowing-effect';
 
 const VANUATU_MARINE_HA = 5_000_000;
-const CHART_COLORS = ['#0891b2','#0d9488','#2563eb','#7c3aed','#db2777','#d97706','#16a34a'];
+const CHART_COLORS = ['#0369a1','#0891b2','#0d9488','#0284c7','#6366f1','#8b5cf6','#10b981'];
 const PROVINCE_COLORS = { Malampa:'#7c3aed',Penama:'#0891b2',Sanma:'#0d9488',Shefa:'#d97706',Tafea:'#ef4444',Torba:'#6366f1' };
 const LAYER_CFG = [
-  { key:'surveys',    label:'Surveys',    icon:Users,    on:'bg-violet-600 text-white border-violet-600',  dot:'bg-violet-400' },
-  { key:'marine',     label:'Marine',     icon:Anchor,   on:'bg-blue-600 text-white border-blue-600',      dot:'bg-blue-400'   },
-  { key:'monitoring', label:'Monitoring', icon:Activity, on:'bg-teal-600 text-white border-teal-600',      dot:'bg-teal-400'   },
-  { key:'datasets',   label:'Datasets',   icon:Database, on:'bg-cyan-600 text-white border-cyan-600',      dot:'bg-cyan-400'   },
+  { key:'surveys',    label:'Surveys',    icon:ClipboardList, on:'bg-violet-600 text-white border-violet-600',  dot:'bg-violet-400' },
+  { key:'marine',     label:'Marine',     icon:Waves,         on:'bg-blue-600 text-white border-blue-600',      dot:'bg-blue-400'   },
+  { key:'monitoring', label:'Monitoring', icon:Microscope,    on:'bg-teal-600 text-white border-teal-600',      dot:'bg-teal-400'   },
+  { key:'datasets',   label:'Datasets',   icon:Layers,        on:'bg-cyan-600 text-white border-cyan-600',      dot:'bg-cyan-400'   },
 ];
 const LEGEND_ITEMS = [
   { color:'bg-gray-700',   label:'Community Survey',                round:true  },
@@ -43,10 +43,10 @@ const LEGEND_ITEMS = [
 const AREA_TYPE_LABEL = { lmma:'LMMA',taboo_area:'Taboo Area',patrol_zone:'Patrol Zone',buffer_zone:'Buffer Zone',spawning_aggregation:'Spawning Site',other:'Other' };
 const STATUS_COLORS = { Active:'#16a34a',Inactive:'#dc2626','Under Review':'#d97706',Proposed:'#2563eb',Published:'#0891b2' };
 const QUICK = [
-  { label:'New Survey',   to:'/surveys/new',     icon:Users    },
-  { label:'Marine Area',  to:'/marine/new',       icon:Anchor   },
-  { label:'Bio. Record',  to:'/monitoring/new',   icon:Activity },
-  { label:'Upload Data',  to:'/datasets/upload',  icon:Database },
+  { label:'New Survey',   to:'/surveys/new',     icon:ClipboardList },
+  { label:'Marine Area',  to:'/marine/new',       icon:Waves         },
+  { label:'Bio. Record',  to:'/monitoring/new',   icon:Microscope    },
+  { label:'Upload Data',  to:'/datasets/upload',  icon:Layers        },
 ];
 const CATEGORY_LABELS = {
   marine_spatial_plan: 'Marine areas under spatial plan',
@@ -280,12 +280,12 @@ export default function DashboardPage() {
   const totalMarineHa = totalSpatialHa + dsRestorationHa;
 
   const heroCards = [
-    { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones',                            icon:Anchor,  color:'#2563eb' },
-    { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1,      icon:Layers,  color:'#0d9488' },
-    { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, icon:Shield, color:'#10b981' },
-    { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3,      icon:Globe,   color:'#7c3aed' },
-    { label:'Communities in Conservation', value:new Set([...(marine.communities || []), ...(surveys.communities || [])]).size, sub:'unique communities engaged', icon:Users,  color:'#f97316' },
-    { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1,      icon:Leaf,    color:'#16a34a' },
+    { label:'Marine Areas — Spatial Plan', value:totalSpatialCount,                              sub:'total managed marine zones',                            icon:Waves,       color:'#2563eb' },
+    { label:'Total Spatial Coverage',      value:parseFloat(totalMarineHa.toFixed(1)), unit:'ha', sub:'spatial plan + habitat restoration',   decimals:1,      icon:Layers,      color:'#0d9488' },
+    { label:'Marine Areas Protected',      value:totalProtectedCount,                            sub:`${Math.round(totalProtectedHa).toLocaleString()} ha protected`, icon:ShieldCheck, color:'#10b981' },
+    { label:'% MPA of Vanuatu Waters',     value:mpaPct, unit:'%',                               sub:'of ~50,000 km² territorial sea',        decimals:3,      icon:Globe,       color:'#7c3aed' },
+    { label:'Communities in Conservation', value:new Set([...(marine.communities || []), ...(surveys.communities || [])]).size, sub:'unique communities engaged', icon:UsersRound,  color:'#f97316' },
+    { label:'Habitat Restoration Areas',   value:parseFloat(totalRestorationHa.toFixed(1)), unit:'ha', sub:'mangrove & seagrass habitats',    decimals:1,      icon:TreePine,    color:'#16a34a' },
   ];
 
   const marineByType = [
