@@ -54,8 +54,17 @@ export default function Header({ onMenuClick }) {
 
   const [notifications, setNotifications]   = useState([]);
   const [showNotifs, setShowNotifs]         = useState(false);
+  const [panelPos, setPanelPos]             = useState({ top: 0, right: 0 });
   const bellRef = useRef(null);
   const panelRef = useRef(null);
+
+  const handleBellClick = () => {
+    if (!showNotifs && bellRef.current) {
+      const r = bellRef.current.getBoundingClientRect();
+      setPanelPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+    setShowNotifs(v => !v);
+  };
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -159,7 +168,7 @@ export default function Header({ onMenuClick }) {
         <div className="relative">
           <button
             ref={bellRef}
-            onClick={() => setShowNotifs(v => !v)}
+            onClick={handleBellClick}
             className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative"
             title="Notifications"
           >
@@ -171,13 +180,15 @@ export default function Header({ onMenuClick }) {
             )}
           </button>
 
-          {/* Notification dropdown */}
+          {/* Notification dropdown — fixed so it escapes all stacking contexts */}
           {showNotifs && (
             <div
               ref={panelRef}
-              className="absolute right-0 top-9 z-50 w-80 rounded-xl overflow-hidden"
+              className="fixed z-[200] w-80 rounded-xl overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.90)',
+                top: panelPos.top,
+                right: panelPos.right,
+                background: 'rgba(255,255,255,0.95)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
                 border: '1px solid rgba(255,255,255,0.65)',
